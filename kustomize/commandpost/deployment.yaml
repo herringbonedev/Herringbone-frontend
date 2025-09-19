@@ -22,4 +22,4 @@ spec:
               protocol: TCP
           env:
             - name: LOGS_API_ENDPOINT
-              value: http://herringbone-logs-service.herringbone.svc.cluster.local:7002
+              value: http://herringbone-logs-service.herringbone.svc.cluster.local:7002/herringbone/logs/get_docs
