@@ -16,61 +16,87 @@
     <p>This is the central hub for managing and monitoring your Herringbone deployment. Here, you can view the status of various components, access logs, and configure settings.</p>
     <br>
 
-<div class="table-wrap">
-  <table class="hb-table">
-    <colgroup>
-      <col class="col-id">
-      <col class="col-time">
-      <col class="col-user">
-      <col class="col-ip">
-      <col class="col-source">
-      <col class="col-desc">
-      <col class="col-detector">
-      <col class="col-detection">
-      <col class="col-raw">
-      <col class="col-flag">  <!-- recon -->
-      <col class="col-flag">  <!-- detected -->
-    </colgroup>
+    {% set rows = log_rows or [] %}
 
-    <thead>
-      <tr>
-        <th>_id</th>
-        <th>time</th>
-        <th>user</th>
-        <th>ip</th>
-        <th>source</th>
-        <th>description</th>
-        <th>detector rule</th>
-        <th>detection</th>
-        <th>raw log</th>
-        <th>recon</th>
-        <th>detected</th>
-      </tr>
-    </thead>
+    <div class="table-wrap">
+      <table class="hb-table">
+        <colgroup>
+          <col class="col-id">
+          <col class="col-time">
+          <col class="col-user">
+          <col class="col-ip">
+          <col class="col-source">
+          <col class="col-desc">
+          <col class="col-detector">
+          <col class="col-detection">
+          <col class="col-raw">
+          <col class="col-flag">  <!-- recon -->
+          <col class="col-flag">  <!-- detected -->
+        </colgroup>
 
-    <tbody>
-        {% for r in log_rows if r %}
-        {% set rec = r or {} %}
-        {% set rd  = rec.get('recon_data') or {} %}
-        <tr>
-            <td class="truncate-1" title="{{ rec.get('_id','') }}">{{ rec.get('_id','') }}</td>
-            <td class="truncate-1" title="{{ rd.get('time') or '' }}">{{ rd.get('time') or '' }}</td>
-            <td class="truncate-1" title="{{ rd.get('user') or '' }}">{{ rd.get('user') or '' }}</td>
-            <td class="truncate-1" title="{{ rd.get('ip_addresses') or '' }}">{{ rd.get('ip_addresses') or '' }}</td>
-            <td class="truncate-1" title="{{ rec.get('source_address','') }}">{{ rec.get('source_address','') }}</td>
-            <td class="clamp-2"    title="{{ rd.get('description') or '' }}">{{ rd.get('description') or '' }}</td>
-            <td class="clamp-2"    title="{{ rec.get('detector_rule') or '' }}">{{ rec.get('detector_rule') or '' }}</td>
-            <td class="clamp-2"    title="{{ rec.get('detection') or '' }}">{{ rec.get('detection') or '' }}</td>
-            <td class="code clamp-2" title="{{ rec.get('raw_log') or '' }}">{{ rec.get('raw_log') or '' }}</td>
-            <td><span class="chip {{ 'chip-true' if rec.get('recon') else 'chip-false' }}">{{ rec.get('recon') }}</span></td>
-            <td><span class="chip {{ 'chip-true' if rec.get('detected') else 'chip-false' }}">{{ rec.get('detected') }}</span></td>
-        </tr>
-        {% else %}
-        <tr><td colspan="11" class="muted" style="text-align:center;">No logs</td></tr>
-        {% endfor %}
-    </tbody>
-  </table>
+        <thead>
+          <tr>
+            <th>_id</th>
+            <th>time</th>
+            <th>user</th>
+            <th>ip</th>
+            <th>source</th>
+            <th>description</th>
+            <th>detector rule</th>
+            <th>detection</th>
+            <th>raw log</th>
+            <th>recon</th>
+            <th>detected</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for r in rows if r %}
+            {# ensure dicts for safe .get() calls #}
+            {% set rec = r or {} %}
+            {% set rd  = rec.get('recon_data') or {} %}
+
+            <tr>
+              <td class="truncate-1" title="{{ rec.get('_id','') }}">{{ rec.get('_id','') }}</td>
+              <td class="truncate-1" title="{{ rd.get('time') or '' }}">{{ rd.get('time') or '' }}</td>
+              <td class="truncate-1" title="{{ rd.get('user') or '' }}">{{ rd.get('user') or '' }}</td>
+              <td class="truncate-1" title="{{ rd.get('ip_addresses') or '' }}">{{ rd.get('ip_addresses') or '' }}</td>
+              <td class="truncate-1" title="{{ rec.get('source_address','') }}">{{ rec.get('source_address','') }}</td>
+
+              <td class="clamp-2" title="{{ rd.get('description') or '' }}">
+                {{ rd.get('description') or '' }}
+              </td>
+
+              <td class="clamp-2" title="{{ rec.get('detector_rule') or '' }}">
+                {{ rec.get('detector_rule') or '' }}
+              </td>
+
+              <td class="clamp-2" title="{{ rec.get('detection') or '' }}">
+                {{ rec.get('detection') or '' }}
+              </td>
+
+              <td class="code clamp-2" title="{{ rec.get('raw_log') or '' }}">
+                {{ rec.get('raw_log') or '' }}
+              </td>
+
+              <td>
+                <span class="chip {{ 'chip-true' if rec.get('recon') else 'chip-false' }}">
+                  {{ rec.get('recon') }}
+                </span>
+              </td>
+              <td>
+                <span class="chip {{ 'chip-true' if rec.get('detected') else 'chip-false' }}">
+                  {{ rec.get('detected') }}
+                </span>
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="11" class="muted" style="text-align:center;">No logs</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </body>
 </html>
-
