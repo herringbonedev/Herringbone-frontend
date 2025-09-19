@@ -26,11 +26,11 @@ COPY --from=builder /app /app
 
 # Run as nonroot (Chainguard default UID)
 USER 65532
-EXPOSE 8000
+EXPOSE 5000
 
 # (optional) put venv first on PATH
 ENV PATH="/app/.venv/bin:${PATH}"
 
 # Option B: use the venv's python and run uvicorn as a module
 ENTRYPOINT ["/app/.venv/bin/python"]
-CMD ["-m","uvicorn","main:app","--host","0.0.0.0","--port","8000","--workers","2"]
+CMD ["-m","uvicorn","main:app","--host","0.0.0.0","--port","5000","--workers","2"]
