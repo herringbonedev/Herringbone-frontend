@@ -26,6 +26,7 @@
         <col class="col-source">
         <col class="col-desc">
         <col class="col-raw">
+        <col class="detector-rule">
         <col class="col-flag"> <!-- recon -->
         <col class="col-flag"> <!-- detected -->
         </colgroup>
@@ -38,6 +39,8 @@
             <th>ip</th>
             <th>source</th>
             <th>description</th>
+            <th>detector rule</th>
+            <th>detection</th>
             <th>raw log</th>
             <th>recon</th>
             <th>detected</th>
@@ -55,6 +58,8 @@
             <td>{{ r.get('source_address','') }}</td>
             <td class="truncate" title="{{ rd.get('description','') }}">{{ rd.get('description','') }}</td>
             <td class="code">{{ r.get('raw_log','') }}</td>
+            <td class="code">{{ r.get('detector_rule','') }}</td>
+            <td class="code">{{ r.get('detection','') }}</td>
             <td><span class="chip {{ 'chip-true' if r.get('recon') else 'chip-false' }}">{{ r.get('recon') }}</span></td>
             <td><span class="chip {{ 'chip-true' if r.get('detected') else 'chip-false' }}">{{ r.get('detected') }}</span></td>
         </tr>
