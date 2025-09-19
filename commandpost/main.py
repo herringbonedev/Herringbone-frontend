@@ -17,7 +17,7 @@ def home(request: Request):
 
     # Load the latest logs
     logs_result = requests.get(LOGS_API_ENDPOINT)
-    logs_result = logs_result.content()
+    logs_result = logs_result.content
     print(logs_result)
 
     return templates.TemplateResponse("index.html", {"request": request})
