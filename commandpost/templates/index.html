@@ -16,59 +16,60 @@
     <p>This is the central hub for managing and monitoring your Herringbone deployment. Here, you can view the status of various components, access logs, and configure settings.</p>
     <br>
 
-    <div class="table-wrap">
-    <table class="hb-table">
-        <colgroup>
-        <col class="col-id">
-        <col class="col-time">
-        <col class="col-user">
-        <col class="col-ip">
-        <col class="col-source">
-        <col class="col-desc">
-        <col class="col-raw">
-        <col class="detector-rule">
-        <col class="col-flag"> <!-- recon -->
-        <col class="col-flag"> <!-- detected -->
-        </colgroup>
+<div class="table-wrap">
+  <table class="hb-table">
+    <colgroup>
+      <col class="col-id">
+      <col class="col-time">
+      <col class="col-user">
+      <col class="col-ip">
+      <col class="col-source">
+      <col class="col-desc">
+      <col class="col-detector">
+      <col class="col-detection">
+      <col class="col-raw">
+      <col class="col-flag">  <!-- recon -->
+      <col class="col-flag">  <!-- detected -->
+    </colgroup>
 
-        <thead>
-        <tr>
-            <th>_id</th>
-            <th>time</th>
-            <th>user</th>
-            <th>ip</th>
-            <th>source</th>
-            <th>description</th>
-            <th>detector rule</th>
-            <th>detection</th>
-            <th>raw log</th>
-            <th>recon</th>
-            <th>detected</th>
-        </tr>
-        </thead>
+    <thead>
+      <tr>
+        <th>_id</th>
+        <th>time</th>
+        <th>user</th>
+        <th>ip</th>
+        <th>source</th>
+        <th>description</th>
+        <th>detector rule</th>
+        <th>detection</th>
+        <th>raw log</th>
+        <th>recon</th>
+        <th>detected</th>
+      </tr>
+    </thead>
 
-        <tbody>
-        {% for r in log_rows %}
-        {% set rd = r.get('recon_data', {}) %}
-        <tr>
-            <td class="truncate" title="{{ r.get('_id','') }}">{{ r.get('_id','') }}</td>
-            <td>{{ rd.get('time','') }}</td>
-            <td>{{ rd.get('user','') }}</td>
-            <td>{{ rd.get('ip_addresses','') }}</td>
-            <td>{{ r.get('source_address','') }}</td>
-            <td class="truncate" title="{{ rd.get('description','') }}">{{ rd.get('description','') }}</td>
-            <td class="code">{{ r.get('raw_log','') }}</td>
-            <td class="code">{{ r.get('detector_rule','') }}</td>
-            <td class="code">{{ r.get('detection','') }}</td>
-            <td><span class="chip {{ 'chip-true' if r.get('recon') else 'chip-false' }}">{{ r.get('recon') }}</span></td>
-            <td><span class="chip {{ 'chip-true' if r.get('detected') else 'chip-false' }}">{{ r.get('detected') }}</span></td>
-        </tr>
-        {% else %}
-        <tr><td colspan="9" class="muted" style="text-align:center;">No logs</td></tr>
-        {% endfor %}
-        </tbody>
-    </table>
-    </div>
+    <tbody>
+      {% for r in log_rows %}
+      {% set rd = r.get('recon_data', {}) %}
+      <tr>
+        <td class="truncate-1" title="{{ r.get('_id','') }}">{{ r.get('_id','') }}</td>
+        <td class="truncate-1" title="{{ rd.get('time','') }}">{{ rd.get('time','') }}</td>
+        <td class="truncate-1" title="{{ rd.get('user','') }}">{{ rd.get('user','') }}</td>
+        <td class="truncate-1" title="{{ rd.get('ip_addresses','') }}">{{ rd.get('ip_addresses','') }}</td>
+        <td class="truncate-1" title="{{ r.get('source_address','') }}">{{ r.get('source_address','') }}</td>
+        <td class="clamp-2"    title="{{ rd.get('description','') }}">{{ rd.get('description','') }}</td>
+        <td class="clamp-2"    title="{{ r.get('detector_rule','') }}">{{ r.get('detector_rule','') }}</td>
+        <td class="clamp-2"    title="{{ r.get('detection','') }}">{{ r.get('detection','') }}</td>
+        <td class="code clamp-2" title="{{ r.get('raw_log','') }}">{{ r.get('raw_log','') }}</td>
+        <td><span class="chip {{ 'chip-true' if r.get('recon') else 'chip-false' }}">{{ r.get('recon') }}</span></td>
+        <td><span class="chip {{ 'chip-true' if r.get('detected') else 'chip-false' }}">{{ r.get('detected') }}</span></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="11" class="muted" style="text-align:center;">No logs</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
   </body>
 </html>
 

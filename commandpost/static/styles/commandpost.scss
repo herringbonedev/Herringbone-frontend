@@ -1,47 +1,49 @@
-/* DENSE + CLEAN TABLE */
 .table-wrap {
   background: #121212;
   border: 1px solid #222;
   border-radius: 12px;
-  overflow: auto;
+  overflow: auto;                 // horizontal scroll if needed
   box-shadow: 0 10px 30px rgba(0,0,0,.35);
-  margin-top: .75rem;        /* tighter top space */
+  margin-top: .75rem;
 }
 
 .hb-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  table-layout: fixed;       /* prevents weird stretching */
-  font-size: .82rem;         /* slightly smaller */
+  table-layout: fixed;            // keeps widths predictable
+  font-size: .82rem;
   color: #e8e8e8;
 
-  /* tighter columns */
-  col.col-id     { width: 18ch; }
-  col.col-time   { width: 18ch; }
-  col.col-user   { width: 12ch; }
-  col.col-ip     { width: 14ch; }
-  col.col-source { width: 14ch; }
-  col.col-desc   { width: 28%;  }
-  col.col-raw    { width: 32%;  }
-  col.col-flag   { width: 10ch; }
+  // column widths (tune as you like)
+  col.col-id        { width: 18ch; }
+  col.col-time      { width: 18ch; }
+  col.col-user      { width: 12ch; }
+  col.col-ip        { width: 14ch; }
+  col.col-source    { width: 14ch; }
+  col.col-desc      { width: 24%;  }
+  col.col-detector  { width: 18%;  }
+  col.col-detection { width: 12%;  }
+  col.col-raw       { width: 26%;  }
+  col.col-flag      { width: 9ch;  }
 
   th, td {
-    padding: .35rem .55rem;  /* tighter cell padding */
+    padding: .32rem .55rem;       // tighter
     border-right: 1px solid #1f1f1f;
-    line-height: 1.2;        /* denser line height */
+    line-height: 1.2;
+    vertical-align: top;
   }
   th:last-child, td:last-child { border-right: 0; }
 
   thead th {
     position: sticky; top: 0; z-index: 2;
+    background: linear-gradient(180deg, #191919, #151515);
+    border-bottom: 1px solid #262626;
     text-align: left;
     text-transform: uppercase;
     letter-spacing: .03em;
     font-size: .72rem;
     font-weight: 600;
-    background: linear-gradient(180deg, #191919, #151515);
-    border-bottom: 1px solid #262626;
     color: #cfcfcf;
   }
 
@@ -50,14 +52,9 @@
   tbody tr:hover td { background: #1c1c1c; transition: background .12s ease; }
 }
 
-/* truncate to a single line (IDs, short fields) */
-.truncate-1 {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+/* utilities */
+.truncate-1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* clamp to 2 lines (desc/raw) */
 .clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -65,16 +62,25 @@
   overflow: hidden;
 }
 
-/* monospace but compact for raw log */
 .code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+               "Liberation Mono","Courier New", monospace;
   white-space: pre-wrap;
   word-break: break-word;
   line-height: 1.25;
   font-size: .8rem;
 }
 
-/* chips stay, but reduce padding for density */
-.chip { padding: .1rem .45rem; font-size: .68rem; border-radius: 999px; border: 1px solid #2a2a2a; background: #171717; }
+.muted { color: #a0a0a0; }
+
+/* chips */
+.chip {
+  display: inline-block;
+  padding: .1rem .45rem;
+  border-radius: 999px;
+  border: 1px solid #2a2a2a;
+  background: #171717;
+  font-size: .68rem;
+}
 .chip-true  { background: rgba(34,197,94,.12);  border-color: rgba(34,197,94,.35);  color:#86efac; }
 .chip-false { background: rgba(239,68,68,.12);  border-color: rgba(239,68,68,.35);  color:#fca5a5; }
