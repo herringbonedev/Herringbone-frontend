@@ -1,25 +1,64 @@
 <!doctype html>
 <html>
-    <head>
-        <meta charset="utf-8">
-        <title>Commandpost</title>
-        <style>
-        body { font-family: sans-serif; background:#111; color:#eee; padding:2rem; }
-        h1 { font-size:1.5rem; margin-bottom:1rem; }
-        .card { background:#222; padding:1rem; margin-bottom:1rem; border-radius:8px; }
-        .name { font-weight:bold; }
-        .desc { color:#aaa; }
-        </style>
-    </head>
-    <body>
-        <h1>
-        <img src="{{ url_for('static', path='logo.png') }}"
-            alt="Herringbone logo"
-            style="height:2em; vertical-align:-0.25em; margin-right:.6rem;">
-        Commandpost (Herringbone Alpha UI)
-        </h1>
-        <hr>
-        <p>This is the central hub for managing and monitoring your Herringbone deployment. Here, you can view the status of various components, access logs, and configure settings.</p>
-        <br>
-    </body>
+  <head>
+    <meta charset="utf-8">
+    <title>Commandpost</title>
+    <style>
+      body { font-family: sans-serif; background:#111; color:#eee; padding:2rem; }
+      h1 { font-size:1.5rem; margin-bottom:1rem; }
+      .card { background:#222; padding:1rem; margin-bottom:1rem; border-radius:8px; }
+      .name { font-weight:bold; }
+      .desc { color:#aaa; }
+      table { width:100%; border-collapse: collapse; margin-top:1rem; }
+      th, td { border:1px solid #333; padding:.5rem; vertical-align: top; }
+      th { background:#1b1b1b; text-align:left; }
+      tr:nth-child(even) { background:#1a1a1a; }
+    </style>
+  </head>
+  <body>
+    <h1>
+      <img src="{{ url_for('static', path='logo.png') }}"
+           alt="Herringbone logo"
+           style="height:2em; vertical-align:-0.25em; margin-right:.6rem;">
+      Commandpost (Herringbone Alpha UI)
+    </h1>
+    <hr>
+    <p>This is the central hub for managing and monitoring your Herringbone deployment. Here, you can view the status of various components, access logs, and configure settings.</p>
+    <br>
+
+    <!-- Logs table -->
+    <table>
+      <thead>
+        <tr>
+          <th>_id</th>
+          <th>time</th>
+          <th>user</th>
+          <th>ip_addresses</th>
+          <th>source_address</th>
+          <th>description</th>
+          <th>raw_log</th>
+          <th>last_update</th>
+          <th>last_processed</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in log_rows %}
+        <tr>
+          <td>{{ r.get("_id") }}</td>
+          <td>{{ r.get("recon_data", {}).get("time", "") }}</td>
+          <td>{{ r.get("recon_data", {}).get("user", "") }}</td>
+          <td>{{ r.get("recon_data", {}).get("ip_addresses", "") }}</td>
+          <td>{{ r.get("source_address","") }}</td>
+          <td>{{ r.get("recon_data", {}).get("description","") }}</td>
+          <td style="max-width: 420px; white-space: pre-wrap;">{{ r.get("raw_log","") }}</td>
+          <td>{{ r.get("last_update","") }}</td>
+          <td>{{ r.get("last_processed","") }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="9" style="text-align:center; color:#aaa;">No logs</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </body>
 </html>
+
