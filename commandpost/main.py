@@ -22,4 +22,4 @@ def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request, "logs_result": logs_result})
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=5000)
