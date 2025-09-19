@@ -3,8 +3,7 @@ name: (Commandpost) Build
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [ main ]
     paths:
       - 'commandpost/**'
       - '.github/workflows/commandpost.yml'
@@ -17,66 +16,52 @@ permissions:
 jobs:
   build-test-push:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        with: { fetch-depth: 0 }
 
-      - name: Install tools (yq, skopeo, jq)
+      - name: Install yq
         run: |
           set -euo pipefail
           sudo wget https://github.com/mikefarah/yq/releases/download/v4.43.1/yq_linux_amd64 -O /usr/bin/yq
           sudo chmod +x /usr/bin/yq
-          sudo apt-get update
-          sudo apt-get install -y skopeo jq
 
-      - name: Set up Docker Buildx
+      - name: Set SHORT_SHA
+        run: echo "SHORT_SHA=${GITHUB_SHA::8}" >> $GITHUB_ENV
+
+      - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Quay
+      - name: Login to Quay (using your DOCKER_* secrets)
         uses: docker/login-action@v3
         with:
           registry: quay.io
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          username: ${{ secrets.DOCKER_USERNAME }}   # must be a Quay user or robot (e.g., herringbone+pushbot)
+          password: ${{ secrets.DOCKER_PASSWORD }}   # Quay robot token or user CLI token
 
-      # Build, test, and push the Docker image
-      - name: Build Docker image
-        env:
-          SHORT_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          SHORT_SHA=${SHORT_SHA::8}
-          docker build -t quay.io/herringbone/commandpost:latest-${SHORT_SHA}-${GITHUB_RUN_NUMBER} ./commandpost
-
-      - name: Push image (only if tests pass)
-        env:
-          SHORT_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          SHORT_SHA=${SHORT_SHA::8}
-          docker push quay.io/herringbone/commandpost:latest-${SHORT_SHA}-${GITHUB_RUN_NUMBER}
-
-      # Update kustomization.yaml with the new image tag & digest
-      - name: Get image digest
-        id: digest
-        env:
-          SHORT_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          SHORT_SHA=${SHORT_SHA::8}
-          DIGEST=$(skopeo inspect docker://quay.io/herringbone/commandpost:latest-${SHORT_SHA}-${GITHUB_RUN_NUMBER} | jq -r '.Digest')
-          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+      # Build AND push in one step (avoids tag mismatches)
+      - name: Build & Push image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: ./commandpost
+          file: ./commandpost/Dockerfile
+          push: true
+          platforms: linux/amd64
+          tags: |
+            quay.io/herringbone/commandpost:latest
+            quay.io/herringbone/commandpost:latest-${{ env.SHORT_SHA }}-${{ github.run_number }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Update kustomization.yaml with new image tag & digest
         run: |
           set -euo pipefail
-          SHORT_SHA=${GITHUB_SHA::8}
           TAG="latest-${SHORT_SHA}-${GITHUB_RUN_NUMBER}"
-          yq eval -i ".images[0].newTag = \"$TAG\"" kustomize/commandpost/kustomization.yaml
-          yq eval -i ".images[0].digest = \"${{ steps.digest.outputs.digest }}\"" kustomize/commandpost/kustomization.yaml
+          DIGEST="${{ steps.build.outputs.digest }}"
+          yq eval -i ".images[0].newTag = \"${TAG}\"" kustomize/commandpost/kustomization.yaml
+          yq eval -i ".images[0].digest = \"${DIGEST}\"" kustomize/commandpost/kustomization.yaml
 
       - name: Detect changes
         id: bump
@@ -88,14 +73,13 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      # Create/Update PR using peter-evans (gracefully no-ops if no diff)
       - name: Create PR (only if changes exist)
         if: steps.bump.outputs.changed == 'true'
         id: cpr
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "chore(Commandpost): bump image to ${{ steps.digest.outputs.digest }}"
+          commit-message: "chore(Commandpost): bump image to ${{ steps.build.outputs.digest }}"
           title: "chore(Commandpost): bump Commandpost image"
           body: |
             Automated update to kustomization for Commandpost image.
@@ -104,8 +88,7 @@ jobs:
           branch: auto/update/commandpost
           delete-branch: true
           signoff: true
-          labels: |
-            automation
+          labels: automation
 
       - name: Log PR result
         if: steps.bump.outputs.changed == 'true'
