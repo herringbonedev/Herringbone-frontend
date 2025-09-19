@@ -49,27 +49,28 @@
     </thead>
 
     <tbody>
-      {% for r in log_rows %}
-      {% set rd = r.get('recon_data', {}) %}
-      <tr>
-        <td class="truncate-1" title="{{ r.get('_id','') }}">{{ r.get('_id','') }}</td>
-        <td class="truncate-1" title="{{ rd.get('time','') }}">{{ rd.get('time','') }}</td>
-        <td class="truncate-1" title="{{ rd.get('user','') }}">{{ rd.get('user','') }}</td>
-        <td class="truncate-1" title="{{ rd.get('ip_addresses','') }}">{{ rd.get('ip_addresses','') }}</td>
-        <td class="truncate-1" title="{{ r.get('source_address','') }}">{{ r.get('source_address','') }}</td>
-        <td class="clamp-2"    title="{{ rd.get('description','') }}">{{ rd.get('description','') }}</td>
-        <td class="clamp-2"    title="{{ r.get('detector_rule','') }}">{{ r.get('detector_rule','') }}</td>
-        <td class="clamp-2"    title="{{ r.get('detection','') }}">{{ r.get('detection','') }}</td>
-        <td class="code clamp-2" title="{{ r.get('raw_log','') }}">{{ r.get('raw_log','') }}</td>
-        <td><span class="chip {{ 'chip-true' if r.get('recon') else 'chip-false' }}">{{ r.get('recon') }}</span></td>
-        <td><span class="chip {{ 'chip-true' if r.get('detected') else 'chip-false' }}">{{ r.get('detected') }}</span></td>
-      </tr>
-      {% else %}
-      <tr><td colspan="11" class="muted" style="text-align:center;">No logs</td></tr>
-      {% endfor %}
+        {% for r in log_rows if r %}
+        {% set rec = r or {} %}
+        {% set rd  = rec.get('recon_data') or {} %}
+        <tr>
+            <td class="truncate-1" title="{{ rec.get('_id','') }}">{{ rec.get('_id','') }}</td>
+            <td class="truncate-1" title="{{ rd.get('time') or '' }}">{{ rd.get('time') or '' }}</td>
+            <td class="truncate-1" title="{{ rd.get('user') or '' }}">{{ rd.get('user') or '' }}</td>
+            <td class="truncate-1" title="{{ rd.get('ip_addresses') or '' }}">{{ rd.get('ip_addresses') or '' }}</td>
+            <td class="truncate-1" title="{{ rec.get('source_address','') }}">{{ rec.get('source_address','') }}</td>
+            <td class="clamp-2"    title="{{ rd.get('description') or '' }}">{{ rd.get('description') or '' }}</td>
+            <td class="clamp-2"    title="{{ rec.get('detector_rule') or '' }}">{{ rec.get('detector_rule') or '' }}</td>
+            <td class="clamp-2"    title="{{ rec.get('detection') or '' }}">{{ rec.get('detection') or '' }}</td>
+            <td class="code clamp-2" title="{{ rec.get('raw_log') or '' }}">{{ rec.get('raw_log') or '' }}</td>
+            <td><span class="chip {{ 'chip-true' if rec.get('recon') else 'chip-false' }}">{{ rec.get('recon') }}</span></td>
+            <td><span class="chip {{ 'chip-true' if rec.get('detected') else 'chip-false' }}">{{ rec.get('detected') }}</span></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="11" class="muted" style="text-align:center;">No logs</td></tr>
+        {% endfor %}
     </tbody>
   </table>
-</div>
+    </div>
   </body>
 </html>
 
