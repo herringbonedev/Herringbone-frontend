@@ -45,7 +45,7 @@
         </thead>
 
         <tbody>
-        {% for r in rows %}
+        {% for r in log_rows %}
         {% set rd = r.get('recon_data', {}) %}
         <tr>
             <td class="truncate" title="{{ r.get('_id','') }}">{{ r.get('_id','') }}</td>
