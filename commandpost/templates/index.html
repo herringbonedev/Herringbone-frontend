@@ -52,7 +52,6 @@
 
         <tbody>
           {% for r in rows if r %}
-            {# ensure dicts for safe .get() calls #}
             {% set rec = r or {} %}
             {% set rd  = rec.get('recon_data') or {} %}
 
@@ -63,21 +62,14 @@
               <td class="truncate-1" title="{{ rd.get('ip_addresses') or '' }}">{{ rd.get('ip_addresses') or '' }}</td>
               <td class="truncate-1" title="{{ rec.get('source_address','') }}">{{ rec.get('source_address','') }}</td>
 
-              <td class="clamp-2" title="{{ rd.get('description') or '' }}">
-                {{ rd.get('description') or '' }}
-              </td>
+              <!-- long-ish text gets 2-line clamp -->
+              <td class="clamp-2" title="{{ rd.get('description') or '' }}">{{ rd.get('description') or '' }}</td>
+              <!-- detector/detection can be short; keep them single-line -->
+              <td class="truncate-1" title="{{ rec.get('detector_rule') or '' }}">{{ rec.get('detector_rule') or '' }}</td>
+              <td class="truncate-1" title="{{ rec.get('detection') or '' }}">{{ rec.get('detection') or '' }}</td>
 
-              <td class="clamp-2" title="{{ rec.get('detector_rule') or '' }}">
-                {{ rec.get('detector_rule') or '' }}
-              </td>
-
-              <td class="clamp-2" title="{{ rec.get('detection') or '' }}">
-                {{ rec.get('detection') or '' }}
-              </td>
-
-              <td class="code clamp-2" title="{{ rec.get('raw_log') or '' }}">
-                {{ rec.get('raw_log') or '' }}
-              </td>
+              <!-- raw log in compact monospace with 2-line clamp -->
+              <td class="code clamp-2" title="{{ rec.get('raw_log') or '' }}">{{ rec.get('raw_log') or '' }}</td>
 
               <td>
                 <span class="chip {{ 'chip-true' if rec.get('recon') else 'chip-false' }}">
@@ -91,9 +83,7 @@
               </td>
             </tr>
           {% else %}
-            <tr>
-              <td colspan="11" class="muted" style="text-align:center;">No logs</td>
-            </tr>
+            <tr><td colspan="11" class="muted" style="text-align:center;">No logs</td></tr>
           {% endfor %}
         </tbody>
       </table>

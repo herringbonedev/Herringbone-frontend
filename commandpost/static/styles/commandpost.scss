@@ -1,34 +1,45 @@
+/* --- Page basics (restore dark header area) --- */
+body {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  background: #111; color: #e8e8e8; padding: 1.5rem;
+}
+h1 { font-size: 1.75rem; margin: 0 0 .75rem; display:flex; align-items:center; }
+hr { border: 0; border-top: 1px solid #2a2a2a; margin: .75rem 0 1rem; }
+p { color: #c7c7c7; }
+
+/* --- Table container --- */
 .table-wrap {
   background: #121212;
   border: 1px solid #222;
   border-radius: 12px;
-  overflow: auto;                 // horizontal scroll if needed
+  overflow: auto; /* horizontal scroll if needed */
   box-shadow: 0 10px 30px rgba(0,0,0,.35);
   margin-top: .75rem;
 }
 
+/* --- Dense, clean table --- */
 .hb-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  table-layout: fixed;            // keeps widths predictable
+  table-layout: fixed;   /* predictable widths */
   font-size: .82rem;
   color: #e8e8e8;
 
-  // column widths (tune as you like)
+  /* column widths (tweak to taste) */
   col.col-id        { width: 18ch; }
   col.col-time      { width: 18ch; }
   col.col-user      { width: 12ch; }
   col.col-ip        { width: 14ch; }
   col.col-source    { width: 14ch; }
   col.col-desc      { width: 24%;  }
-  col.col-detector  { width: 18%;  }
+  col.col-detector  { width: 16%;  }
   col.col-detection { width: 12%;  }
   col.col-raw       { width: 26%;  }
   col.col-flag      { width: 9ch;  }
 
   th, td {
-    padding: .32rem .55rem;       // tighter
+    padding: .28rem .5rem;   /* compact */
     border-right: 1px solid #1f1f1f;
     line-height: 1.2;
     vertical-align: top;
@@ -52,9 +63,11 @@
   tbody tr:hover td { background: #1c1c1c; transition: background .12s ease; }
 }
 
-/* utilities */
+/* --- Utilities --- */
+/* single-line, ellipsis */
 .truncate-1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* two-line clamp for long text (desc/raw) */
 .clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -63,8 +76,7 @@
 }
 
 .code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-               "Liberation Mono","Courier New", monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
   white-space: pre-wrap;
   word-break: break-word;
   line-height: 1.25;
@@ -73,10 +85,10 @@
 
 .muted { color: #a0a0a0; }
 
-/* chips */
+/* --- Chips --- */
 .chip {
   display: inline-block;
-  padding: .1rem .45rem;
+  padding: .08rem .45rem;
   border-radius: 999px;
   border: 1px solid #2a2a2a;
   background: #171717;
