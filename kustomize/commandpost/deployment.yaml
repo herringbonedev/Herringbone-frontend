@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: herringbone-commandpost
+  namespace: herringbone
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: herringbone-commandpost
+  template:
+    metadata:
+      labels:
+        app: herringbone-commandpost
+    spec:
+      containers:
+        - name: commandpost
+          image: quay.io/herringbone/commandpost
+          ports:
+            - containerPort: 5000
+              name: tcp-port
+              protocol: TCP
+          env:
+            - name: LOGS_API_ENDPOINT
+              value: http://herringbone-logs-service.herringbone.svc.cluster.local:7002

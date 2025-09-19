@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Commandpost</title>
+        <style>
+        body { font-family: sans-serif; background:#111; color:#eee; padding:2rem; }
+        h1 { font-size:1.5rem; margin-bottom:1rem; }
+        .card { background:#222; padding:1rem; margin-bottom:1rem; border-radius:8px; }
+        .name { font-weight:bold; }
+        .desc { color:#aaa; }
+        </style>
+    </head>
+    <body>
+        <h1>
+        <img src="{{ url_for('static', path='logo.png') }}"
+            alt="Herringbone logo"
+            style="height:2em; vertical-align:-0.25em; margin-right:.6rem;">
+        Commandpost (Herringbone Alpha UI)
+        </h1>
+        <hr>
+        <p>This is the central hub for managing and monitoring your Herringbone deployment. Here, you can view the status of various components, access logs, and configure settings.</p>
+        <br>
+    </body>
+</html>
