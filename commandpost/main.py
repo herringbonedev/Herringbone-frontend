@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 import requests
 import uvicorn
 import os
+import json
 
 LOGS_API_ENDPOINT = os.environ.get("LOGS_API_ENDPOINT")
 
@@ -17,7 +18,7 @@ def home(request: Request):
 
     # Load the latest logs
     logs_result = requests.get(LOGS_API_ENDPOINT)
-    logs_result = logs_result.content
+    logs_result = json.loads(logs_result.content.decode("utf-8"))
     print(logs_result)
 
     return templates.TemplateResponse("index.html", {"request": request})
