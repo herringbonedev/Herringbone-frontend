@@ -4,6 +4,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 import requests
 import uvicorn
+import os
 
 LOGS_API_ENDPOINT = os.environ.get("LOGS_API_ENDPOINT")
 
