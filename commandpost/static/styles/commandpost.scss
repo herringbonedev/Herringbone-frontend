@@ -29,11 +29,12 @@ p { color: #c7c7c7; }
 
   /* column widths (tweak to taste) */
   col.col-id        { width: 10ch; }
-  col.col-time      { width: 18ch; }
+  col.col-time      { width: 10ch; }
   col.col-source    { width: 14ch; }
   col.col-desc      { width: 20%;  }
-  col.col-raw       { width: 26%;  }
-  col.col-flag      { width: 20ch; }   /* widened from 14ch to 20ch */
+  col.col-reason    { width: 20%;  }
+  col.col-raw       { width: 20%;  }
+  col.col-flag      { width: 14ch; }
 
   th, td {
     padding: .28rem .5rem;   /* compact */
