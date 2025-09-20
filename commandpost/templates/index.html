@@ -66,8 +66,8 @@
               <td><div class="cell clamp-2" title="{{ rd.get('description') or '' }}">{{ rd.get('description') or '' }}</div></td>
 
               <!-- detector/detection are typically short; single-line -->
-              <td><div class="truncate-1" title="{{ rec.get('detector_rule') or '' }}">{{ rec.get('detector_rule') or '' }}</div></td>
               <td><div class="truncate-1" title="{{ rec.get('detection') or '' }}">{{ rec.get('detection') or '' }}</div></td>
+              <td><div class="truncate-1" title="{{ rec.get('detection_reason') or '' }}">{{ rec.get('detection_reason') or '' }}</div></td>
 
               <!-- raw log in compact monospace with 2-line clamp -->
               <td><div class="cell code clamp-2" title="{{ rec.get('raw_log') or '' }}">{{ rec.get('raw_log') or '' }}</div></td>

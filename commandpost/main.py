@@ -36,6 +36,7 @@ def home(request: Request):
     logs_result = requests.get(LOGS_API_ENDPOINT)
     logs_result = json.loads(logs_result.content.decode("utf-8"))
     log_rows = _normalize_mongo_extended(logs_result)
+    print(log_rows)
 
     return templates.TemplateResponse("index.html", {"request": request,
                                                      "log_rows": log_rows})
