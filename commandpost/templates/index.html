@@ -18,6 +18,7 @@
 
     {% set rows = log_rows or [] %}
 
+    <h2>Logs</h2>
     <div class="table-wrap">
       <table class="hb-table">
         <colgroup>
@@ -83,5 +84,53 @@
         </tbody>
       </table>
     </div>
+    <br>
+      <h2>Rules</h2>
+      {% set rules = rule_rows or [] %}
+
+<div class="table-wrap">
+  <table class="hb-table">
+    <colgroup>
+      <col class="col-type">
+      <col class="col-name">
+      <col class="col-prompt">
+      <col class="col-data">
+    </colgroup>
+
+    <thead>
+      <tr>
+        <th>type</th>
+        <th>name</th>
+        <th>prompt</th>
+        <th>data</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rules if r %}
+        {% set rule = r or {} %}
+        <tr>
+          <td><div class="truncate-1" title="{{ rule.get('type','') }}">{{ rule.get('type','') }}</div></td>
+          <td><div class="truncate-1" title="{{ rule.get('name','') }}">{{ rule.get('name','') }}</div></td>
+
+          <!-- prompt: long-ish, 2-line clamp -->
+          <td>
+            <div class="cell clamp-2" title="{{ rule.get('prompt','') }}">
+              {{ rule.get('prompt','') }}
+            </div>
+          </td>
+
+          <!-- data: compact monospace with 2-line clamp -->
+          <td>
+            <div class="cell code clamp-2" title="{{ rule.get('data') }}">
+              {{ rule.get('data') }}
+            </div>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="muted" style="text-align:center;">No rules</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
   </body>
 </html>

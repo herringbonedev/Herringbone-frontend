@@ -23,3 +23,5 @@ spec:
           env:
             - name: LOGS_API_ENDPOINT
               value: http://herringbone-logs-service.herringbone.svc.cluster.local:7002/herringbone/logs/get_docs
+            - name: RULES_API_ENDPOINT
+              value: http://detectionengine-ruleset-service.herringbone.svc.cluster.local:7002/detectionengine/ruleset/get_rules

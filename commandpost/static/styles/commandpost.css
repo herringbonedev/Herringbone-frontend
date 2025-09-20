@@ -1,1 +1,157 @@
+<<<<<<< HEAD
 body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,"Noto Sans","Liberation Sans",sans-serif;background:#111;color:#e8e8e8;padding:1.5rem;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}h1{font-size:1.75rem;margin:0 0 .75rem;display:flex;align-items:center}hr{border:0;border-top:1px solid #2a2a2a;margin:.75rem 0 1rem}p{color:#c7c7c7}.table-wrap{background:#121212;border:1px solid #222;border-radius:12px;overflow:auto;box-shadow:0 10px 30px rgba(0,0,0,.35);margin-top:.75rem}.hb-table{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:.82rem;color:#e8e8e8}.hb-table col.col-id{width:10ch}.hb-table col.col-time{width:10ch}.hb-table col.col-source{width:14ch}.hb-table col.col-desc{width:20%}.hb-table col.col-reason{width:20%}.hb-table col.col-raw{width:20%}.hb-table col.col-flag{width:14ch}.hb-table th,.hb-table td{padding:.28rem .5rem;border-right:1px solid #1f1f1f;line-height:1.2;vertical-align:top}.hb-table th:last-child,.hb-table td:last-child{border-right:0}.hb-table thead th{position:sticky;top:0;z-index:2;background:linear-gradient(180deg, #191919, #151515);border-bottom:1px solid #262626;text-align:left;text-transform:uppercase;letter-spacing:.03em;font-size:.72rem;font-weight:600;color:#cfcfcf;white-space:normal;overflow-wrap:anywhere;word-break:break-word}.hb-table tbody tr td{border-bottom:1px solid #1a1a1a}.hb-table tbody tr:nth-child(even) td{background:#161616}.hb-table tbody tr:hover td{background:#1c1c1c;transition:background .12s ease}.hb-table td>.truncate-1{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hb-table td>.cell{overflow:hidden}.hb-table td>.clamp-2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.hb-table td>.code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;line-height:1.25;font-size:.8rem}.muted{color:#a0a0a0}.chip{display:inline-flex;align-items:center;justify-content:center;min-width:8ch;padding:.14rem .6rem;border-radius:999px;border:1px solid #2a2a2a;background:#171717;font-size:.68rem;line-height:1.1}.chip-true{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.35);color:#86efac}.chip-false{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.35);color:#fca5a5}
+=======
+/* --- Page basics --- */
+body {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  background: #111;
+  color: #e8e8e8;
+  padding: 1.5rem;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale; }
+
+h1 {
+  font-size: 1.75rem;
+  margin: 0 0 .75rem;
+  display: flex;
+  align-items: center; }
+
+hr {
+  border: 0;
+  border-top: 1px solid #2a2a2a;
+  margin: .75rem 0 1rem; }
+
+p {
+  color: #c7c7c7; }
+
+/* --- Table container --- */
+.table-wrap {
+  background: #121212;
+  border: 1px solid #222;
+  border-radius: 12px;
+  overflow: auto;
+  /* horizontal scroll if needed */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  margin-top: .75rem; }
+
+/* --- Dense, clean table --- */
+.hb-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  /* predictable widths */
+  font-size: .82rem;
+  color: #e8e8e8; }
+  /* Logs table column widths */
+  .hb-table col.col-id {
+    width: 10ch; }
+  .hb-table col.col-time {
+    width: 10ch; }
+  .hb-table col.col-source {
+    width: 14ch; }
+  .hb-table col.col-desc {
+    width: 20%; }
+  .hb-table col.col-reason {
+    width: 18ch; }
+  .hb-table col.col-raw {
+    width: 20%; }
+  .hb-table col.col-flag {
+    width: 14ch; }
+  /* Rules table column widths */
+  .hb-table col.col-type   { 
+    width: 12ch; }
+  .hb-table col.col-name   { 
+    width: 22ch; }
+  .hb-table col.col-prompt { 
+    width: 30%; }
+  .hb-table col.col-data   { 
+    width: 40%; }
+  .hb-table th, .hb-table td {
+    padding: .28rem .5rem;
+    /* compact */
+    border-right: 1px solid #1f1f1f;
+    line-height: 1.2;
+    vertical-align: top; }
+  .hb-table th:last-child, .hb-table td:last-child {
+    border-right: 0; }
+  .hb-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: linear-gradient(180deg, #191919, #151515);
+    border-bottom: 1px solid #262626;
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    font-size: .72rem;
+    font-weight: 600;
+    color: #cfcfcf;
+    /* let header text wrap instead of cutting off */
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word; }
+  .hb-table tbody tr td {
+    border-bottom: 1px solid #1a1a1a; }
+  .hb-table tbody tr:nth-child(even) td {
+    background: #161616; }
+  .hb-table tbody tr:hover td {
+    background: #1c1c1c;
+    transition: background .12s ease; }
+
+/* --- Cell content wrappers (IMPORTANT) --- */
+.hb-table td > .truncate-1 {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; }
+
+.hb-table td > .cell {
+  overflow: hidden;
+  /* generic wrapper */ }
+
+.hb-table td > .clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden; }
+
+.hb-table td > .code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+  font-size: .8rem; }
+
+.muted {
+  color: #a0a0a0; }
+
+/* --- Chips --- */
+.chip {
+  display: inline-flex;
+  /* center nicely */
+  align-items: center;
+  justify-content: center;
+  min-width: 8ch;
+  /* give each chip some floor width */
+  padding: .14rem .6rem;
+  /* a little taller & wider */
+  border-radius: 999px;
+  border: 1px solid #2a2a2a;
+  background: #171717;
+  font-size: .68rem;
+  line-height: 1.1; }
+
+.chip-true {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.35);
+  color: #86efac; }
+
+.chip-false {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fca5a5; }
+
+/*# sourceMappingURL=commandpost.css.map */
+>>>>>>> fb551e4 (add rules table)
