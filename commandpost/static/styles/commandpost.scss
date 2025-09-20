@@ -1,107 +1,52 @@
-/* --- Page basics --- */
-body {
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-  background: #111; color: #e8e8e8; padding: 1.5rem;
-  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+/* --- FIX: column widths must be top-level selectors --- */
+.hb-table col.col-id { width: 12ch; }
+.hb-table col.col-time { width: 18ch; }
+.hb-table col.col-source { width: 16ch; }
+.hb-table col.col-desc { width: 20%; }
+.hb-table col.col-detection-reason { width: 16%; }
+.hb-table col.col-raw { width: 30%; }
+
+/* Make ALL chip columns roomier (affects detection/recon/detected) */
+.hb-table col.col-flag { width: 18ch; } /* was 14ch */
+
+/* --- FIX: these also need to be top-level, not nested inside .hb-table --- */
+.hb-table th,
+.hb-table td {
+  padding: .28rem .5rem;
+  border-right: 1px solid #1f1f1f;
+  line-height: 1.2;
+  vertical-align: top;
 }
-h1 { font-size: 1.75rem; margin: 0 0 .75rem; display:flex; align-items:center; }
-hr { border: 0; border-top: 1px solid #2a2a2a; margin: .75rem 0 1rem; }
-p { color: #c7c7c7; }
+.hb-table th:last-child,
+.hb-table td:last-child { border-right: 0; }
 
-/* --- Table container --- */
-.table-wrap {
-  background: #121212;
-  border: 1px solid #222;
-  border-radius: 12px;
-  overflow: auto; /* horizontal scroll if needed */
-  box-shadow: 0 10px 30px rgba(0,0,0,.35);
-  margin-top: .75rem;
-}
+.hb-table thead th {
+  position: sticky; top: 0; z-index: 2;
+  background: linear-gradient(180deg, #191919, #151515);
+  border-bottom: 1px solid #262626;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  font-size: .72rem;
+  font-weight: 600;
+  color: #cfcfcf;
 
-/* --- Dense, clean table --- */
-.hb-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  table-layout: fixed;   /* predictable widths */
-  font-size: .82rem;
-  color: #e8e8e8;
-
-  /* column widths (tweak to taste) */
-  col.col-id        { width: 10ch; }
-  col.col-time      { width: 18ch; }
-  col.col-source    { width: 14ch; }
-  col.col-desc      { width: 20%;  }
-  col.col-detection-reason { width: 12%;  }
-  col.col-raw       { width: 26%;  }
-  col.col-flag      { width: 14ch;  }
-
-  th, td {
-    padding: .28rem .5rem;   /* compact */
-    border-right: 1px solid #1f1f1f;
-    line-height: 1.2;
-    vertical-align: top;
-  }
-  th:last-child, td:last-child { border-right: 0; }
-
-  thead th {
-    position: sticky; top: 0; z-index: 2;
-    background: linear-gradient(180deg, #191919, #151515);
-    border-bottom: 1px solid #262626;
-    text-align: left;
-    text-transform: uppercase;
-    letter-spacing: .03em;
-    font-size: .72rem;
-    font-weight: 600;
-    color: #cfcfcf;
-  }
-
-  tbody tr td { border-bottom: 1px solid #1a1a1a; }
-  tbody tr:nth-child(even) td { background: #161616; }
-  tbody tr:hover td { background: #1c1c1c; transition: background .12s ease; }
+  /* allow wrapping so long headers don't look "cut off" */
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
 
-/* --- Cell content wrappers (IMPORTANT) --- */
-/* keep <td> as table-cells; apply truncation/clamp to inner wrappers */
-.hb-table td > .truncate-1 {
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+.hb-table tbody tr td { border-bottom: 1px solid #1a1a1a; }
+.hb-table tbody tr:nth-child(even) td { background: #161616; }
+.hb-table tbody tr:hover td { background: #1c1c1c; transition: background .12s ease; }
 
-.hb-table td > .cell {
-  overflow: hidden; /* generic wrapper */
+/* --- Optional: make the chip itself feel bigger and centered --- */
+.hb-table td .chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 8ch;      /* gives each chip some inherent width */
+  padding: .14rem .6rem; /* a touch taller/wider */
+  line-height: 1.1;
 }
-
-/* two-line clamp for long text (desc/raw) */
-.hb-table td > .clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* monospace for raw JSON/logs */
-.hb-table td > .code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-  line-height: 1.25;
-  font-size: .8rem;
-}
-
-.muted { color: #a0a0a0; }
-
-/* --- Chips --- */
-.chip {
-  display: inline-block;
-  padding: .08rem .45rem;
-  border-radius: 999px;
-  border: 1px solid #2a2a2a;
-  background: #171717;
-  font-size: .68rem;
-}
-.chip-true  { background: rgba(34,197,94,.12);  border-color: rgba(34,197,94,.35);  color:#86efac; }
-.chip-false { background: rgba(239,68,68,.12);  border-color: rgba(239,68,68,.35);  color:#fca5a5; }
