@@ -5,6 +5,7 @@
 .hb-table col.col-desc { width: 20%; }
 .hb-table col.col-detection-reason { width: 16%; }
 .hb-table col.col-raw { width: 30%; }
+.hb-table col.col-detection-flag { width: 22ch; }
 
 /* Make ALL chip columns roomier (affects detection/recon/detected) */
 .hb-table col.col-flag { width: 18ch; } /* was 14ch */
