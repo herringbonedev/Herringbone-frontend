@@ -56,15 +56,15 @@
               <td><div class="truncate-1" title="{{ rd.get('time') or '' }}">{{ rd.get('time') or '' }}</div></td>
               <td><div class="truncate-1" title="{{ rec.get('source_address','') }}">{{ rec.get('source_address','') }}</div></td>
 
-              <!-- long-ish text gets 2-line clamp -->
-              <td><div class="cell clamp-2" title="{{ rd.get('description') or '' }}">{{ rd.get('description') or '' }}</div></td>
+              <!-- long-ish text gets 4-line clamp -->
+              <td><div class="cell clamp-4" title="{{ rd.get('description') or '' }}">{{ rd.get('description') or '' }}</div></td>
 
               <!-- detector/detection are typically short; single-line -->
               <td><span class="chip {{ 'chip-true' if rec.get('detection') else 'chip-false' }}">{{ rec.get('detection') }}</span></td>
               <td><div class="truncate-1" title="{{ rec.get('detection_reason') or '' }}">{{ rec.get('detection_reason') or '' }}</div></td>
 
-              <!-- raw log in compact monospace with 2-line clamp -->
-              <td><div class="cell code clamp-2" title="{{ rec.get('raw_log') or '' }}">{{ rec.get('raw_log') or '' }}</div></td>
+              <!-- raw log in compact monospace with 4-line clamp -->
+              <td><div class="cell code clamp-4" title="{{ rec.get('raw_log') or '' }}">{{ rec.get('raw_log') or '' }}</div></td>
 
               <td>
                 <span class="chip {{ 'chip-true' if rec.get('recon') else 'chip-false' }}">

@@ -31,10 +31,10 @@ p { color: #c7c7c7; }
   col.col-id        { width: 18ch; }
   col.col-time      { width: 18ch; }
   col.col-source    { width: 14ch; }
-  col.col-desc      { width: 24%;  }
+  col.col-desc      { width: 22%;  }
   col.col-detection-reason { width: 12%;  }
   col.col-raw       { width: 26%;  }
-  col.col-flag      { width: 15ch;  }
+  col.col-flag      { width: 14ch;  }
 
   th, td {
     padding: .28rem .5rem;   /* compact */
@@ -74,10 +74,10 @@ p { color: #c7c7c7; }
   overflow: hidden; /* generic wrapper */
 }
 
-/* two-line clamp for long text (desc/raw) */
-.hb-table td > .clamp-2 {
+/* four-line clamp for long text (desc/raw) */
+.hb-table td > .clamp-4 {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
