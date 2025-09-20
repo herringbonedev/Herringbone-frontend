@@ -23,8 +23,6 @@
         <colgroup>
           <col class="col-id">
           <col class="col-time">
-          <col class="col-user">
-          <col class="col-ip">
           <col class="col-source">
           <col class="col-desc">
           <col class="col-flag"> <!-- detection -->
@@ -38,8 +36,6 @@
           <tr>
             <th>_id</th>
             <th>time</th>
-            <th>user</th>
-            <th>ip</th>
             <th>source</th>
             <th>description</th>
             <th>detection</th>
@@ -58,8 +54,6 @@
             <tr>
               <td><div class="truncate-1" title="{{ rec.get('_id','') }}">{{ rec.get('_id','') }}</div></td>
               <td><div class="truncate-1" title="{{ rd.get('time') or '' }}">{{ rd.get('time') or '' }}</div></td>
-              <td><div class="truncate-1" title="{{ rd.get('user') or '' }}">{{ rd.get('user') or '' }}</div></td>
-              <td><div class="truncate-1" title="{{ rd.get('ip_addresses') or '' }}">{{ rd.get('ip_addresses') or '' }}</div></td>
               <td><div class="truncate-1" title="{{ rec.get('source_address','') }}">{{ rec.get('source_address','') }}</div></td>
 
               <!-- long-ish text gets 2-line clamp -->
