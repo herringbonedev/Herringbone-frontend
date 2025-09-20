@@ -1,7 +1,8 @@
-/* --- Page basics (restore dark header area) --- */
+/* --- Page basics --- */
 body {
   font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
   background: #111; color: #e8e8e8; padding: 1.5rem;
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
 }
 h1 { font-size: 1.75rem; margin: 0 0 .75rem; display:flex; align-items:center; }
 hr { border: 0; border-top: 1px solid #2a2a2a; margin: .75rem 0 1rem; }
@@ -63,22 +64,33 @@ p { color: #c7c7c7; }
   tbody tr:hover td { background: #1c1c1c; transition: background .12s ease; }
 }
 
-/* --- Utilities --- */
-/* single-line, ellipsis */
-.truncate-1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* --- Cell content wrappers (IMPORTANT) --- */
+/* keep <td> as table-cells; apply truncation/clamp to inner wrappers */
+.hb-table td > .truncate-1 {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hb-table td > .cell {
+  overflow: hidden; /* generic wrapper */
+}
 
 /* two-line clamp for long text (desc/raw) */
-.clamp-2 {
+.hb-table td > .clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.code {
+/* monospace for raw JSON/logs */
+.hb-table td > .code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
   white-space: pre-wrap;
   word-break: break-word;
+  overflow-wrap: anywhere;
   line-height: 1.25;
   font-size: .8rem;
 }
