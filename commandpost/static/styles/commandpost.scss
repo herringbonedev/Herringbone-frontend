@@ -1,53 +1,170 @@
-/* --- FIX: column widths must be top-level selectors --- */
-.hb-table col.col-id { width: 12ch; }
-.hb-table col.col-time { width: 18ch; }
-.hb-table col.col-source { width: 16ch; }
-.hb-table col.col-desc { width: 20%; }
-.hb-table col.col-detection-reason { width: 16%; }
-.hb-table col.col-raw { width: 30%; }
-.hb-table col.col-detection-flag { width: 22ch; }
+/* static/styles/commandpost.scss */
 
-/* Make ALL chip columns roomier (affects detection/recon/detected) */
-.hb-table col.col-flag { width: 18ch; } /* was 14ch */
+/* --- Tokens --- */
+$bg: #111;
+$panel: #121212;
+$border-1: #222;
+$border-2: #1f1f1f;
+$border-3: #262626;
+$row-even: #161616;
+$row-hover: #1c1c1c;
+$text: #e8e8e8;
+$text-muted: #c7c7c7;
+$text-subtle: #cfcfcf;
 
-/* --- FIX: these also need to be top-level, not nested inside .hb-table --- */
-.hb-table th,
-.hb-table td {
-  padding: .28rem .5rem;
-  border-right: 1px solid #1f1f1f;
-  line-height: 1.2;
-  vertical-align: top;
-}
-.hb-table th:last-child,
-.hb-table td:last-child { border-right: 0; }
+$chip-true-bg: rgba(34, 197, 94, .12);
+$chip-true-bd: rgba(34, 197, 94, .35);
+$chip-true-fg: #86efac;
 
-.hb-table thead th {
-  position: sticky; top: 0; z-index: 2;
-  background: linear-gradient(180deg, #191919, #151515);
-  border-bottom: 1px solid #262626;
-  text-align: left;
-  text-transform: uppercase;
-  letter-spacing: .03em;
-  font-size: .72rem;
-  font-weight: 600;
-  color: #cfcfcf;
+$chip-false-bg: rgba(239, 68, 68, .12);
+$chip-false-bd: rgba(239, 68, 68, .35);
+$chip-false-fg: #fca5a5;
 
-  /* allow wrapping so long headers don't look "cut off" */
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
+/* --- Page basics --- */
+body {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue",
+    Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  background: $bg;
+  color: $text;
+  padding: 1.5rem;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.hb-table tbody tr td { border-bottom: 1px solid #1a1a1a; }
-.hb-table tbody tr:nth-child(even) td { background: #161616; }
-.hb-table tbody tr:hover td { background: #1c1c1c; transition: background .12s ease; }
+h1 {
+  font-size: 1.75rem;
+  margin: 0 0 .75rem;
+  display: flex;
+  align-items: center;
+}
 
-/* --- Optional: make the chip itself feel bigger and centered --- */
-.hb-table td .chip {
-  display: inline-flex;
+hr {
+  border: 0;
+  border-top: 1px solid #2a2a2a;
+  margin: .75rem 0 1rem;
+}
+
+p { color: $text-muted; }
+
+/* --- Table container --- */
+.table-wrap {
+  background: $panel;
+  border: 1px solid $border-1;
+  border-radius: 12px;
+  overflow: auto; /* horizontal scroll if needed */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  margin-top: .75rem;
+}
+
+/* --- Dense, clean table --- */
+.hb-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed; /* predictable widths */
+  font-size: .82rem;
+  color: $text;
+
+  /* Column widths: target both <col> and <th> to keep layout honest */
+  col.col-id, th.col-id { width: 12ch; }
+  col.col-time, th.col-time { width: 18ch; }
+  col.col-source, th.col-source { width: 16ch; }
+  col.col-desc, th.col-desc { width: 20%; }
+  col.col-detection-reason, th.col-detection-reason { width: 16%; }
+  col.col-raw, th.col-raw { width: 30%; }
+  col.col-flag, th.col-flag { width: 20ch; } /* wider chip columns */
+
+  th,
+  td {
+    padding: .28rem .5rem; /* compact */
+    border-right: 1px solid $border-2;
+    line-height: 1.2;
+    vertical-align: top;
+
+    &:last-child { border-right: 0; }
+  }
+
+  thead {
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: linear-gradient(180deg, #191919, #151515);
+      border-bottom: 1px solid $border-3;
+      text-align: left;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+      font-size: .72rem;
+      font-weight: 600;
+      color: $text-subtle;
+
+      /* Key: allow single-word headers (DETECTION/DETECTED/RECON) to wrap */
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      text-overflow: clip;
+    }
+  }
+
+  tbody {
+    tr {
+      td { border-bottom: 1px solid #1a1a1a; }
+
+      &:nth-child(even) td { background: $row-even; }
+
+      &:hover td {
+        background: $row-hover;
+        transition: background .12s ease;
+      }
+    }
+  }
+
+  /* --- Cell content wrappers --- */
+  /* keep <td> as table-cells; apply truncation/clamp to inner wrappers */
+  td > .truncate-1 {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  td > .cell { overflow: hidden; } /* generic wrapper */
+
+  /* two-line clamp for long text (desc/raw) */
+  td > .clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* monospace for raw JSON/logs */
+  td > .code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      "Liberation Mono", "Courier New", monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    line-height: 1.25;
+    font-size: .8rem;
+  }
+}
+
+/* --- Chips --- */
+.chip {
+  display: inline-flex;         /* center content nicely */
   align-items: center;
   justify-content: center;
-  min-width: 8ch;      /* gives each chip some inherent width */
-  padding: .14rem .6rem; /* a touch taller/wider */
+  min-width: 9ch;               /* prevents super-narrow cells */
+  padding: .18rem .65rem;       /* a touch taller/wider */
+  border-radius: 999px;
+  border: 1px solid #2a2a2a;
+  background: #171717;
+  font-size: .68rem;
   line-height: 1.1;
 }
+
+.chip-true  { background: $chip-true-bg;  border-color: $chip-true-bd;  color: $chip-true-fg; }
+.chip-false { background: $chip-false-bg; border-color: $chip-false-bd; color: $chip-false-fg; }
+
+.muted { color: #a0a0a0; }
