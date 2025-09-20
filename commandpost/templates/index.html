@@ -1,135 +1,84 @@
-<!-- templates/index.html -->
 <!doctype html>
-<html lang="en">
+<html>
   <head>
-    <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover"
-    />
+    <meta charset="utf-8">
     <title>Commandpost</title>
-    <!-- If you compile SCSS to CSS as static/styles/commandpost.css, this will load it -->
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', path='styles/commandpost.css') }}"
-    />
+    <link rel="stylesheet" href="{{ url_for('static', path='styles/commandpost.css') }}">
   </head>
   <body>
     <h1>
-      <img
-        src="{{ url_for('static', path='logo.png') }}"
-        alt="Herringbone logo"
-        style="height:2rem; vertical-align:-0.25em; margin-right:.6rem;"
-      />
+      <img src="{{ url_for('static', path='logo.png') }}"
+           alt="Herringbone logo"
+           style="height:2em; vertical-align:-0.25em; margin-right:.6rem;">
       Commandpost (Herringbone Alpha UI)
     </h1>
-    <hr />
-    <p>
-      This is the central hub for managing and monitoring your Herringbone
-      deployment. Here, you can view the status of various components, access
-      logs, and configure settings.
-    </p>
+    <hr>
+    <p>This is the central hub for managing and monitoring your Herringbone deployment. Here, you can view the status of various components, access logs, and configure settings.</p>
+    <br>
 
     {% set rows = log_rows or [] %}
 
     <div class="table-wrap">
       <table class="hb-table">
         <colgroup>
-          <col class="col-id" />
-          <col class="col-time" />
-          <col class="col-source" />
-          <col class="col-desc" />
-          <col class="col-flag" /> <!-- detection -->
-          <col class="col-detection-reason" />
-          <col class="col-raw" />
-          <col class="col-flag" /> <!-- recon -->
-          <col class="col-flag" /> <!-- detected -->
+          <col class="col-id">
+          <col class="col-time">
+          <col class="col-source">
+          <col class="col-desc">
+          <col class="col-flag"> <!-- detection -->
+          <col class="col-detection-reason">
+          <col class="col-raw">
+          <col class="col-flag">  <!-- recon -->
+          <col class="col-flag">  <!-- detected -->
         </colgroup>
 
         <thead>
           <tr>
-            <th class="col-id">_id</th>
-            <th class="col-time">time</th>
-            <th class="col-source">source</th>
-            <th class="col-desc">description</th>
-            <th class="col-flag">detection</th>
-            <th class="col-detection-reason">detection reason</th>
-            <th class="col-raw">raw log</th>
-            <th class="col-flag">recon</th>
-            <th class="col-flag">detected</th>
+            <th>_id</th>
+            <th>time</th>
+            <th>source</th>
+            <th>description</th>
+            <th>detection</th>
+            <th>detection reason</th>
+            <th>raw log</th>
+            <th>recon</th>
+            <th>detected</th>
           </tr>
         </thead>
 
         <tbody>
           {% for r in rows if r %}
             {% set rec = r or {} %}
-            {% set rd = rec.get('recon_data') or {} %}
+            {% set rd  = rec.get('recon_data') or {} %}
+
             <tr>
-              <td>
-                <div
-                  class="truncate-1"
-                  title="{{ rec.get('_id','') }}"
-                >{{ rec.get('_id','') }}</div>
-              </td>
-              <td>
-                <div
-                  class="truncate-1"
-                  title="{{ rd.get('time') or '' }}"
-                >{{ rd.get('time') or '' }}</div>
-              </td>
-              <td>
-                <div
-                  class="truncate-1"
-                  title="{{ rec.get('source_address','') }}"
-                >{{ rec.get('source_address','') }}</div>
-              </td>
+              <td><div class="truncate-1" title="{{ rec.get('_id','') }}">{{ rec.get('_id','') }}</div></td>
+              <td><div class="truncate-1" title="{{ rd.get('time') or '' }}">{{ rd.get('time') or '' }}</div></td>
+              <td><div class="truncate-1" title="{{ rec.get('source_address','') }}">{{ rec.get('source_address','') }}</div></td>
 
               <!-- long-ish text gets 2-line clamp -->
-              <td>
-                <div
-                  class="cell clamp-2"
-                  title="{{ rd.get('description') or '' }}"
-                >{{ rd.get('description') or '' }}</div>
-              </td>
+              <td><div class="cell clamp-2" title="{{ rd.get('description') or '' }}">{{ rd.get('description') or '' }}</div></td>
 
               <!-- detector/detection are typically short; single-line -->
-              <td>
-                <span
-                  class="chip {{ 'chip-true' if rec.get('detection') else 'chip-false' }}"
-                >{{ rec.get('detection') }}</span>
-              </td>
-              <td>
-                <div
-                  class="truncate-1"
-                  title="{{ rec.get('detection_reason') or '' }}"
-                >{{ rec.get('detection_reason') or '' }}</div>
-              </td>
+              <td><span class="chip {{ 'chip-true' if rec.get('detection') else 'chip-false' }}">{{ rec.get('detection') }}</span></td>
+              <td><div class="truncate-1" title="{{ rec.get('detection_reason') or '' }}">{{ rec.get('detection_reason') or '' }}</div></td>
 
               <!-- raw log in compact monospace with 2-line clamp -->
-              <td>
-                <div
-                  class="cell code clamp-2"
-                  title="{{ rec.get('raw_log') or '' }}"
-                >{{ rec.get('raw_log') or '' }}</div>
-              </td>
+              <td><div class="cell code clamp-2" title="{{ rec.get('raw_log') or '' }}">{{ rec.get('raw_log') or '' }}</div></td>
 
               <td>
-                <span
-                  class="chip {{ 'chip-true' if rec.get('recon') else 'chip-false' }}"
-                >{{ rec.get('recon') }}</span>
+                <span class="chip {{ 'chip-true' if rec.get('recon') else 'chip-false' }}">
+                  {{ rec.get('recon') }}
+                </span>
               </td>
               <td>
-                <span
-                  class="chip {{ 'chip-true' if rec.get('detected') else 'chip-false' }}"
-                >{{ rec.get('detected') }}</span>
+                <span class="chip {{ 'chip-true' if rec.get('detected') else 'chip-false' }}">
+                  {{ rec.get('detected') }}
+                </span>
               </td>
             </tr>
           {% else %}
-            <tr>
-              <td colspan="9" class="muted" style="text-align:center;">
-                No logs
-              </td>
-            </tr>
+            <tr><td colspan="11" class="muted" style="text-align:center;">No logs</td></tr>
           {% endfor %}
         </tbody>
       </table>
