@@ -85,7 +85,7 @@
                 {% set recon_val = rec.get('recon') %}
                 {% set recon_cls = 'chip-prog' if status == 'Recon in process.' else ('chip-true' if recon_val else 'chip-false') %}
                 <span class="chip {{ recon_cls }}" title="{{ status or recon_val }}">
-                  {{ 'Recon in process.' if status == 'Recon in process.' else recon_val }}
+                  {{ 'Processing' if status == 'Recon in process.' else recon_val }}
                 </span>
               </td>
 
