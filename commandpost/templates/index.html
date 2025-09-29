@@ -61,17 +61,34 @@
               <td><div class="cell clamp-2" title="{{ rd.get('description') or '' }}">{{ rd.get('description') or '' }}</div></td>
 
               <!-- detector/detection are typically short; single-line -->
-              <td><span class="chip {{ 'chip-true' if rec.get('detection') else 'chip-false' }}">{{ rec.get('detection') }}</span></td>
-              <td><div class="truncate-1" title="{{ rec.get('detection_reason') or '' }}">{{ rec.get('detection_reason') or '' }}</div></td>
-
-              <!-- raw log in compact monospace with 2-line clamp -->
-              <td><div class="cell code clamp-2" title="{{ rec.get('raw_log') or '' }}">{{ rec.get('raw_log') or '' }}</div></td>
-
               <td>
-                <span class="chip {{ 'chip-true' if rec.get('recon') else 'chip-false' }}">
-                  {{ rec.get('recon') }}
+                <span class="chip {{ 'chip-true' if rec.get('detection') else 'chip-false' }}">
+                  {{ rec.get('detection') }}
                 </span>
               </td>
+              <td>
+                <div class="truncate-1" title="{{ rec.get('detection_reason') or '' }}">
+                  {{ rec.get('detection_reason') or '' }}
+                </div>
+              </td>
+
+              <!-- raw log in compact monospace with 2-line clamp -->
+              <td>
+                <div class="cell code clamp-2" title="{{ rec.get('raw_log','') }}">
+                  {{ rec.get('raw_log','') }}
+                </div>
+              </td>
+
+              <!-- recon chip: show progress style when status == "Recon in process." -->
+              <td>
+                {% set status = rec.get('status') %}
+                {% set recon_val = rec.get('recon') %}
+                {% set recon_cls = 'chip-prog' if status == 'Recon in process.' else ('chip-true' if recon_val else 'chip-false') %}
+                <span class="chip {{ recon_cls }}" title="{{ status or recon_val }}">
+                  {{ 'Recon in process.' if status == 'Recon in process.' else recon_val }}
+                </span>
+              </td>
+
               <td>
                 <span class="chip {{ 'chip-true' if rec.get('detected') else 'chip-false' }}">
                   {{ rec.get('detected') }}
@@ -79,58 +96,59 @@
               </td>
             </tr>
           {% else %}
-            <tr><td colspan="11" class="muted" style="text-align:center;">No logs</td></tr>
+            <tr><td colspan="9" class="muted" style="text-align:center;">No logs</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
+
     <br>
-      <h2>Rules</h2>
-      {% set rules = rule_rows or [] %}
+    <h2>Rules</h2>
+    {% set rules = rule_rows or [] %}
 
-<div class="table-wrap">
-  <table class="hb-table">
-    <colgroup>
-      <col class="col-type">
-      <col class="col-name">
-      <col class="col-prompt">
-      <col class="col-data">
-    </colgroup>
+    <div class="table-wrap">
+      <table class="hb-table">
+        <colgroup>
+          <col class="col-type">
+          <col class="col-name">
+          <col class="col-prompt">
+          <col class="col-data">
+        </colgroup>
 
-    <thead>
-      <tr>
-        <th>type</th>
-        <th>name</th>
-        <th>prompt</th>
-        <th>data</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for r in rules if r %}
-        {% set rule = r or {} %}
-        <tr>
-          <td><div class="truncate-1" title="{{ rule.get('type','') }}">{{ rule.get('type','') }}</div></td>
-          <td><div class="truncate-1" title="{{ rule.get('name','') }}">{{ rule.get('name','') }}</div></td>
+        <thead>
+          <tr>
+            <th>type</th>
+            <th>name</th>
+            <th>prompt</th>
+            <th>data</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rules if r %}
+            {% set rule = r or {} %}
+            <tr>
+              <td><div class="truncate-1" title="{{ rule.get('type','') }}">{{ rule.get('type','') }}</div></td>
+              <td><div class="truncate-1" title="{{ rule.get('name','') }}">{{ rule.get('name','') }}</div></td>
 
-          <!-- prompt: long-ish, 2-line clamp -->
-          <td>
-            <div class="cell clamp-2" title="{{ rule.get('prompt','') }}">
-              {{ rule.get('prompt','') }}
-            </div>
-          </td>
+              <!-- prompt: long-ish, 2-line clamp -->
+              <td>
+                <div class="cell clamp-2" title="{{ rule.get('prompt','') }}">
+                  {{ rule.get('prompt','') }}
+                </div>
+              </td>
 
-          <!-- data: compact monospace with 2-line clamp -->
-          <td>
-            <div class="cell code clamp-2" title="{{ rule.get('data') }}">
-              {{ rule.get('data') }}
-            </div>
-          </td>
-        </tr>
-      {% else %}
-        <tr><td colspan="4" class="muted" style="text-align:center;">No rules</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+              <!-- data: compact monospace with 2-line clamp -->
+              <td>
+                <div class="cell code clamp-2" title="{{ rule.get('data') }}">
+                  {{ rule.get('data') }}
+                </div>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="4" class="muted" style="text-align:center;">No rules</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </body>
 </html>
