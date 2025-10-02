@@ -22,7 +22,7 @@ p  { color: $muted; margin: .5rem 0 1rem; }
   border: 1px solid $border;
   border-radius: $radius;
   padding: 10px;
-  overflow-x: auto; // allow horizontal scroll on small screens
+  overflow-x: auto;
 }
 
 /* ---------- Table ---------- */
@@ -30,7 +30,7 @@ p  { color: $muted; margin: .5rem 0 1rem; }
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  table-layout: fixed; // predictable column widths
+  table-layout: fixed;
 
   thead th {
     text-align: left;
@@ -49,7 +49,6 @@ p  { color: $muted; margin: .5rem 0 1rem; }
     vertical-align: top;
   }
 
-  // zebra striping + hover
   tbody tr:nth-child(even) td { background: $row-alt; }
   tbody tr:hover td { background: $row-hov; }
 }
@@ -70,9 +69,9 @@ p  { color: $muted; margin: .5rem 0 1rem; }
 
 /* ---------- Text utilities ---------- */
 .truncate-1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cell       { display: block; overflow: hidden; }
+.cell       { display: block; }
 
-/* Two-line clamp — used for normal text cells (NOT code) */
+/* Clamp for regular text (not logs) */
 .clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -95,26 +94,26 @@ p  { color: $muted; margin: .5rem 0 1rem; }
 .chip-false { background: $chip-no-bg;   color: $chip-no-tx;   border-color: $chip-no-br; }
 .chip-prog  { background: $chip-prog-bg; color: $chip-prog-tx; border-color: $chip-prog-br; }
 
-/* ---------- Code / JSON cells (fixes truncation) ---------- */
-.cell.code {
-  font-family: $font-mono;
-  white-space: pre-wrap;   // keep newlines, allow wrapping
-  word-break: break-word;  // break long tokens
-  overflow-wrap: anywhere; // last-resort wrapping
-  background: $row-alt;
-  border: 1px solid $line-2;
+/* ---------- Scrollable Cells (Logs Table) ---------- */
+.hb-table tbody td .cell {
+  max-height: 6rem;         // adjustable
+  overflow: auto;           // scroll instead of expand
+  padding: .3rem .45rem;
   border-radius: $radius-sm;
-  padding: .5rem .65rem;
-  color: $text;
+  background: $row-alt;
 }
 
-/* Use this class on JSON cells to disable line-clamp and allow scroll */
-.cell.code.scroll {
-  display: block;             // cancel -webkit-box from .clamp-2 if present
-  -webkit-line-clamp: unset;
-  -webkit-box-orient: unset;
-  max-height: $code-max-h;    // keep rows compact
-  overflow: auto;             // vertical scrollbar when tall
+/* ---------- Code / JSON cells ---------- */
+.cell.code {
+  font-family: $font-mono;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  border: 1px solid $line-2;
+  border-radius: $radius-sm;
+  color: $text;
+  max-height: $code-max-h;
+  overflow: auto;
 }
 
 /* ---------- Misc ---------- */
