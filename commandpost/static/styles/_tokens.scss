@@ -1,8 +1,13 @@
+// Design tokens for Commandpost (dark theme)
+
+// Core surface + text
 $bg:        #111;
 $panel:     #121212;
 $border:    #222;
 $text:      #e8e8e8;
 $muted:     #a0a0a0;
+
+// Table chrome
 $thead-top: #191919;
 $thead-bot: #151515;
 $row-alt:   #161616;
@@ -10,6 +15,7 @@ $row-hov:   #1c1c1c;
 $line:      #1f1f1f;
 $line-2:    #262626;
 
+// Chips
 $chip-yes-bg: rgba(34,197,94,.12);
 $chip-yes-br: rgba(34,197,94,.35);
 $chip-yes-tx: #86efac;
@@ -18,6 +24,31 @@ $chip-no-bg:  rgba(239,68,68,.12);
 $chip-no-br:  rgba(239,68,68,.35);
 $chip-no-tx:  #fca5a5;
 
-$chip-prog-bg:  rgba(239, 213, 68, 0.12);
-$chip-prog-br:  rgba(236, 239, 68, 0.35);
-$chip-prog-tx:  #fcf6a5;
+$chip-prog-bg: rgba(239,213,68,.12);
+$chip-prog-br: rgba(236,239,68,.35);
+$chip-prog-tx: #fcf6a5;
+
+// Typographic + radius tokens
+$font-body: 14px/1.45 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+$font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Liberation Mono", Consolas, monospace;
+
+$radius:       12px;
+$radius-sm:    10px;
+$radius-pill:  999px;
+
+// Column widths
+$w-id:     12rem;
+$w-time:   11rem;
+$w-source: 10rem;
+$w-desc:   22rem;
+$w-reason: 20rem;
+$w-raw:    30rem;
+$w-flag:   7rem;
+
+$w-type:   8rem;
+$w-name:   16rem;
+$w-prompt: 28rem;
+$w-data:   28rem;
+
+// Code cell height
+$code-max-h: 12rem;

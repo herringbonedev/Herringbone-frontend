@@ -1,114 +1,121 @@
-/* --- Page basics --- */
+@use 'tokens' as *;
+
+/* ---------- Base ---------- */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+
 body {
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-  background: #111; color: #e8e8e8; padding: 1.5rem;
-  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  margin: 24px;
+  background: $bg;
+  color: $text;
+  font: $font-body;
 }
-h1 { font-size: 1.75rem; margin: 0 0 .75rem; display:flex; align-items:center; }
-hr { border: 0; border-top: 1px solid #2a2a2a; margin: .75rem 0 1rem; }
-p { color: #c7c7c7; }
 
-/* --- Table container --- */
+h1 { font-size: 1.6rem; margin: 0 0 .5rem; }
+h2 { font-size: 1.2rem; margin: 1.4rem 0 .6rem; }
+hr { border: 0; border-top: 1px solid $border; margin: 10px 0; }
+p  { color: $muted; margin: .5rem 0 1rem; }
+
+/* ---------- Container ---------- */
 .table-wrap {
-  background: #121212;
-  border: 1px solid #222;
-  border-radius: 12px;
-  overflow: auto; /* horizontal scroll if needed */
-  box-shadow: 0 10px 30px rgba(0,0,0,.35);
-  margin-top: .75rem;
+  background: $panel;
+  border: 1px solid $border;
+  border-radius: $radius;
+  padding: 10px;
+  overflow-x: auto; // allow horizontal scroll on small screens
 }
 
-/* --- Dense, clean table --- */
+/* ---------- Table ---------- */
 .hb-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  table-layout: fixed;   /* predictable widths */
-  font-size: .82rem;
-  color: #e8e8e8;
-
-  /* column widths (tweak to taste) */
-  col.col-id        { width: 10ch; }
-  col.col-time      { width: 10ch; }
-  col.col-source    { width: 14ch; }
-  col.col-desc      { width: 20%;  }
-  col.col-reason    { width: 20%;  }
-  col.col-raw       { width: 20%;  }
-  col.col-flag      { width: 14ch; }
-
-  th, td {
-    padding: .28rem .5rem;   /* compact */
-    border-right: 1px solid #1f1f1f;
-    line-height: 1.2;
-    vertical-align: top;
-  }
-  th:last-child, td:last-child { border-right: 0; }
+  table-layout: fixed; // predictable column widths
 
   thead th {
-    position: sticky; top: 0; z-index: 2;
-    background: linear-gradient(180deg, #191919, #151515);
-    border-bottom: 1px solid #262626;
     text-align: left;
-    text-transform: uppercase;
-    letter-spacing: .03em;
-    font-size: .72rem;
     font-weight: 600;
-    color: #cfcfcf;
-
-    /* let header text wrap instead of cutting off */
-    white-space: normal;
-    overflow-wrap: anywhere;
-    word-break: break-word;
+    color: $muted;
+    background: linear-gradient(to bottom, $thead-top, $thead-bot);
+    position: sticky; top: 0;
+    z-index: 1;
+    padding: .55rem .7rem;
+    border-bottom: 1px solid $line;
   }
 
-  tbody tr td { border-bottom: 1px solid #1a1a1a; }
-  tbody tr:nth-child(even) td { background: #161616; }
-  tbody tr:hover td { background: #1c1c1c; transition: background .12s ease; }
+  tbody td {
+    padding: .55rem .7rem;
+    border-bottom: 1px solid $line;
+    vertical-align: top;
+  }
+
+  // zebra striping + hover
+  tbody tr:nth-child(even) td { background: $row-alt; }
+  tbody tr:hover td { background: $row-hov; }
 }
 
-/* --- Cell content wrappers (IMPORTANT) --- */
-.hb-table td > .truncate-1 {
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+/* ---------- Column widths ---------- */
+.col-id     { width: $w-id; }
+.col-time   { width: $w-time; }
+.col-source { width: $w-source; }
+.col-desc   { width: $w-desc; }
+.col-reason { width: $w-reason; }
+.col-raw    { width: $w-raw; }
+.col-flag   { width: $w-flag; }
 
-.hb-table td > .cell {
-  overflow: hidden; /* generic wrapper */
-}
+.col-type   { width: $w-type; }
+.col-name   { width: $w-name; }
+.col-prompt { width: $w-prompt; }
+.col-data   { width: $w-data; }
 
-.hb-table td > .clamp-2 {
+/* ---------- Text utilities ---------- */
+.truncate-1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cell       { display: block; overflow: hidden; }
+
+/* Two-line clamp — used for normal text cells (NOT code) */
+.clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.hb-table td > .code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-  line-height: 1.25;
-  font-size: .8rem;
-}
-
-.muted { color: #a0a0a0; }
-
-/* --- Chips --- */
+/* ---------- Chips ---------- */
 .chip {
-  display: inline-flex;              /* center nicely */
-  align-items: center;
-  justify-content: center;
-  min-width: 8ch;                    /* give each chip some floor width */
-  padding: .14rem .6rem;             /* a little taller & wider */
-  border-radius: 999px;
-  border: 1px solid #2a2a2a;
-  background: #171717;
-  font-size: .68rem;
-  line-height: 1.1;
+  display: inline-block;
+  padding: .15rem .55rem;
+  border-radius: $radius-pill;
+  font-weight: 600;
+  font-size: .8rem;
+  text-align: center;
+  border: 1px solid transparent;
 }
-.chip-true  { background: rgba(34,197,94,.12);  border-color: rgba(34,197,94,.35);  color:#86efac; }
-.chip-false { background: rgba(239,68,68,.12);  border-color: rgba(239,68,68,.35);  color:#fca5a5; }
-.chip-prog  { background: rgba(255, 248, 209, 0.12);  border-color: rgba(253, 255, 112, 0.35);  color:#fff45d; }
+
+.chip-true  { background: $chip-yes-bg;  color: $chip-yes-tx;  border-color: $chip-yes-br; }
+.chip-false { background: $chip-no-bg;   color: $chip-no-tx;   border-color: $chip-no-br; }
+.chip-prog  { background: $chip-prog-bg; color: $chip-prog-tx; border-color: $chip-prog-br; }
+
+/* ---------- Code / JSON cells (fixes truncation) ---------- */
+.cell.code {
+  font-family: $font-mono;
+  white-space: pre-wrap;   // keep newlines, allow wrapping
+  word-break: break-word;  // break long tokens
+  overflow-wrap: anywhere; // last-resort wrapping
+  background: $row-alt;
+  border: 1px solid $line-2;
+  border-radius: $radius-sm;
+  padding: .5rem .65rem;
+  color: $text;
+}
+
+/* Use this class on JSON cells to disable line-clamp and allow scroll */
+.cell.code.scroll {
+  display: block;             // cancel -webkit-box from .clamp-2 if present
+  -webkit-line-clamp: unset;
+  -webkit-box-orient: unset;
+  max-height: $code-max-h;    // keep rows compact
+  overflow: auto;             // vertical scrollbar when tall
+}
+
+/* ---------- Misc ---------- */
+.muted { color: $muted; }
