@@ -3,7 +3,6 @@
   <head>
     <meta charset="utf-8">
     <title>Commandpost</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="{{ url_for('static', path='styles/commandpost.css') }}">
   </head>
   <body>
@@ -13,9 +12,9 @@
            style="height:2em; vertical-align:-0.25em; margin-right:.6rem;">
       Commandpost (Herringbone Alpha UI)
     </h1>
-
     <hr>
     <p>This is the central hub for managing and monitoring your Herringbone deployment. Here, you can view the status of various components, access logs, and configure settings.</p>
+    <br>
 
     {% set rows = log_rows or [] %}
 
@@ -58,34 +57,38 @@
               <td><div class="truncate-1" title="{{ rd.get('time') or '' }}">{{ rd.get('time') or '' }}</div></td>
               <td><div class="truncate-1" title="{{ rec.get('source_address','') }}">{{ rec.get('source_address','') }}</div></td>
 
-              <!-- description: compact, two-line clamp -->
+              <!-- long-ish text gets 2-line clamp -->
               <td><div class="cell clamp-2" title="{{ rd.get('description') or '' }}">{{ rd.get('description') or '' }}</div></td>
 
+              <!-- detector/detection are typically short; single-line -->
               <td>
                 <span class="chip {{ 'chip-true' if rec.get('detection') else 'chip-false' }}">
                   {{ rec.get('detection') }}
                 </span>
               </td>
-
               <td>
                 <div class="truncate-1" title="{{ rec.get('detection_reason') or '' }}">
                   {{ rec.get('detection_reason') or '' }}
                 </div>
               </td>
 
-              <!-- RAW LOG: fixed-height scrollbox -->
+              <!-- raw log in compact monospace with 2-line clamp -->
               <td>
-                <div class="scrollbox code" title="raw log">
-                  <pre>{{ rec | tojson(indent=2) }}</pre>
+                <div class="cell code clamp-2" title="{{ rec }}">
+                  {{ rec }}
                 </div>
               </td>
 
+              <!-- recon chip -->
               <td>
                 {% set status_raw = rec.get('status') or (rd.get('status') if rd else '') %}
                 {% set status = (status_raw or '')|string|trim %}
-                {% set is_processing = status|lower in ['recon in process.', 'recon in process', 'processing', 'in process'] %}
+                {% set is_processing = status|lower in [
+                    'recon in process.', 'recon in process', 'processing', 'in process'
+                ] %}
                 {% set recon_val = rec.get('recon', False) %}
                 {% set recon_cls = 'chip-prog' if is_processing else ('chip-true' if recon_val else 'chip-false') %}
+
                 <span class="chip {{ recon_cls }}" title="{{ status or recon_val }}">
                   {{ 'Processing' if is_processing else recon_val }}
                 </span>
@@ -104,8 +107,10 @@
       </table>
     </div>
 
+    <br>
     <h2>Rules</h2>
     {% set rules = rule_rows or [] %}
+
     <div class="table-wrap">
       <table class="hb-table">
         <colgroup>
@@ -130,17 +135,17 @@
               <td><div class="truncate-1" title="{{ rule.get('type','') }}">{{ rule.get('type','') }}</div></td>
               <td><div class="truncate-1" title="{{ rule.get('name','') }}">{{ rule.get('name','') }}</div></td>
 
-              <!-- prompt: two-line clamp -->
+              <!-- prompt: long-ish, 2-line clamp -->
               <td>
                 <div class="cell clamp-2" title="{{ rule.get('prompt','') }}">
                   {{ rule.get('prompt','') }}
                 </div>
               </td>
 
-              <!-- RULE DATA: fixed-height scrollbox, same as raw log -->
+              <!-- data: compact monospace with 2-line clamp -->
               <td>
-                <div class="scrollbox code" title="rule data">
-                  <pre>{{ rule.get('data') | tojson(indent=2) }}</pre>
+                <div class="cell code clamp-2" title="{{ rule.get('data') }}">
+                  {{ rule.get('data') }}
                 </div>
               </td>
             </tr>
