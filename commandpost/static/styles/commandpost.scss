@@ -30,7 +30,7 @@ p  { color: $muted; margin: .5rem 0 1rem; }
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  table-layout: fixed; // predictable column widths
+  table-layout: fixed;
 
   thead th {
     text-align: left;
@@ -70,12 +70,8 @@ p  { color: $muted; margin: .5rem 0 1rem; }
 /* ---------- Text utilities ---------- */
 .truncate-1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* IMPORTANT: do NOT hide overflow by default; let scrollable variants control it */
-.cell {
-  display: block;
-  margin: 0;        /* ensure <pre> doesn't add default margins */
-  overflow: visible;
-}
+/* Keep .cell neutral so variants can control overflow */
+.cell { display: block; margin: 0; overflow: visible; }
 
 /* Multi-line clamp (for non-scroll cells) */
 .clamp-2 {
@@ -85,7 +81,7 @@ p  { color: $muted; margin: .5rem 0 1rem; }
   overflow: hidden;
 }
 
-/* If anything accidentally keeps .clamp-2 on a code cell, neutralize it */
+/* If clamp accidentally lands on a code cell, neutralize it */
 .cell.code.scroll {
   display: block !important;
   -webkit-line-clamp: unset !important;
@@ -107,44 +103,50 @@ p  { color: $muted; margin: .5rem 0 1rem; }
 .chip-prog  { background: $chip-prog-bg; color: $chip-prog-tx; border-color: $chip-prog-br; }
 
 /* ==========================================================================
-   SCROLLABLE CELLS (logs table)
-   Apply to your raw log cell exactly as:
-   <pre class="cell code scroll">{{ rec | tojson(indent=2) }}</pre>
+   FORCE RAW-LOG JSON CELL TO SCROLL
+   Targets exactly: <pre class="cell code scroll">…</pre> inside the table
    ========================================================================== */
 
-/* Generic scrollable cell (text like desc, reason, etc.) */
-.cell.scroll {
-  max-height: $cell-max-h;
-  overflow-y: auto !important;
-  overflow-x: auto !important;
-  padding: .3rem .45rem;
-  background: $row-alt;
-  border: 1px solid $line-2;
-  border-radius: $radius-sm;
-}
-
-/* Code/JSON cell base */
-.cell.code {
+/* High-specificity rule hitting your exact element */
+.hb-table tbody td pre.cell.code.scroll {
   font-family: $font-mono;
   color: $text;
   background: $row-alt;
   border: 1px solid $line-2;
   border-radius: $radius-sm;
-  white-space: pre;     // preserve JSON formatting
-}
+  padding: .5rem .65rem;
 
-/* Code/JSON scrollable variant (this is your raw log cell) */
-.cell.code.scroll {
-  max-height: $code-max-h !important;  // enforce a fixed box height
+  /* The key constraints */
+  max-height: $code-max-h !important;
   overflow-y: auto !important;
   overflow-x: auto !important;
-  padding: .5rem .65rem;
+
+  /* Preserve JSON formatting */
+  white-space: pre !important;
 }
 
-/* Optional: thinner scrollbars */
-.cell.scroll::-webkit-scrollbar { width: 8px; height: 8px; }
-.cell.scroll::-webkit-scrollbar-thumb { background: $line-2; border-radius: 8px; }
-.cell.scroll { scrollbar-width: thin; scrollbar-color: $line-2 transparent; }
+/* Safety net: also match divs if you ever switch away from <pre> */
+.hb-table tbody td .cell.code.scroll {
+  max-height: $code-max-h !important;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
+}
+
+/* Optional: thin scrollbars for dense tables */
+.hb-table tbody td pre.cell.code.scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.hb-table tbody td pre.cell.code.scroll::-webkit-scrollbar-thumb { background: $line-2; border-radius: 8px; }
+.hb-table tbody td pre.cell.code.scroll { scrollbar-width: thin; scrollbar-color: $line-2 transparent; }
+
+/* ---------- Scrollable text cells (desc/reason), if you choose to use them */
+.cell.scroll {
+  max-height: $cell-max-h;
+  overflow-y: auto;
+  overflow-x: auto;
+  padding: .3rem .45rem;
+  background: $row-alt;
+  border: 1px solid $line-2;
+  border-radius: $radius-sm;
+}
 
 /* ---------- Muted text ---------- */
 .muted { color: $muted; }
