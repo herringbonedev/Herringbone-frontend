@@ -69,23 +69,14 @@ p  { color: $muted; margin: .5rem 0 1rem; }
 
 /* ---------- Text utilities ---------- */
 .truncate-1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cell       { display: block; margin: 0; }
 
-/* Keep .cell neutral so variants can control overflow */
-.cell { display: block; margin: 0; overflow: visible; }
-
-/* Multi-line clamp (for non-scroll cells) */
+/* clamp for non-scroll cells only */
 .clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-}
-
-/* If clamp accidentally lands on a code cell, neutralize it */
-.cell.code.scroll {
-  display: block !important;
-  -webkit-line-clamp: unset !important;
-  -webkit-box-orient: unset !important;
 }
 
 /* ---------- Chips ---------- */
@@ -103,50 +94,43 @@ p  { color: $muted; margin: .5rem 0 1rem; }
 .chip-prog  { background: $chip-prog-bg; color: $chip-prog-tx; border-color: $chip-prog-br; }
 
 /* ==========================================================================
-   FORCE RAW-LOG JSON CELL TO SCROLL
-   Targets exactly: <pre class="cell code scroll">…</pre> inside the table
+   RAW-LOG JSON: HARD SCROLLBOX WRAPPER
+   Wrap your <pre> with <div class="scrollbox code">…</div>
    ========================================================================== */
 
-/* High-specificity rule hitting your exact element */
-.hb-table tbody td pre.cell.code.scroll {
-  font-family: $font-mono;
-  color: $text;
+.hb-table tbody td .scrollbox {
+  height: $code-max-h;              /* fixed height forces scroll */
+  overflow: auto;                   /* both axes */
   background: $row-alt;
   border: 1px solid $line-2;
   border-radius: $radius-sm;
   padding: .5rem .65rem;
-
-  /* The key constraints */
-  max-height: $code-max-h !important;
-  overflow-y: auto !important;
-  overflow-x: auto !important;
-
-  /* Preserve JSON formatting */
-  white-space: pre !important;
 }
 
-/* Safety net: also match divs if you ever switch away from <pre> */
-.hb-table tbody td .cell.code.scroll {
-  max-height: $code-max-h !important;
-  overflow-y: auto !important;
-  overflow-x: auto !important;
+.hb-table tbody td .scrollbox pre {
+  font-family: $font-mono;
+  color: $text;
+  white-space: pre;                  /* preserve JSON formatting */
+  margin: 0;                         /* kill default pre margin */
 }
 
-/* Optional: thin scrollbars for dense tables */
-.hb-table tbody td pre.cell.code.scroll::-webkit-scrollbar { width: 8px; height: 8px; }
-.hb-table tbody td pre.cell.code.scroll::-webkit-scrollbar-thumb { background: $line-2; border-radius: 8px; }
-.hb-table tbody td pre.cell.code.scroll { scrollbar-width: thin; scrollbar-color: $line-2 transparent; }
-
-/* ---------- Scrollable text cells (desc/reason), if you choose to use them */
+/* ---------- Optional: generic scroll helper for other text cells ---------- */
 .cell.scroll {
   max-height: $cell-max-h;
-  overflow-y: auto;
-  overflow-x: auto;
+  overflow: auto;
   padding: .3rem .45rem;
   background: $row-alt;
   border: 1px solid $line-2;
   border-radius: $radius-sm;
 }
+
+/* ---------- Nice thin scrollbars ---------- */
+.scrollbox::-webkit-scrollbar,
+.cell.scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.scrollbox::-webkit-scrollbar-thumb,
+.cell.scroll::-webkit-scrollbar-thumb { background: $line-2; border-radius: 8px; }
+.scrollbox,
+.cell.scroll { scrollbar-width: thin; scrollbar-color: $line-2 transparent; }
 
 /* ---------- Muted text ---------- */
 .muted { color: $muted; }

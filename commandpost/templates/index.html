@@ -72,10 +72,10 @@
                 </div>
               </td>
               <td>
-                <pre class="cell code scroll" title="raw log">{{ rec | tojson(indent=2) }}</pre>
+                <div class="scrollbox code" title="raw log">
+                  <pre>{{ rec | tojson(indent=2) }}</pre>
+                </div>
               </td>
-              </td>
-
               <td>
                 {% set status_raw = rec.get('status') or (rd.get('status') if rd else '') %}
                 {% set status = (status_raw or '')|string|trim %}
