@@ -28,7 +28,7 @@ $chip-prog-bg: rgba(239,213,68,.12);
 $chip-prog-br: rgba(236,239,68,.35);
 $chip-prog-tx: #fcf6a5;
 
-// Typographic + radius tokens
+// Typography & radii
 $font-body: 14px/1.45 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
 $font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Liberation Mono", Consolas, monospace;
 
@@ -50,5 +50,6 @@ $w-name:   16rem;
 $w-prompt: 28rem;
 $w-data:   28rem;
 
-// Code cell height
-$code-max-h: 12rem;
+// Heights
+$cell-max-h: 6rem;   // generic scrollable cell height
+$code-max-h: 12rem;  // JSON/code scrollable cell height

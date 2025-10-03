@@ -16,7 +16,7 @@ h2 { font-size: 1.2rem; margin: 1.4rem 0 .6rem; }
 hr { border: 0; border-top: 1px solid $border; margin: 10px 0; }
 p  { color: $muted; margin: .5rem 0 1rem; }
 
-/* ---------- Container ---------- */
+/* ---------- Containers ---------- */
 .table-wrap {
   background: $panel;
   border: 1px solid $border;
@@ -71,7 +71,7 @@ p  { color: $muted; margin: .5rem 0 1rem; }
 .truncate-1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cell       { display: block; }
 
-/* Clamp for regular text (not logs) */
+/* Multi-line clamp (for non-scroll cells) */
 .clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -89,32 +89,46 @@ p  { color: $muted; margin: .5rem 0 1rem; }
   text-align: center;
   border: 1px solid transparent;
 }
-
 .chip-true  { background: $chip-yes-bg;  color: $chip-yes-tx;  border-color: $chip-yes-br; }
 .chip-false { background: $chip-no-bg;   color: $chip-no-tx;   border-color: $chip-no-br; }
 .chip-prog  { background: $chip-prog-bg; color: $chip-prog-tx; border-color: $chip-prog-br; }
 
-/* ---------- Scrollable Cells (Logs Table) ---------- */
-.hb-table tbody td .cell {
-  max-height: 6rem;         // adjustable
-  overflow: auto;           // scroll instead of expand
-  padding: .3rem .45rem;
-  border-radius: $radius-sm;
-  background: $row-alt;
-}
+/* ==========================================================================
+   SCROLLABLE CELLS (logs table)
+   ========================================================================== */
 
-/* ---------- Code / JSON cells ---------- */
-.cell.code {
-  font-family: $font-mono;
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow-wrap: anywhere;
+/* Generic scrollable cell (text like desc, reason, etc.) */
+.cell.scroll {
+  max-height: $cell-max-h;
+  overflow-y: auto;
+  overflow-x: auto;
+  padding: .3rem .45rem;
+  background: $row-alt;
   border: 1px solid $line-2;
   border-radius: $radius-sm;
-  color: $text;
-  max-height: $code-max-h;
-  overflow: auto;
 }
 
-/* ---------- Misc ---------- */
+/* Code/JSON scrollable cell */
+.cell.code {
+  font-family: $font-mono;
+  color: $text;
+  background: $row-alt;
+  border: 1px solid $line-2;
+  border-radius: $radius-sm;
+  white-space: pre;        // preserve JSON formatting
+}
+
+.cell.code.scroll {
+  max-height: $code-max-h;
+  overflow-y: auto;
+  overflow-x: auto;
+  padding: .5rem .65rem;
+}
+
+/* Optional: nicer scrollbars */
+.cell.scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.cell.scroll::-webkit-scrollbar-thumb { background: $line-2; border-radius: 8px; }
+.cell.scroll { scrollbar-width: thin; scrollbar-color: $line-2 transparent; }
+
+/* ---------- Muted text ---------- */
 .muted { color: $muted; }
