@@ -6,5 +6,5 @@ resources:
   - service.yaml
 images:
   - name: quay.io/herringbone/commandpost
-    newTag: latest-01280b1f-67
-    digest: sha256:9034f225645c1515d382838fdfbb11fb7cb92464cf4f0130cd51ea8c29481e13
+    newTag: latest-0d8957c8-68
+    digest: sha256:30cfef5a318d90f969b69efdecfa6aa16f96d6797e5a7716b7ba753727f104a5
