@@ -30,7 +30,7 @@ p  { color: $muted; margin: .5rem 0 1rem; }
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  table-layout: fixed;
+  table-layout: fixed; // predictable column widths
 
   thead th {
     text-align: left;
@@ -69,7 +69,13 @@ p  { color: $muted; margin: .5rem 0 1rem; }
 
 /* ---------- Text utilities ---------- */
 .truncate-1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cell       { display: block; }
+
+/* IMPORTANT: do NOT hide overflow by default; let scrollable variants control it */
+.cell {
+  display: block;
+  margin: 0;        /* ensure <pre> doesn't add default margins */
+  overflow: visible;
+}
 
 /* Multi-line clamp (for non-scroll cells) */
 .clamp-2 {
@@ -77,6 +83,13 @@ p  { color: $muted; margin: .5rem 0 1rem; }
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* If anything accidentally keeps .clamp-2 on a code cell, neutralize it */
+.cell.code.scroll {
+  display: block !important;
+  -webkit-line-clamp: unset !important;
+  -webkit-box-orient: unset !important;
 }
 
 /* ---------- Chips ---------- */
@@ -95,37 +108,40 @@ p  { color: $muted; margin: .5rem 0 1rem; }
 
 /* ==========================================================================
    SCROLLABLE CELLS (logs table)
+   Apply to your raw log cell exactly as:
+   <pre class="cell code scroll">{{ rec | tojson(indent=2) }}</pre>
    ========================================================================== */
 
 /* Generic scrollable cell (text like desc, reason, etc.) */
 .cell.scroll {
   max-height: $cell-max-h;
-  overflow-y: auto;
-  overflow-x: auto;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
   padding: .3rem .45rem;
   background: $row-alt;
   border: 1px solid $line-2;
   border-radius: $radius-sm;
 }
 
-/* Code/JSON scrollable cell */
+/* Code/JSON cell base */
 .cell.code {
   font-family: $font-mono;
   color: $text;
   background: $row-alt;
   border: 1px solid $line-2;
   border-radius: $radius-sm;
-  white-space: pre;        // preserve JSON formatting
+  white-space: pre;     // preserve JSON formatting
 }
 
+/* Code/JSON scrollable variant (this is your raw log cell) */
 .cell.code.scroll {
-  max-height: $code-max-h;
-  overflow-y: auto;
-  overflow-x: auto;
+  max-height: $code-max-h !important;  // enforce a fixed box height
+  overflow-y: auto !important;
+  overflow-x: auto !important;
   padding: .5rem .65rem;
 }
 
-/* Optional: nicer scrollbars */
+/* Optional: thinner scrollbars */
 .cell.scroll::-webkit-scrollbar { width: 8px; height: 8px; }
 .cell.scroll::-webkit-scrollbar-thumb { background: $line-2; border-radius: 8px; }
 .cell.scroll { scrollbar-width: thin; scrollbar-color: $line-2 transparent; }

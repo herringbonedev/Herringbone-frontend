@@ -71,12 +71,9 @@
                   {{ rec.get('detection_reason') or '' }}
                 </div>
               </td>
-
-              <!-- RAW LOG: pretty-printed JSON with scroll (no clamping) -->
               <td>
-                <pre class="cell code scroll" title="raw log">
-{{ rec | tojson(indent=2) }}
-                </pre>
+                <pre class="cell code scroll" title="raw log">{{ rec | tojson(indent=2) }}</pre>
+              </td>
               </td>
 
               <td>
@@ -134,8 +131,6 @@
                   {{ rule.get('prompt','') }}
                 </div>
               </td>
-
-              <!-- RULE DATA: pretty JSON with scroll -->
               <td>
                 <pre class="cell code scroll" title="rule data">
 {{ rule.get('data') | tojson(indent=2) }}
