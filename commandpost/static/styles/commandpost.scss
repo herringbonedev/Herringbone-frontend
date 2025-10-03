@@ -71,7 +71,7 @@ p  { color: $muted; margin: .5rem 0 1rem; }
 .truncate-1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cell       { display: block; margin: 0; }
 
-/* clamp for non-scroll cells only */
+/* clamp for non-scroll cells */
 .clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -94,43 +94,28 @@ p  { color: $muted; margin: .5rem 0 1rem; }
 .chip-prog  { background: $chip-prog-bg; color: $chip-prog-tx; border-color: $chip-prog-br; }
 
 /* ==========================================================================
-   RAW-LOG JSON: HARD SCROLLBOX WRAPPER
-   Wrap your <pre> with <div class="scrollbox code">…</div>
+   RAW-LOG JSON SCROLLBOX
    ========================================================================== */
-
-.hb-table tbody td .scrollbox {
-  height: $code-max-h;              /* fixed height forces scroll */
-  overflow: auto;                   /* both axes */
+.scrollbox.code {
+  height: $code-max-h;              /* fixed height */
+  overflow: auto;                   /* force scrollbar */
   background: $row-alt;
   border: 1px solid $line-2;
   border-radius: $radius-sm;
   padding: .5rem .65rem;
 }
 
-.hb-table tbody td .scrollbox pre {
+.scrollbox.code pre {
   font-family: $font-mono;
   color: $text;
-  white-space: pre;                  /* preserve JSON formatting */
-  margin: 0;                         /* kill default pre margin */
-}
-
-/* ---------- Optional: generic scroll helper for other text cells ---------- */
-.cell.scroll {
-  max-height: $cell-max-h;
-  overflow: auto;
-  padding: .3rem .45rem;
-  background: $row-alt;
-  border: 1px solid $line-2;
-  border-radius: $radius-sm;
+  white-space: pre;   /* preserve JSON formatting */
+  margin: 0;
 }
 
 /* ---------- Nice thin scrollbars ---------- */
-.scrollbox::-webkit-scrollbar,
-.cell.scroll::-webkit-scrollbar { width: 8px; height: 8px; }
-.scrollbox::-webkit-scrollbar-thumb,
-.cell.scroll::-webkit-scrollbar-thumb { background: $line-2; border-radius: 8px; }
-.scrollbox,
-.cell.scroll { scrollbar-width: thin; scrollbar-color: $line-2 transparent; }
+.scrollbox.code::-webkit-scrollbar { width: 8px; height: 8px; }
+.scrollbox.code::-webkit-scrollbar-thumb { background: $line-2; border-radius: 8px; }
+.scrollbox.code { scrollbar-width: thin; scrollbar-color: $line-2 transparent; }
 
 /* ---------- Muted text ---------- */
 .muted { color: $muted; }
