@@ -89,13 +89,12 @@ p { color: $muted; margin: .5rem 0 1rem; }
 .chip-false { background: $chip-no-bg;  color: $chip-no-tx;  border-color: $chip-no-br; }
 .chip-prog  { background: $chip-prog-bg; color: $chip-prog-tx; border-color: $chip-prog-br; }
 
-/* Code cells (same as original visual intent) */
+/* Code cells */
 .cell.code {
   font-family: $font-mono;
   background: $row-alt;
   border: 1px solid $line-2;
   border-radius: $radius-sm;
-  padding: .4rem .6rem;
   color: $text;
 }
 
