@@ -22,7 +22,7 @@ p  { color: $muted; margin: .5rem 0 1rem; }
   border: 1px solid $border;
   border-radius: $radius;
   padding: 10px;
-  overflow-x: auto;
+  overflow-x: auto; /* horizontal scroll if table is wide */
 }
 
 /* ---------- Table ---------- */
@@ -30,7 +30,7 @@ p  { color: $muted; margin: .5rem 0 1rem; }
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  table-layout: fixed;
+  table-layout: fixed; /* predictable column widths */
 
   thead th {
     text-align: left;
@@ -71,7 +71,7 @@ p  { color: $muted; margin: .5rem 0 1rem; }
 .truncate-1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cell       { display: block; margin: 0; }
 
-/* clamp for non-scroll cells */
+/* Clamp for non-scroll cells */
 .clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -94,11 +94,12 @@ p  { color: $muted; margin: .5rem 0 1rem; }
 .chip-prog  { background: $chip-prog-bg; color: $chip-prog-tx; border-color: $chip-prog-br; }
 
 /* ==========================================================================
-   RAW-LOG JSON SCROLLBOX
+   SCROLLBOX (reliable fixed-height scroll container for JSON)
+   Use on Logs "raw log" and Rules "data" cells.
    ========================================================================== */
 .scrollbox.code {
-  height: $code-max-h;              /* fixed height */
-  overflow: auto;                   /* force scrollbar */
+  height: $code-max-h;          /* fixed height forces scrolling */
+  overflow: auto;               /* both axes */
   background: $row-alt;
   border: 1px solid $line-2;
   border-radius: $radius-sm;
@@ -108,11 +109,11 @@ p  { color: $muted; margin: .5rem 0 1rem; }
 .scrollbox.code pre {
   font-family: $font-mono;
   color: $text;
-  white-space: pre;   /* preserve JSON formatting */
-  margin: 0;
+  white-space: pre;             /* preserve indentation */
+  margin: 0;                    /* remove pre default margins */
 }
 
-/* ---------- Nice thin scrollbars ---------- */
+/* Thin scrollbars (optional) */
 .scrollbox.code::-webkit-scrollbar { width: 8px; height: 8px; }
 .scrollbox.code::-webkit-scrollbar-thumb { background: $line-2; border-radius: 8px; }
 .scrollbox.code { scrollbar-width: thin; scrollbar-color: $line-2 transparent; }

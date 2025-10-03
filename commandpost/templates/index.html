@@ -58,6 +58,7 @@
               <td><div class="truncate-1" title="{{ rd.get('time') or '' }}">{{ rd.get('time') or '' }}</div></td>
               <td><div class="truncate-1" title="{{ rec.get('source_address','') }}">{{ rec.get('source_address','') }}</div></td>
 
+              <!-- description: compact, two-line clamp -->
               <td><div class="cell clamp-2" title="{{ rd.get('description') or '' }}">{{ rd.get('description') or '' }}</div></td>
 
               <td>
@@ -71,11 +72,14 @@
                   {{ rec.get('detection_reason') or '' }}
                 </div>
               </td>
+
+              <!-- RAW LOG: fixed-height scrollbox -->
               <td>
                 <div class="scrollbox code" title="raw log">
                   <pre>{{ rec | tojson(indent=2) }}</pre>
                 </div>
               </td>
+
               <td>
                 {% set status_raw = rec.get('status') or (rd.get('status') if rd else '') %}
                 {% set status = (status_raw or '')|string|trim %}
@@ -126,15 +130,18 @@
               <td><div class="truncate-1" title="{{ rule.get('type','') }}">{{ rule.get('type','') }}</div></td>
               <td><div class="truncate-1" title="{{ rule.get('name','') }}">{{ rule.get('name','') }}</div></td>
 
+              <!-- prompt: two-line clamp -->
               <td>
                 <div class="cell clamp-2" title="{{ rule.get('prompt','') }}">
                   {{ rule.get('prompt','') }}
                 </div>
               </td>
+
+              <!-- RULE DATA: fixed-height scrollbox, same as raw log -->
               <td>
-                <pre class="cell code scroll" title="rule data">
-{{ rule.get('data') | tojson(indent=2) }}
-                </pre>
+                <div class="scrollbox code" title="rule data">
+                  <pre>{{ rule.get('data') | tojson(indent=2) }}</pre>
+                </div>
               </td>
             </tr>
           {% else %}
