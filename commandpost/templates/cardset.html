@@ -1,0 +1,390 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Commandpost</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='styles/commandpost.css') }}">
+    <script>
+      // Provided by FastAPI template context; if empty, same-origin is used
+      window.__HB_CFG = { CARDSET_API: "{{ cardset_api | default('') }}" };
+    </script>
+  </head>
+  <body>
+    <h1>
+      <img src="{{ url_for('static', path='logo.png') }}"
+           alt="Herringbone logo"
+           style="height:2em; vertical-align:-0.25em; margin-right:.6rem;">
+      Commandpost (Herringbone Alpha UI)
+    </h1>
+    <hr>
+    <p>This is the CardSet admin for <strong>parser/cardset</strong>: search & paginate cards, create/edit/delete with live validation, test regex/JSONPath, and check health.</p>
+    <br>
+
+    <!-- Service Health -->
+    <h2>Service</h2>
+    <div class="table-wrap">
+      <table class="hb-table">
+        <colgroup>
+          <col class="col-type">
+          <col class="col-name">
+          <col class="col-flag">
+          <col class="col-flag">
+          <col class="col-name">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>base url</th>
+            <th>source</th>
+            <th>livez</th>
+            <th>readyz</th>
+            <th>notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div class="truncate-1"><span id="baseDisplay"></span></div></td>
+            <td><div class="truncate-1 muted" id="baseSource"></div></td>
+            <td><span id="pillLive" class="chip">—</span></td>
+            <td><span id="pillReady" class="chip">—</span></td>
+            <td class="muted">Auto-refreshes every 10s</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <br>
+    <!-- Search Row -->
+    <h2>Cards</h2>
+    <div class="table-wrap">
+      <table class="hb-table">
+        <colgroup>
+          <col class="col-type">
+          <col class="col-name">
+          <col class="col-name">
+          <col class="col-prompt">
+          <col class="col-flag">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>selector.type</th>
+            <th>selector.value</th>
+            <th>limit</th>
+            <th>query</th>
+            <th>actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><input id="qType" placeholder="e.g., domain" style="width:100%"></td>
+            <td><input id="qValue" placeholder="e.g., example.com" style="width:100%"></td>
+            <td><input id="qLimit" type="number" min="1" value="25" style="width:7ch"></td>
+            <td class="muted">POST <code>/parser/cardset/pull_cards</code></td>
+            <td>
+              <button id="btnSearch">Search</button>
+              <button id="btnClear">Clear</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Results -->
+    <div class="table-wrap" style="margin-top:.8rem;">
+      <table class="hb-table">
+        <colgroup>
+          <col class="col-name">
+          <col class="col-data">
+          <col class="col-time">
+          <col class="col-flag">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>selector</th>
+            <th>patterns</th>
+            <th>updated</th>
+            <th>actions</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody">
+          <tr><td colspan="4" class="muted" style="text-align:center;">No cards</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:.6rem; margin:.5rem 0 1.2rem;">
+      <div class="muted" id="resultCount">—</div>
+      <div style="margin-left:auto;">
+        page size
+        <select id="pageSize">
+          <option>10</option>
+          <option selected>25</option>
+          <option>50</option>
+          <option>100</option>
+        </select>
+      </div>
+      <div id="pager" class="muted">page 1 / 1</div>
+    </div>
+
+    <!-- Editor -->
+    <h2>Editor</h2>
+    <div class="table-wrap">
+      <table class="hb-table">
+        <colgroup>
+          <col class="col-name">
+          <col class="col-data">
+          <col class="col-flag">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>card json</th>
+            <th>errors</th>
+            <th>actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="cell code" style="padding:0;">
+                <textarea id="cardJson" style="width:100%; min-height:180px; resize:vertical; border:0; padding:.6rem; font-family:inherit;"></textarea>
+              </div>
+            </td>
+            <td>
+              <div id="cardErrors" class="cell code clamp-2 muted" title=""></div>
+            </td>
+            <td style="white-space:nowrap;">
+              <button id="btnInsert">Insert</button>
+              <button id="btnUpdate">Upsert</button>
+              <button id="btnDelete">Delete</button>
+              <div class="muted" id="cardActionMsg" style="margin-top:.4rem;">&nbsp;</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Try-it -->
+    <br>
+    <h2>Try-it (Regex / JSONPath)</h2>
+    <div class="table-wrap">
+      <table class="hb-table">
+        <colgroup>
+          <col class="col-data">
+          <col class="col-data">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>sample text</th>
+            <th>sample json</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="cell code" style="padding:0;">
+                <textarea id="sampleText" style="width:100%; min-height:120px; resize:vertical; border:0; padding:.6rem; font-family:inherit;" placeholder="paste a log line or text"></textarea>
+              </div>
+            </td>
+            <td>
+              <div class="cell code" style="padding:0;">
+                <textarea id="sampleJson" style="width:100%; min-height:120px; resize:vertical; border:0; padding:.6rem; font-family:inherit;" placeholder='{"network":{"source":{"ip":"1.2.3.4"}}}'></textarea>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2" style="text-align:right;">
+              <button id="btnTest">Run tests</button>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2">
+              <div class="cell code" style="max-height:220px; overflow:auto;">
+                <pre id="testOutput" style="margin:0; white-space:pre-wrap;"></pre>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <script>
+      // ---------- Base URL (env → same-origin) ----------
+      function baseURL() {
+        const env = (window.__HB_CFG && window.__HB_CFG.CARDSET_API || '').trim();
+        const b = env || window.location.origin;
+        return b.replace(/\/$/, '');
+      }
+      const BASE = baseURL();
+      const $ = (id) => document.getElementById(id);
+
+      // ---------- Health ----------
+      async function checkHealth() {
+        $('baseDisplay').textContent = BASE;
+        $('baseSource').textContent = (window.__HB_CFG && window.__HB_CFG.CARDSET_API) ? 'CARDSET_API (env)' : 'same-origin';
+        try {
+          const j = await fetch(`${BASE}/parser/cardset/livez`).then(r=>r.json());
+          setChip($('pillLive'), j.ok);
+        } catch { setChip($('pillLive'), null); }
+        try {
+          const j2 = await fetch(`${BASE}/parser/cardset/readyz`).then(r=>r.json());
+          setChip($('pillReady'), j2.ok);
+        } catch { setChip($('pillReady'), null); }
+      }
+      function setChip(el, val){
+        if (val === true) { el.className='chip chip-true'; el.textContent='true'; }
+        else if (val === false) { el.className='chip chip-false'; el.textContent='false'; }
+        else { el.className='chip'; el.textContent='—'; }
+      }
+
+      // ---------- Validation ----------
+      function validateCardObject(card) {
+        const errors = [];
+        if (typeof card !== 'object' || card === null) { errors.push('Card must be an object'); return errors; }
+        if (!card.selector || typeof card.selector !== 'object') errors.push('Missing selector object');
+        else {
+          if (typeof card.selector.type !== 'string' || !card.selector.type.trim()) errors.push('selector.type must be a non-empty string');
+          if (typeof card.selector.value !== 'string' || !card.selector.value.trim()) errors.push('selector.value must be a non-empty string');
+        }
+        const hasRegex = Array.isArray(card.regex) && card.regex.length>0;
+        const hasJsonp = Array.isArray(card.jsonp) && card.jsonp.length>0;
+        if (!hasRegex && !hasJsonp) errors.push('Provide regex[] or jsonp[]');
+        const checkKV = (arr, kind) => {
+          arr.forEach((entry, i) => {
+            if (typeof entry !== 'object' || entry === null) errors.push(`${kind}[${i}] must be an object`);
+            const keys = Object.keys(entry||{});
+            if (keys.length !== 1) errors.push(`${kind}[${i}] must have exactly one key`);
+            const k = keys[0];
+            if (typeof entry[k] !== 'string') errors.push(`${kind}[${i}].${k} must be a string`);
+            if (kind==='regex') { try { new RegExp(entry[k]); } catch(e){ errors.push(`regex[${i}].${k} invalid: ${e.message}`); } }
+            if (kind==='jsonp') { if (!String(entry[k]).startsWith('$.')) errors.push(`jsonp[${i}].${k} must start with '$.'`); }
+          });
+        };
+        if (hasRegex) checkKV(card.regex, 'regex');
+        if (hasJsonp) checkKV(card.jsonp, 'jsonp');
+        return errors;
+      }
+      function liveValidate(){
+        const txt = $('cardJson').value;
+        try {
+          const obj = JSON.parse(txt);
+          const errs = validateCardObject(obj);
+          $('cardErrors').textContent = errs.join('\n');
+          return { ok: errs.length===0, obj };
+        } catch(e){ $('cardErrors').textContent = 'Invalid JSON: '+e.message; return { ok:false, obj:null }; }
+      }
+      $('cardJson').addEventListener('input', liveValidate);
+
+      // ---------- Search / Results ----------
+      let allRows = []; let page=1;
+      function prettySelector(s){ return (s && (s.type||'')+':' + (s.value||'')) || ''; }
+      function render(){
+        const body = $('resultsBody');
+        body.innerHTML = '';
+        const size = Number($('pageSize').value)||25;
+        const total = allRows.length; const pages = Math.max(1, Math.ceil(total/size));
+        if (page>pages) page = pages;
+        const start = (page-1)*size;
+        const rows = allRows.slice(start, start+size);
+        if (!rows.length){ body.innerHTML = '<tr><td colspan="4" class="muted" style="text-align:center;">No cards</td></tr>'; }
+        rows.forEach((r, i) => {
+          const patterns = [];
+          (r.regex||[]).forEach(kv=>{ const k=Object.keys(kv)[0]; patterns.push(`<span class="chip">/regex:${k}/</span>`); });
+          (r.jsonp||[]).forEach(kv=>{ const k=Object.keys(kv)[0]; patterns.push(`<span class="chip">$jsonpath:${k}</span>`); });
+          const updated = r.last_updated ? new Date(r.last_updated.$date || r.last_updated).toISOString() : '';
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><div class="truncate-1" title="${prettySelector(r.selector)}">${prettySelector(r.selector)}</div></td>
+            <td><div class="cell code clamp-2" title="${patterns.join(' ')}">${patterns.join(' ')||''}</div></td>
+            <td class="muted">${updated}</td>
+            <td style="white-space:nowrap;">
+              <button class="btnEdit" data-idx="${start+i}">Edit</button>
+              <button class="btnDel" data-idx="${start+i}">Delete</button>
+            </td>`;
+          body.appendChild(tr);
+        });
+        $('resultCount').textContent = `${total} card${total===1?'':'s'} (showing ${rows.length})`;
+        $('pager').textContent = `page ${page} / ${Math.max(1, Math.ceil(total/size))}`;
+        body.querySelectorAll('.btnEdit').forEach(btn=>btn.addEventListener('click', (e)=>{
+          const idx = Number(e.target.getAttribute('data-idx'));
+          const doc = allRows[idx];
+          const copy = JSON.parse(JSON.stringify(doc)); delete copy._id; delete copy.last_updated; delete copy.deleted; delete copy.deleted_at;
+          $('cardJson').value = JSON.stringify(copy, null, 2);
+          liveValidate();
+          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }));
+        body.querySelectorAll('.btnDel').forEach(btn=>btn.addEventListener('click', async (e)=>{
+          const idx = Number(e.target.getAttribute('data-idx'));
+          const doc = allRows[idx];
+          await deleteBySelector(doc.selector);
+        }));
+      }
+      async function search(){
+        const body = { selector_type: $('qType').value.trim(), selector_value: $('qValue').value.trim(), limit: Number($('qLimit').value)||25 };
+        const res = await fetch(`${BASE}/parser/cardset/pull_cards`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+        if (!res.ok) { alert('Search failed'); return; }
+        const j = await res.json();
+        allRows = j.cards || []; page=1; render();
+      }
+
+      // ---------- Actions ----------
+      async function insertCard(){
+        const {ok, obj} = liveValidate(); if (!ok) { $('cardActionMsg').textContent='Fix errors before insert'; return; }
+        const r = await fetch(`${BASE}/parser/cardset/insert_card`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(obj)});
+        const j = await r.json().catch(()=>({}));
+        $('cardActionMsg').textContent = r.ok ? `Inserted` : (j.detail || 'Insert failed');
+        if (r.ok) { await search(); }
+      }
+      async function upsertCard(){
+        const {ok, obj} = liveValidate(); if (!ok) { $('cardActionMsg').textContent='Fix errors before upsert'; return; }
+        const r = await fetch(`${BASE}/parser/cardset/update_card`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(obj)});
+        const j = await r.json().catch(()=>({}));
+        $('cardActionMsg').textContent = r.ok ? `Upsert ok` : (j.detail || 'Upsert failed');
+        if (r.ok) { await search(); }
+      }
+      async function deleteBySelector(sel){
+        const selector = sel || (function(){ try { return JSON.parse($('cardJson').value).selector; } catch{return null;} })();
+        if (!selector) { $('cardActionMsg').textContent='No selector provided'; return; }
+        if (!confirm(`Delete ALL cards for ${selector.type||''}:${selector.value||''}?`)) return;
+        const body = { selector_type: selector.type, selector_value: selector.value };
+        const r = await fetch(`${BASE}/parser/cardset/delete_cards`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+        const j = await r.json().catch(()=>({}));
+        $('cardActionMsg').textContent = r.ok ? `Deleted ${j.deleted||0}` : (j.detail || 'Delete failed');
+        if (r.ok) { await search(); }
+      }
+
+      // ---------- Tester ----------
+      function evalJSONPath(path, obj){
+        if (typeof path !== 'string' || !path.startsWith('$.')) return undefined;
+        const tokens=[]; let cur = path.slice(2);
+        cur.split('.').forEach(part=>{ const re=/(\w+)|(\[(\d+)\])/g; let m; while((m=re.exec(part))!==null){ if(m[1])tokens.push(m[1]); if(m[3]!==undefined)tokens.push(Number(m[3])); } });
+        let node=obj; for(const t of tokens){ if(node==null) return undefined; node=node[t]; } return node;
+      }
+      function runTests(){
+        const out = $('testOutput');
+        const val = liveValidate(); if (!val.ok) { out.textContent='Fix validation errors first'; return; }
+        const card = val.obj; const results=[];
+        const text = $('sampleText').value || '';
+        (card.regex||[]).forEach(kv=>{ const k=Object.keys(kv)[0]; const pattern=kv[k]; try{ const re=new RegExp(pattern,'g'); const matches=[...text.matchAll(re)].map(m=>({index:m.index,match:m[0]})); results.push({type:'regex', key:k, pattern, matches}); }catch(e){ results.push({type:'regex', key:k, error:e.message}); } });
+        const raw = $('sampleJson').value.trim(); let obj=null; let jsonErr=null; if(raw){ try{ obj=JSON.parse(raw); }catch(e){ jsonErr=e.message; } }
+        (card.jsonp||[]).forEach(kv=>{ const k=Object.keys(kv)[0]; const jp=kv[k]; if(jsonErr) results.push({type:'jsonp', key:k, error:'Invalid sample JSON: '+jsonErr}); else { const v=evalJSONPath(jp, obj); results.push({type:'jsonp', key:k, path:jp, value:v}); } });
+        out.textContent = JSON.stringify(results, null, 2);
+      }
+
+      // ---------- Wire ----------
+      $('btnSearch').addEventListener('click', ()=>{ search(); });
+      $('btnClear').addEventListener('click', ()=>{ allRows=[]; render(); });
+      $('pageSize').addEventListener('change', ()=>{ render(); });
+      $('btnInsert').addEventListener('click', ()=>{ insertCard(); });
+      $('btnUpdate').addEventListener('click', ()=>{ upsertCard(); });
+      $('btnDelete').addEventListener('click', ()=>{ deleteBySelector(); });
+      $('btnTest').addEventListener('click', ()=>{ runTests(); });
+
+      // ---------- Init ----------
+      checkHealth(); setInterval(checkHealth, 10000);
+      // Optional: seed example for quick start
+      $('cardJson').value = JSON.stringify({
+        selector:{type:'domain', value:'example.com'},
+        regex:[{domain:'(?:[a-z0-9-]+\\.)*example\\.com'}]
+      }, null, 2);
+    </script>
+  </body>
+</html>

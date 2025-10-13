@@ -56,5 +56,12 @@ def home(request: Request):
                                                         "log_rows": log_rows,
                                                         "rule_rows": rule_rows})
 
+@app.get("/cardset/admin", response_class=HTMLResponse)
+def cardset_admin(request: Request):
+    return templates.TemplateResponse(
+        "cardset_admin.html",
+        {"request": request, "cardset_api": os.getenv("CARDSET_API", "")}
+    )
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=5000)
