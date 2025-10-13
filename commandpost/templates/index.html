@@ -22,7 +22,6 @@
     <div class="table-wrap">
       <table class="hb-table">
         <colgroup>
-          <col class="col-id">
           <col class="col-time">
           <col class="col-source">
           <col class="col-desc">
@@ -35,7 +34,6 @@
 
         <thead>
           <tr>
-            <th>_id</th>
             <th>time</th>
             <th>source</th>
             <th>description</th>
@@ -53,7 +51,6 @@
             {% set rd  = rec.get('recon_data') or {} %}
 
             <tr>
-              <td><div class="truncate-1" title="{{ rec.get('_id','') }}">{{ rec.get('_id','') }}</div></td>
               <td><div class="truncate-1" title="{{ rd.get('time') or '' }}">{{ rd.get('time') or '' }}</div></td>
               <td><div class="truncate-1" title="{{ rec.get('source_address','') }}">{{ rec.get('source_address','') }}</div></td>
 
