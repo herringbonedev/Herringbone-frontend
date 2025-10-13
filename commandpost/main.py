@@ -56,10 +56,10 @@ def home(request: Request):
                                                         "log_rows": log_rows,
                                                         "rule_rows": rule_rows})
 
-@app.get("/cardset/admin", response_class=HTMLResponse)
-def cardset_admin(request: Request):
+@app.get("/cardset", response_class=HTMLResponse)
+def cardset(request: Request):
     return templates.TemplateResponse(
-        "cardset_admin.html",
+        "cardset.html",
         {"request": request, "cardset_api": os.getenv("CARDSET_API", "")}
     )
 
