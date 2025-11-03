@@ -122,5 +122,50 @@
         </tbody>
       </table>
     </div>
+    <br>
+    <h2>Cards</h2>
+    {% set cards = card_rows or [] %}
+
+    <div class="table-wrap">
+      <table class="hb-table">
+        <colgroup>
+          <col class="col-type"> <!-- selector type -->
+          <col class="col-name"> <!-- selector value -->
+          <col class="col-prompt"> <!-- regex count -->
+          <col class="col-data"> <!-- jsonp count -->
+        </colgroup>
+
+        <thead>
+          <tr>
+            <th>Selector Type</th>
+            <th>Selector Value</th>
+            <th>Regex Count</th>
+            <th>JSONP Count</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for card in cards if card %}
+            {% set selector = card.get('selector', {}) %}
+            <tr>
+              <td><div class="truncate-1" title="{{ selector.get('type','') }}">{{ selector.get('type','') }}</div></td>
+              <td><div class="truncate-1" title="{{ selector.get('value','') }}">{{ selector.get('value','') }}</div></td>
+              <td>
+                <div class="truncate-1" title="{{ card.get('regex')|length if card.get('regex') else 0 }}">
+                  {{ card.get('regex')|length if card.get('regex') else 0 }}
+                </div>
+              </td>
+              <td>
+                <div class="truncate-1" title="{{ card.get('jsonp')|length if card.get('jsonp') else 0 }}">
+                  {{ card.get('jsonp')|length if card.get('jsonp') else 0 }}
+                </div>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="4" class="muted" style="text-align:center;">No cards</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </body>
 </html>
