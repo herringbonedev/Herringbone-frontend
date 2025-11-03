@@ -24,18 +24,18 @@ $radius-sm:    10px;
 $radius-pill:  999px;
 
 // Column widths
-$w-id:     12rem;
-$w-time:   11rem;
-$w-source: 10rem;
-$w-desc:   22rem;
-$w-reason: 20rem;
-$w-raw-min: 30rem;
-$w-flag:   7rem;
+$w-id:       12rem;
+$w-time:     11rem;
+$w-source:   10rem;
+$w-desc:     22rem;
+$w-reason:   20rem;
+$w-raw-min:  30rem;
+$w-flag:     7rem;
 
-$w-type:   8rem;
-$w-name:   16rem;
-$w-prompt: 28rem;
-$w-data:   28rem;
+$w-type:     8rem;
+$w-name:     16rem;
+$w-prompt:   28rem;
+$w-data:     28rem;
 
 // Heights
 $cell-max-h: 6rem;
@@ -64,9 +64,7 @@ $code-max-h: 12rem;
   width: 100%;
 }
 
-.row-flex > .col-fixed {
-  flex: 0 0 auto;
-}
+.row-flex > .col-fixed { flex: 0 0 auto; }
 
 .col-id     { width: $w-id; }
 .col-time   { width: $w-time; }
@@ -84,6 +82,11 @@ $code-max-h: 12rem;
   font-family: $font-mono;
   max-height: $code-max-h;
 }
+
+.col-type   { width: $w-type; }
+.col-name   { width: $w-name; }
+.col-prompt { width: $w-prompt; }
+.col-data   { width: $w-data; }
 
 // Utilities
 .bg {

@@ -57,7 +57,7 @@ p { color: $muted; margin: .5rem 0 1rem; }
 .col-source { width: $w-source; }
 .col-desc { width: $w-desc; }
 .col-reason { width: $w-reason; }
-.col-raw { width: $w-raw; }
+.col-raw { min-width: $w-raw-min; max-width: 100%; overflow-x: auto; white-space: pre; font-family: $font-mono; }
 .col-flag { width: $w-flag; }
 
 .col-type { width: $w-type; }
@@ -74,20 +74,6 @@ p { color: $muted; margin: .5rem 0 1rem; }
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-
-/* Chips */
-.chip {
-  display: inline-block;
-  padding: .15rem .55rem;
-  border-radius: $radius-pill;
-  font-weight: 600;
-  font-size: .8rem;
-  text-align: center;
-  border: 1px solid transparent;
-}
-.chip-true  { background: $chip-yes-bg; color: $chip-yes-tx; border-color: $chip-yes-br; }
-.chip-false { background: $chip-no-bg;  color: $chip-no-tx;  border-color: $chip-no-br; }
-.chip-prog  { background: $chip-prog-bg; color: $chip-prog-tx; border-color: $chip-prog-br; }
 
 /* Code cells */
 .cell.code {
