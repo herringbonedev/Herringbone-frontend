@@ -1,6 +1,6 @@
-// Design tokens for Commandpost (dark theme)
+// tokens.scss – Commandpost dark theme
 
-// Core surface + text
+// Core
 $bg:        #111;
 $panel:     #121212;
 $border:    #222;
@@ -15,21 +15,8 @@ $row-hov:   #1c1c1c;
 $line:      #1f1f1f;
 $line-2:    #262626;
 
-// Chips
-$chip-yes-bg: rgba(34,197,94,.12);
-$chip-yes-br: rgba(34,197,94,.35);
-$chip-yes-tx: #86efac;
-
-$chip-no-bg:  rgba(239,68,68,.12);
-$chip-no-br:  rgba(239,68,68,.35);
-$chip-no-tx:  #fca5a5;
-
-$chip-prog-bg: rgba(239,213,68,.12);
-$chip-prog-br: rgba(236,239,68,.35);
-$chip-prog-tx: #fcf6a5;
-
 // Typography & radii
-$font-body: 14px/1.45 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+$font-body: 14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
 $font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Liberation Mono", Consolas, monospace;
 
 $radius:       12px;
@@ -42,7 +29,7 @@ $w-time:   11rem;
 $w-source: 10rem;
 $w-desc:   22rem;
 $w-reason: 20rem;
-$w-raw:    30rem;
+$w-raw-min: 30rem;
 $w-flag:   7rem;
 
 $w-type:   8rem;
@@ -51,5 +38,70 @@ $w-prompt: 28rem;
 $w-data:   28rem;
 
 // Heights
-$cell-max-h: 6rem;    // generic text cells if you use .scroll
-$code-max-h: 12rem;   // raw log JSON box height
+$cell-max-h: 6rem;
+$code-max-h: 12rem;
+
+// Grid table layout
+.table-grid {
+  display: grid;
+  grid-auto-rows: auto;
+  grid-template-columns:
+    #{$w-id}
+    #{$w-time}
+    #{$w-source}
+    #{$w-desc}
+    #{$w-reason}
+    minmax(#{$w-raw-min}, 1fr)
+    #{$w-flag};
+  width: 100%;
+  align-items: start;
+}
+
+// Flex row layout
+.row-flex {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+
+.row-flex > .col-fixed {
+  flex: 0 0 auto;
+}
+
+.col-id     { width: $w-id; }
+.col-time   { width: $w-time; }
+.col-source { width: $w-source; }
+.col-desc   { width: $w-desc; }
+.col-reason { width: $w-reason; }
+.col-flag   { width: $w-flag; }
+
+.col-raw {
+  flex: 1 1 auto;
+  min-width: $w-raw-min;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre;
+  font-family: $font-mono;
+  max-height: $code-max-h;
+}
+
+// Utilities
+.bg {
+  background: $bg;
+  color: $text;
+  font: $font-body;
+}
+
+.panel {
+  background: $panel;
+  border: 1px solid $border;
+  border-radius: $radius;
+  color: $text;
+}
+
+.thead-top { background: $thead-top; }
+.thead-bot { background: $thead-bot; }
+.row-alt   { background: $row-alt; }
+.row-hov   { background: $row-hov; }
+.rule      { border-color: $line; }
+.rule-2    { border-color: $line-2; }
