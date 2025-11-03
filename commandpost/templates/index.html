@@ -27,8 +27,6 @@
           <col class="col-flag"> <!-- detection -->
           <col class="col-reason">
           <col class="col-raw">
-          <col class="col-flag">  <!-- recon -->
-          <col class="col-flag">  <!-- detected -->
         </colgroup>
 
         <thead>
@@ -38,8 +36,6 @@
             <th>detection</th>
             <th>detection reason</th>
             <th>raw log</th>
-            <th>recon</th>
-            <th>detected</th>
           </tr>
         </thead>
 
@@ -69,27 +65,6 @@
                 <div class="cell code clamp-2" title="{{ rec }}">
                   {{ rec }}
                 </div>
-              </td>
-
-              <!-- recon chip -->
-              <td>
-                {% set status_raw = rec.get('status') or (rd.get('status') if rd else '') %}
-                {% set status = (status_raw or '')|string|trim %}
-                {% set is_processing = status|lower in [
-                    'recon in process.', 'recon in process', 'processing', 'in process'
-                ] %}
-                {% set recon_val = rec.get('recon', False) %}
-                {% set recon_cls = 'chip-prog' if is_processing else ('chip-true' if recon_val else 'chip-false') %}
-
-                <span class="chip {{ recon_cls }}" title="{{ status or recon_val }}">
-                  {{ 'Processing' if is_processing else recon_val }}
-                </span>
-              </td>
-
-              <td>
-                <span class="chip {{ 'chip-true' if rec.get('detected') else 'chip-false' }}">
-                  {{ rec.get('detected') }}
-                </span>
               </td>
             </tr>
           {% else %}
