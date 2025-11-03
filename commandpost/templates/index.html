@@ -18,8 +18,15 @@
 
     {% set rows = log_rows or [] %}
 
-    <div class="logs-table-container">
-      <table>
+    <div class="table-wrap logs-table-container">
+      <table class="hb-table">
+        <colgroup>
+          <col class="col-time">
+          <col class="col-source">
+          <col class="col-data">
+          <col class="col-detections">
+        </colgroup>
+
         <thead>
           <tr>
             <th>Time</th>
@@ -28,24 +35,28 @@
             <th>Detections (Chip)</th>
           </tr>
         </thead>
+
         <tbody>
-          {% for log in logs %}
-          <tr>
-            <td>{{ log.time }}</td>
-            <td>{{ log.source }}</td>
-            <td><pre>{{ log.data }}</pre></td>
-            <td class="{{ 'chip-true' if log.detections else 'chip-false' }}">
-              {{ 'True' if log.detections else 'False' }}
-            </td>
-          </tr>
-          {% else %}
+          {% for log in logs if log %}
             <tr>
-              <td colspan="4" class="muted" style="text-align:center;">No logs available</td>
+              <td><div class="truncate-1" title="{{ log.time }}">{{ log.time }}</div></td>
+              <td><div class="truncate-1" title="{{ log.source }}">{{ log.source }}</div></td>
+              <td>
+                <div class="cell code clamp-2" title="{{ log.raw }}">
+                  <pre>{{ log.raw }}</pre>
+                </div>
+              </td>
+              <td class="{{ 'chip-true' if log.detections else 'chip-false' }}">
+                {{ 'True' if log.detections else 'False' }}
+              </td>
             </tr>
+          {% else %}
+            <tr><td colspan="4" class="muted" style="text-align:center;">No logs</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
+
     <br>
     <h2>Rules</h2>
     {% set rules = rule_rows or [] %}
