@@ -1,13 +1,9 @@
-// tokens.scss – Commandpost dark theme
-
-// Core
 $bg:        #111;
 $panel:     #121212;
 $border:    #222;
 $text:      #e8e8e8;
 $muted:     #a0a0a0;
 
-// Table chrome
 $thead-top: #191919;
 $thead-bot: #151515;
 $row-alt:   #161616;
@@ -15,21 +11,18 @@ $row-hov:   #1c1c1c;
 $line:      #1f1f1f;
 $line-2:    #262626;
 
-// Typography & radii
 $font-body: 14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
 $font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Liberation Mono", Consolas, monospace;
 
 $radius:       12px;
 $radius-sm:    10px;
-$radius-pill:  999px;
 
-// Column widths
 $w-id:       12rem;
 $w-time:     11rem;
 $w-source:   10rem;
 $w-desc:     22rem;
 $w-reason:   20rem;
-$w-raw-min:  30rem;
+$w-raw-min:  20rem;
 $w-flag:     7rem;
 
 $w-type:     8rem;
@@ -37,58 +30,9 @@ $w-name:     16rem;
 $w-prompt:   28rem;
 $w-data:     28rem;
 
-// Heights
 $cell-max-h: 6rem;
 $code-max-h: 12rem;
 
-// Grid table layout
-.table-grid {
-  display: grid;
-  grid-auto-rows: auto;
-  grid-template-columns:
-    #{$w-id}
-    #{$w-time}
-    #{$w-source}
-    #{$w-desc}
-    #{$w-reason}
-    minmax(#{$w-raw-min}, 1fr)
-    #{$w-flag};
-  width: 100%;
-  align-items: start;
-}
-
-// Flex row layout
-.row-flex {
-  display: flex;
-  align-items: stretch;
-  width: 100%;
-}
-
-.row-flex > .col-fixed { flex: 0 0 auto; }
-
-.col-id     { width: $w-id; }
-.col-time   { width: $w-time; }
-.col-source { width: $w-source; }
-.col-desc   { width: $w-desc; }
-.col-reason { width: $w-reason; }
-.col-flag   { width: $w-flag; }
-
-.col-raw {
-  flex: 1 1 auto;
-  min-width: $w-raw-min;
-  max-width: 100%;
-  overflow-x: auto;
-  white-space: pre;
-  font-family: $font-mono;
-  max-height: $code-max-h;
-}
-
-.col-type   { width: $w-type; }
-.col-name   { width: $w-name; }
-.col-prompt { width: $w-prompt; }
-.col-data   { width: $w-data; }
-
-// Utilities
 .bg {
   background: $bg;
   color: $text;
