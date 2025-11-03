@@ -18,62 +18,30 @@
 
     {% set rows = log_rows or [] %}
 
-    <h2>Logs</h2>
-    <div class="table-wrap">
-      <table class="hb-table">
-        <colgroup>
-          <col class="col-time">
-          <col class="col-source">
-          <col class="col-flag"> <!-- detection -->
-          <col class="col-reason">
-          <col class="col-raw">
-        </colgroup>
-
+    <div class="logs-table-container">
+      <table>
         <thead>
           <tr>
-            <th>time</th>
-            <th>source</th>
-            <th>detection</th>
-            <th>detection reason</th>
-            <th>raw log</th>
+            <th>Time</th>
+            <th>Source</th>
+            <th>Log Data</th>
+            <th>Detections (Chip)</th>
           </tr>
         </thead>
-
         <tbody>
-          {% for r in rows if r %}
-            {% set rec = r or {} %}
-            {% set rd  = rec.get('recon_data') or {} %}
-
-            <tr>
-              <td><div class="truncate-1" title="{{ rd.get('time') or '' }}">{{ rd.get('time') or '' }}</div></td>
-              <td><div class="truncate-1" title="{{ rec.get('source_address','') }}">{{ rec.get('source_address','') }}</div></td>
-
-              <!-- detector/detection are typically short; single-line -->
-              <td>
-                <span class="chip {{ 'chip-true' if rec.get('detection') else 'chip-false' }}">
-                  {{ rec.get('detection') }}
-                </span>
-              </td>
-              <td>
-                <div class="truncate-1" title="{{ rec.get('detection_reason') or '' }}">
-                  {{ rec.get('detection_reason') or '' }}
-                </div>
-              </td>
-
-              <!-- raw log in compact monospace with 2-line clamp -->
-              <td>
-                <div class="cell code clamp-2" title="{{ rec }}">
-                  {{ rec }}
-                </div>
-              </td>
-            </tr>
-          {% else %}
-            <tr><td colspan="9" class="muted" style="text-align:center;">No logs</td></tr>
+          {% for log in logs %}
+          <tr>
+            <td>{{ log.time }}</td>
+            <td>{{ log.source }}</td>
+            <td><pre>{{ log.raw }}</pre></td>
+            <td class="{{ 'chip-true' if log.detections else 'chip-false' }}">
+              {{ 'True' if log.detections else 'False' }}
+            </td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-
     <br>
     <h2>Rules</h2>
     {% set rules = rule_rows or [] %}
