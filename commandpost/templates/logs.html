@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Commandpost</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='styles/commandpost.css') }}">
+  </head>
+  <body>
+    <h1>
+      <img src="{{ url_for('static', path='logo.png') }}"
+           alt="Herringbone logo"
+           style="height:2em; vertical-align:-0.25em; margin-right:.6rem;">
+      Commandpost (Herringbone Alpha UI)
+    </h1>
+    <hr>
+    <p>This is the central hub for managing and monitoring your Herringbone deployment. Here, you can view the status of various components, access logs, and configure settings.</p>
+    <br>
+
+    {% set rows = log_rows or [] %}
+
+    <div class="table-wrap logs-table-container">
+      <table class="hb-table">
+        <colgroup>
+          <col class="col-time">
+          <col class="col-source">
+          <col class="col-data">
+          <col class="col-detections">
+        </colgroup>
+
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Source</th>
+            <th>Log Data</th>
+            <th>Detections</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for log in logs if log %}
+            <tr>
+              <td><div class="truncate-1" title="{{ log.time }}">{{ log.time }}</div></td>
+              <td><div class="truncate-1" title="{{ log.source }}">{{ log.source }}</div></td>
+              <td>
+                <div class="cell code clamp-2" title="{{ log.raw }}">
+                  <pre>{{ log.raw }}</pre>
+                </div>
+              </td>
+              <td class="{{ 'chip-true' if log.detections else 'chip-false' }}">
+                {{ 'True' if log.detections else 'False' }}
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="4" class="muted" style="text-align:center;">No logs</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>
