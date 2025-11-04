@@ -70,7 +70,7 @@ def home(request: Request):
                                                     "log_rows": log_rows})
 
 
-@app.get("/cardset", response_class=HTMLResponse)
+@app.get("/cards", response_class=HTMLResponse)
 def home(request: Request):
 
     # Load cards
@@ -79,7 +79,7 @@ def home(request: Request):
     card_rows = _normalize_mongo_extended(card_result)
     print(card_rows)
 
-    return templates.TemplateResponse("logs.html", {"request": request,
+    return templates.TemplateResponse("cards.html", {"request": request,
                                                     "card_rows": card_rows})
 
 if __name__ == "__main__":
