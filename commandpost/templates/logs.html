@@ -13,10 +13,9 @@
       Commandpost (Herringbone Alpha UI)
     </h1>
     <hr>
-    <hr>
     <h2>Logs</h2>
 
-    {% set rows = log_rows or [] %}
+    {% set logs = log_rows or [] %}
 
     <div class="table-wrap logs-table-container">
       <table class="hb-table">
@@ -39,19 +38,29 @@
         <tbody>
           {% for log in logs if log %}
             <tr>
-              <td><div class="truncate-1" title="{{ log.time }}">{{ log.time }}</div></td>
-              <td><div class="truncate-1" title="{{ log.source }}">{{ log.source }}</div></td>
               <td>
-                <div class="cell code clamp-2" title="{{ log.raw }}">
-                  <pre>{{ log.raw }}</pre>
+                <div class="truncate-1" title="{{ log.last_update }}">
+                  {{ log.last_update or 'N/A' }}
                 </div>
               </td>
-              <td class="{{ 'chip-true' if log.detections else 'chip-false' }}">
-                {{ 'True' if log.detections else 'False' }}
+              <td>
+                <div class="truncate-1" title="{{ log.source_address }}">
+                  {{ log.source_address or 'N/A' }}
+                </div>
+              </td>
+              <td>
+                <div class="cell code clamp-2" title="{{ log.raw_log }}">
+                  <pre>{{ log.raw_log or '' }}</pre>
+                </div>
+              </td>
+              <td class="{{ 'chip-true' if log.detected else 'chip-false' }}">
+                {{ 'True' if log.detected else 'False' }}
               </td>
             </tr>
           {% else %}
-            <tr><td colspan="4" class="muted" style="text-align:center;">No logs</td></tr>
+            <tr>
+              <td colspan="4" class="muted" style="text-align:center;">No logs</td>
+            </tr>
           {% endfor %}
         </tbody>
       </table>
