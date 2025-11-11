@@ -24,6 +24,7 @@
           <col class="col-source">
           <col class="col-data">
           <col class="col-detections">
+          <col class="col-recon">
         </colgroup>
 
         <thead>
@@ -32,34 +33,32 @@
             <th>Source</th>
             <th>Log Data</th>
             <th>Detections</th>
+            <th>Recon Data</th>
           </tr>
         </thead>
 
         <tbody>
           {% for log in logs if log %}
             <tr>
+              <td>{{ log.last_update or 'N/A' }}</td>
+              <td>{{ log.source_address or 'N/A' }}</td>
               <td>
-                <div class="truncate-1" title="{{ log.last_update }}">
-                  {{ log.last_update or 'N/A' }}
-                </div>
-              </td>
-              <td>
-                <div class="truncate-1" title="{{ log.source_address }}">
-                  {{ log.source_address or 'N/A' }}
-                </div>
-              </td>
-              <td>
-                <div class="cell code clamp-2" title="{{ log.raw_log }}">
-                  <pre>{{ log.raw_log or '' }}</pre>
-                </div>
+                <pre style="white-space: pre-wrap; word-break: break-word;">
+{{ log.raw_log or '' }}
+                </pre>
               </td>
               <td class="{{ 'chip-true' if log.detected else 'chip-false' }}">
                 {{ 'True' if log.detected else 'False' }}
               </td>
+              <td>
+                <pre style="white-space: pre-wrap; word-break: break-word;">
+{{ log.recon_data | tojson(indent=2) if log.recon_data else 'N/A' }}
+                </pre>
+              </td>
             </tr>
           {% else %}
             <tr>
-              <td colspan="4" class="muted" style="text-align:center;">No logs</td>
+              <td colspan="5" class="muted" style="text-align:center;">No logs</td>
             </tr>
           {% endfor %}
         </tbody>
