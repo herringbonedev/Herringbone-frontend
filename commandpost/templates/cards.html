@@ -61,6 +61,18 @@
                 </div>
               </td>
             </tr>
+
+            <tr>
+              <td colspan="4">
+                <details>
+                  <summary>View Parsing Data</summary>
+                  <pre style="white-space: pre-wrap; margin:0;">
+Regex: {{ card.get('regex')|tojson }}
+JSONP: {{ card.get('jsonp')|tojson }}
+                  </pre>
+                </details>
+              </td>
+            </tr>
           {% else %}
             <tr><td colspan="4" class="muted" style="text-align:center;">No cards</td></tr>
           {% endfor %}
