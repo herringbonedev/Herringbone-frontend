@@ -4,6 +4,35 @@
     <meta charset="utf-8">
     <title>Commandpost</title>
     <link rel="stylesheet" href="{{ url_for('static', path='styles/commandpost.css') }}">
+    <script>
+      async function deleteCard(selType, selValue, buttonElem) {
+        if (!confirm(`Are you sure you want to delete card: ${selType} = ${selValue}?`)) return;
+
+        try {
+          const formData = new FormData();
+          formData.append("selector_type", selType);
+          formData.append("selector_value", selValue);
+
+          const res = await fetch("/cards/delete", {
+            method: "POST",
+            body: formData
+          });
+
+          const data = await res.json();
+          if (data.ok) {
+            alert(`Deleted ${data.deleted} card(s).`);
+            const row = buttonElem.closest("tr");
+            const nextRow = row.nextElementSibling; // details row
+            if (nextRow) nextRow.remove();
+            row.remove();
+          } else {
+            alert("Delete failed");
+          }
+        } catch (err) {
+          alert("Error deleting card: " + err);
+        }
+      }
+    </script>
   </head>
   <body>
     <h1>
@@ -15,7 +44,6 @@
     <hr>
     <h2>Cards</h2>
 
-    {# -- Extract the cards list from the JSON -- #}
     {% set cards = card_rows.cards if card_rows and card_rows.get('cards') else [] %}
 
     <div class="table-wrap">
@@ -25,6 +53,8 @@
           <col class="col-name">
           <col class="col-prompt">
           <col class="col-data">
+          <col class="col-date">
+          <col class="col-action">
         </colgroup>
 
         <thead>
@@ -33,6 +63,8 @@
             <th>Selector Value</th>
             <th>Regex Count</th>
             <th>JSONP Count</th>
+            <th>Last Updated</th>
+            <th>Action</th>
           </tr>
         </thead>
 
@@ -40,45 +72,52 @@
           {% for card in cards %}
             {% set selector = card.get('selector', {}) %}
             <tr>
+              <td>{{ selector.get('type','') }}</td>
+              <td>{{ selector.get('value','') }}</td>
+              <td>{{ card.get('regex')|length if card.get('regex') else 0 }}</td>
+              <td>{{ card.get('jsonp')|length if card.get('jsonp') else 0 }}</td>
+              <td>{{ card.get('last_updated','') }}</td>
               <td>
-                <div class="truncate-1" title="{{ selector.get('type','') }}">
-                  {{ selector.get('type','') }}
-                </div>
-              </td>
-              <td>
-                <div class="truncate-1" title="{{ selector.get('value','') }}">
-                  {{ selector.get('value','') }}
-                </div>
-              </td>
-              <td>
-                <div class="truncate-1" title="{{ card.get('regex')|length if card.get('regex') else 0 }}">
-                  {{ card.get('regex')|length if card.get('regex') else 0 }}
-                </div>
-              </td>
-              <td>
-                <div class="truncate-1" title="{{ card.get('jsonp')|length if card.get('jsonp') else 0 }}">
-                  {{ card.get('jsonp')|length if card.get('jsonp') else 0 }}
-                </div>
+                <button class="delete-btn"
+                        data-type="{{ selector.get('type','')|e }}"
+                        data-value="{{ selector.get('value','')|e }}">
+                  Delete
+                </button>
               </td>
             </tr>
-
             <tr>
-              <td colspan="4">
+              <td colspan="6">
                 <details>
                   <summary>View Parsing Data</summary>
                   <pre style="white-space: pre-wrap; margin:0;">
-Regex: {{ card.get('regex')|tojson }}
-JSONP: {{ card.get('jsonp')|tojson }}
+{% if card.get('regex') %}
+Regex Patterns:
+{% for r in card.get('regex') %}
+{% for key in r.keys() %}
+- {{ key }}: {{ r[key] }}
+{% endfor %}
+{% endfor %}
+{% else %}
+No regex patterns
+{% endif %}
+
+{% if card.get('jsonp') %}
+JSONP Data:
+{% for item in card.get('jsonp') %}
+- {{ item }}
+{% endfor %}
+{% else %}
+No JSONP data
+{% endif %}
                   </pre>
                 </details>
               </td>
             </tr>
           {% else %}
-            <tr><td colspan="4" class="muted" style="text-align:center;">No cards</td></tr>
+            <tr><td colspan="6" class="muted" style="text-align:center;">No cards</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-
   </body>
 </html>

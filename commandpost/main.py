@@ -1,5 +1,5 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Request, HTTPException, Form
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 import uvicorn
@@ -74,13 +74,26 @@ def home(request: Request):
 def home(request: Request):
 
     # Load cards
-    card_result = requests.get(CARDSET_API)
+    card_result = requests.get(CARDSET_API + "pull_all_cards")
     card_result = json.loads(card_result.content.decode("utf-8"))
     card_rows = _normalize_mongo_extended(card_result)
     print(card_rows)
 
     return templates.TemplateResponse("cards.html", {"request": request,
                                                     "card_rows": card_rows})
+
+
+@app.post("/cards/delete")
+async def delete_card_frontend(selector_type: str = Form(...), selector_value: str = Form(...)):
+
+    payload = {"selector_type": selector_type, "selector_value": selector_value}
+    try:
+        res = requests.post(CARDSET_API + "delete_cards", json=payload, timeout=5)
+        res.raise_for_status()
+        data = res.json()
+        return JSONResponse(content=data)
+    except requests.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Delete failed: {e}")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=5000)
