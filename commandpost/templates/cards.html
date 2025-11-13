@@ -119,5 +119,14 @@ No JSONP data
         </tbody>
       </table>
     </div>
+    <script>
+  document.querySelectorAll(".delete-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const selType = btn.dataset.type;
+      const selValue = btn.dataset.value;
+      deleteCard(selType, selValue, btn);
+    });
+  });
+</script>
   </body>
 </html>
