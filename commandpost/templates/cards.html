@@ -15,16 +15,8 @@
     <hr>
     <h2>Cards</h2>
 
-    {# -- Defensive coercion: make cards a list of dict-like objects -- #}
-    {% set cards = card_rows or [] %}
-
-    {# If top-level is a mapping (dict), wrap it in a single-item list #}
-    {% if cards is mapping %}
-      {% set cards = [cards] %}
-    {% elif cards is string %}
-      {# If top-level is a string, expose it as a single dict with 'raw' #}
-      {% set cards = [{'raw': cards}] %}
-    {% endif %}
+    {# -- Extract the cards list from the JSON -- #}
+    {% set cards = card_rows.cards if card_rows and card_rows.get('cards') else [] %}
 
     <div class="table-wrap">
       <table class="hb-table">
@@ -45,43 +37,30 @@
         </thead>
 
         <tbody>
-          {% for card in cards if card %}
-            {# If card is a mapping, render fields safely using .get() #}
-            {% if card is mapping %}
-              {% set selector = card.get('selector', {}) %}
-              <tr>
-                <td>
-                  <div class="truncate-1" title="{{ selector.get('type','') }}">
-                    {{ selector.get('type','') }}
-                  </div>
-                </td>
-                <td>
-                  <div class="truncate-1" title="{{ selector.get('value','') }}">
-                    {{ selector.get('value','') }}
-                  </div>
-                </td>
-                <td>
-                  <div class="truncate-1" title="{{ card.get('regex')|length if card.get('regex') else 0 }}">
-                    {{ card.get('regex')|length if card.get('regex') else 0 }}
-                  </div>
-                </td>
-                <td>
-                  <div class="truncate-1" title="{{ card.get('jsonp')|length if card.get('jsonp') else 0 }}">
-                    {{ card.get('jsonp')|length if card.get('jsonp') else 0 }}
-                  </div>
-                </td>
-              </tr>
-
-            {# Otherwise it's a fallback item (like {'raw': ...} or a plain string) #}
-            {% else %}
-              <tr>
-                <td colspan="4" class="muted">
-                  <div class="truncate-1" title="{{ (card.raw if card.raw is defined else card) }}">
-                    {{ (card.raw if card.raw is defined else card) }}
-                  </div>
-                </td>
-              </tr>
-            {% endif %}
+          {% for card in cards %}
+            {% set selector = card.get('selector', {}) %}
+            <tr>
+              <td>
+                <div class="truncate-1" title="{{ selector.get('type','') }}">
+                  {{ selector.get('type','') }}
+                </div>
+              </td>
+              <td>
+                <div class="truncate-1" title="{{ selector.get('value','') }}">
+                  {{ selector.get('value','') }}
+                </div>
+              </td>
+              <td>
+                <div class="truncate-1" title="{{ card.get('regex')|length if card.get('regex') else 0 }}">
+                  {{ card.get('regex')|length if card.get('regex') else 0 }}
+                </div>
+              </td>
+              <td>
+                <div class="truncate-1" title="{{ card.get('jsonp')|length if card.get('jsonp') else 0 }}">
+                  {{ card.get('jsonp')|length if card.get('jsonp') else 0 }}
+                </div>
+              </td>
+            </tr>
           {% else %}
             <tr><td colspan="4" class="muted" style="text-align:center;">No cards</td></tr>
           {% endfor %}
