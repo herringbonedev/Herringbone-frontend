@@ -56,8 +56,7 @@ async def recon_logs(request: Request, body: dict = Body(...)):
     try:
         recon_resp = requests.post(
             RECON_SERVICE_URL,
-            json={"logs": matching_logs},
-            timeout=10
+            json={"logs": matching_logs}
         )
         recon_resp.raise_for_status()
         return JSONResponse(content=recon_resp.json())
