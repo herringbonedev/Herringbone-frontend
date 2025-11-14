@@ -2,8 +2,19 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Commandpost</title>
+    <title>Commandpost Logs</title>
     <link rel="stylesheet" href="{{ url_for('static', path='styles/commandpost.css') }}">
+    <style>
+      .logs-table-container {
+        max-height: 500px;
+        overflow-y: auto;
+      }
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 0;
+      }
+    </style>
   </head>
   <body>
     <h1>
@@ -15,8 +26,6 @@
     <hr>
     <h2>Logs</h2>
 
-    {% set logs = log_rows or [] %}
-
     <div class="table-wrap logs-table-container">
       <table class="hb-table">
         <colgroup>
@@ -26,7 +35,6 @@
           <col class="col-detections">
           <col class="col-recon">
         </colgroup>
-
         <thead>
           <tr>
             <th>Time</th>
@@ -36,25 +44,17 @@
             <th>Recon Data</th>
           </tr>
         </thead>
-
         <tbody>
-          {% for log in logs if log %}
+          {% set logs = log_rows or [] %}
+          {% for log in logs %}
             <tr>
               <td>{{ log.last_update or 'N/A' }}</td>
               <td>{{ log.source_address or 'N/A' }}</td>
-              <td>
-                <pre style="white-space: pre-wrap; word-break: break-word;">
-{{ log.raw_log or '' }}
-                </pre>
-              </td>
+              <td><pre>{{ log.raw_log or '' }}</pre></td>
               <td class="{{ 'chip-true' if log.detected else 'chip-false' }}">
                 {{ 'True' if log.detected else 'False' }}
               </td>
-              <td>
-                <pre style="white-space: pre-wrap; word-break: break-word;">
-{{ log.recon_data | tojson(indent=2) if log.recon_data else 'N/A' }}
-                </pre>
-              </td>
+              <td><pre>{{ log.recon_data | tojson(indent=2) if log.recon_data else 'N/A' }}</pre></td>
             </tr>
           {% else %}
             <tr>
@@ -64,5 +64,33 @@
         </tbody>
       </table>
     </div>
+
+    <script>
+      const logsTableBody = document.querySelector(".hb-table tbody");
+
+      const evtSource = new EventSource("/stream-logs");
+
+      evtSource.onmessage = function(event) {
+        const log = JSON.parse(event.data);
+
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+          <td>${log.last_update || 'N/A'}</td>
+          <td>${log.source_address || 'N/A'}</td>
+          <td><pre>${log.raw_log || ''}</pre></td>
+          <td class="${log.detected ? 'chip-true' : 'chip-false'}">
+            ${log.detected ? 'True' : 'False'}
+          </td>
+          <td><pre>${log.recon_data ? JSON.stringify(log.recon_data, null, 2) : 'N/A'}</pre></td>
+        `;
+
+        logsTableBody.prepend(row);
+
+        if (logsTableBody.rows.length > 100) {
+          logsTableBody.deleteRow(-1);
+        }
+      };
+    </script>
   </body>
 </html>
