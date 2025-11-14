@@ -67,14 +67,19 @@ async def delete_card_frontend(selector_type: str = Form(...), selector_value: s
 @app.get("/stream-logs")
 def stream_logs():
     def event_generator():
-        last_index = 0
+        last_seen_ids = set()
         while True:
-            if len(logs_buffer) > last_index:
-                new_logs = logs_buffer[last_index:]
-                last_index = len(logs_buffer)
+            try:
+                resp = requests.get(LOGS_API_ENDPOINT, timeout=2)
+                all_logs = _normalize_mongo_extended(resp.json())
+                new_logs = [log for log in all_logs if log.get("_id") not in last_seen_ids]
+
                 for log in new_logs:
+                    last_seen_ids.add(log.get("_id"))
                     yield f"data: {json.dumps(log)}\n\n"
-            time.sleep(0.5)
+            except Exception:
+                pass
+            time.sleep(2)  # poll every 2 seconds
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 if __name__ == "__main__":
