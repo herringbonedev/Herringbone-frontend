@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, HTTPException, Form
+from fastapi import FastAPI, Request, HTTPException, Form, Body
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -8,6 +8,7 @@ import requests, os, json, time
 LOGS_API_ENDPOINT = os.environ.get("LOGS_API_ENDPOINT")
 RULES_API_ENDPOINT = os.environ.get("RULES_API_ENDPOINT")
 CARDSET_API = os.environ.get("CARDSET_API")
+RECON_SERVICE_URL = os.environ.get("RECON_SERVICE_URL")
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -28,6 +29,40 @@ def _normalize_mongo_extended(x):
     if isinstance(x, list):
         return [_normalize_mongo_extended(i) for i in x]
     return x
+
+@app.post("/recon-logs")
+async def recon_logs(request: Request, body: dict = Body(...)):
+    """
+    Expects JSON: { "source_address": "1.2.3.4" }
+    """
+    source_address = body.get("source_address")
+    if not source_address:
+        raise HTTPException(status_code=400, detail="Missing source_address")
+
+    # Fetch all logs from LOGS_API_ENDPOINT
+    try:
+        resp = requests.get(LOGS_API_ENDPOINT, timeout=5)
+        all_logs = _normalize_mongo_extended(resp.json())
+    except requests.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch logs: {e}")
+
+    # Filter logs by source_address
+    matching_logs = [log.get("raw_log") for log in all_logs if log.get("source_address") == source_address]
+
+    if not matching_logs:
+        raise HTTPException(status_code=404, detail=f"No logs found for {source_address}")
+
+    # Send to recon service
+    try:
+        recon_resp = requests.post(
+            RECON_SERVICE_URL,
+            json={"logs": matching_logs},
+            timeout=10
+        )
+        recon_resp.raise_for_status()
+        return JSONResponse(content=recon_resp.json())
+    except requests.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Error sending logs to recon service: {e}")
 
 @app.get("/ruleset", response_class=HTMLResponse)
 def ruleset(request: Request):
