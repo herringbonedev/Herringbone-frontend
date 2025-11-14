@@ -14,6 +14,15 @@
         word-break: break-word;
         margin: 0;
       }
+      .recon-btn {
+        padding: 0.2em 0.5em;
+        font-size: 0.9em;
+        cursor: pointer;
+      }
+      .recon-result {
+        background: #222;
+        color: #0f0;
+      }
     </style>
   </head>
   <body>
@@ -42,6 +51,7 @@
             <th>Log Data</th>
             <th>Detections</th>
             <th>Recon Data</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -49,16 +59,19 @@
           {% for log in logs %}
             <tr>
               <td>{{ log.last_update or 'N/A' }}</td>
-              <td>{{ log.source_address or 'N/A' }}</td>
-              <td><pre>{{ log.raw_log or '' }}</pre></td>
+              <td class="source-address">{{ log.source_address or 'N/A' }}</td>
+              <td class="log-data"><pre>{{ log.raw_log or '' }}</pre></td>
               <td class="{{ 'chip-true' if log.detected else 'chip-false' }}">
                 {{ 'True' if log.detected else 'False' }}
               </td>
               <td><pre>{{ log.recon_data | tojson(indent=2) if log.recon_data else 'N/A' }}</pre></td>
+              <td>
+                <button class="recon-btn">Send to Recon</button>
+              </td>
             </tr>
           {% else %}
             <tr>
-              <td colspan="5" class="muted" style="text-align:center;">No logs</td>
+              <td colspan="6" class="muted" style="text-align:center;">No logs</td>
             </tr>
           {% endfor %}
         </tbody>
@@ -77,12 +90,13 @@
 
         row.innerHTML = `
           <td>${log.last_update || 'N/A'}</td>
-          <td>${log.source_address || 'N/A'}</td>
-          <td><pre>${log.raw_log || ''}</pre></td>
+          <td class="source-address">${log.source_address || 'N/A'}</td>
+          <td class="log-data"><pre>${log.raw_log || ''}</pre></td>
           <td class="${log.detected ? 'chip-true' : 'chip-false'}">
             ${log.detected ? 'True' : 'False'}
           </td>
           <td><pre>${log.recon_data ? JSON.stringify(log.recon_data, null, 2) : 'N/A'}</pre></td>
+          <td><button class="recon-btn">Send to Recon</button></td>
         `;
 
         logsTableBody.prepend(row);
@@ -90,7 +104,48 @@
         if (logsTableBody.rows.length > 100) {
           logsTableBody.deleteRow(-1);
         }
+
+        attachReconListener(row.querySelector(".recon-btn"));
       };
+
+      function attachReconListener(button) {
+        button.addEventListener("click", async () => {
+          const row = button.closest("tr");
+          const sourceAddress = row.querySelector(".source-address").innerText;
+
+          // Collect all log data with the same Source Address
+          const logs = Array.from(logsTableBody.querySelectorAll("tr"))
+            .filter(r => r.querySelector(".source-address")?.innerText === sourceAddress)
+            .map(r => r.querySelector(".log-data").innerText);
+
+          try {
+            const response = await fetch(
+              "http://herringbone-mind-recon-service.herringbone.svc.cluster.local:8002/recon",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ logs })
+              }
+            );
+            const result = await response.json();
+
+            // Append result at the bottom of the table
+            const resultRow = document.createElement("tr");
+            resultRow.classList.add("recon-result");
+            resultRow.innerHTML = `
+              <td colspan="6"><pre>${JSON.stringify(result, null, 2)}</pre></td>
+            `;
+            logsTableBody.appendChild(resultRow);
+            resultRow.scrollIntoView({ behavior: "smooth" });
+
+          } catch (err) {
+            alert("Error sending logs: " + err.message);
+          }
+        });
+      }
+
+      // Attach listener to existing buttons
+      document.querySelectorAll(".recon-btn").forEach(attachReconListener);
     </script>
   </body>
 </html>
