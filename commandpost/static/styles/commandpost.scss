@@ -22,6 +22,11 @@ p { color: $muted; margin: .5rem 0 1rem; }
   overflow-x: auto;
 }
 
+.table-wrap.logs-table-container {
+  height: calc(100vh - 180px); // Adjust for header/margins
+  overflow-y: auto;
+}
+
 .hb-table {
   width: 100%;
   border-collapse: separate;
@@ -33,8 +38,9 @@ p { color: $muted; margin: .5rem 0 1rem; }
     font-weight: 600;
     color: $muted;
     background: linear-gradient(to bottom, $thead-top, $thead-bot);
-    position: sticky; top: 0;
-    z-index: 1;
+    position: sticky;
+    top: 0;
+    z-index: 2;
     padding: .55rem .7rem;
     border-bottom: 1px solid $line;
   }
@@ -48,26 +54,20 @@ p { color: $muted; margin: .5rem 0 1rem; }
   tbody tr:nth-child(even) td { background: $row-alt; }
   tbody tr:hover td { background: $row-hov; }
 
-  /* Columns */
   .col-id     { width: $w-id; }
   .col-time   { width: $w-time; }
   .col-source { width: $w-source; }
   .col-flag   { width: $w-flag; }
   .col-reason { width: $w-reason; }
-
-  /* Raw log: flexible width */
-  .col-raw {
-    width: auto;      /* allow table to fill remaining space */
-    min-width: $w-raw-min;
-  }
-
+  .col-raw    { width: auto; min-width: $w-raw-min; }
   .col-type   { width: $w-type; }
   .col-name   { width: $w-name; }
   .col-prompt { width: $w-prompt; }
   .col-data   { width: $w-data; }
+  .col-detections { width: $w-flag; }
+  .col-recon  { width: $w-raw-min; }
 }
 
-/* Text utilities */
 .truncate-1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cell { display: block; overflow: hidden; }
 .clamp-2 {
@@ -77,18 +77,16 @@ p { color: $muted; margin: .5rem 0 1rem; }
   overflow: hidden;
 }
 
-/* Code cells */
-.cell.code {
+.cell.code, pre {
   font-family: $font-mono;
   background: $row-alt;
   border: 1px solid $line-2;
   border-radius: $radius-sm;
   padding: .6rem .8rem;
   color: $text;
-  white-space: pre-wrap; /* wraps long logs */
+  white-space: pre-wrap;
   word-break: break-word;
   max-height: $code-max-h;
 }
 
-/* Muted */
 .muted { color: $muted; }
