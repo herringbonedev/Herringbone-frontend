@@ -1,61 +1,30 @@
-// commandpost/static/styles/tokens.scss
+@use 'tokens' as *; // Must be first line
 
-// --- Colors ---
-$bg:        #111 !default;
-$panel:     #121212 !default;
-$border:    #222 !default;
-$text:      #e8e8e8 !default;
-$muted:     #a0a0a0 !default;
+* { box-sizing: border-box; }
 
-$thead-top: #191919 !default;
-$thead-bot: #151515 !default;
-$row-alt:   #161616 !default;
-$row-hov:   #1c1c1c !default;
-$line:      #1f1f1f !default;
-$line-2:    #262626 !default;
+html, body { height: 100%; }
 
-// --- Fonts ---
-$font-body: 14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji" !default;
-$font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Liberation Mono", Consolas, monospace !default;
-
-// --- Border radius ---
-$radius:    12px !default;
-$radius-sm: 10px !default;
-
-// --- Column widths ---
-$w-id:       12rem !default;
-$w-time:     11rem !default;
-$w-source:   10rem !default;
-$w-desc:     22rem !default;
-$w-reason:   20rem !default;
-$w-raw-min:  20rem !default;
-$w-flag:     7rem !default;
-$w-type:     8rem !default;
-$w-name:     16rem !default;
-$w-prompt:   28rem !default;
-$w-data:     28rem !default;
-
-// --- Max heights ---
-$cell-max-h: 6rem !default;
-$code-max-h: 12rem !default;
-
-// --- Utility classes ---
-.bg {
+body {
+  margin: 24px;
   background: $bg;
   color: $text;
   font: $font-body;
 }
 
-.panel {
-  background: $panel;
-  border: 1px solid $border;
-  border-radius: $radius;
-  color: $text;
-}
+h1 { font-size: 1.6rem; margin: 0 0 .5rem; }
+h2 { font-size: 1.2rem; margin: 1.4rem 0 .6rem; }
+hr { border: 0; border-top: 1px solid $border; margin: 10px 0; }
+p { color: $muted; margin: .5rem 0 1rem; }
 
-.thead-top { background: $thead-top; }
-.thead-bot { background: $thead-bot; }
-.row-alt   { background: $row-alt; }
-.row-hov   { background: $row-hov; }
-.rule      { border-color: $line; }
-.rule-2    { border-color: $line-2; }
+/* Example usage of $radius-sm */
+.cell.code, pre {
+  font-family: $font-mono;
+  background: $row-alt;
+  border: 1px solid $line-2;
+  border-radius: $radius-sm; // now defined
+  padding: .6rem .8rem;
+  color: $text;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: $code-max-h;
+}
