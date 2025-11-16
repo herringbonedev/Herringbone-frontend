@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   <title>Commandpost Logs</title>
   <link rel="stylesheet" href="{{ url_for('static', path='styles/commandpost.css') }}">
 </head>
@@ -16,7 +16,7 @@
   <h2>Logs</h2>
 
   <div class="table-wrap logs-table-container">
-    <table class="hb-table">
+    <table class="hb-table" aria-describedby="logs">
       <colgroup>
         <col class="col-time">
         <col class="col-source">
@@ -27,30 +27,35 @@
       </colgroup>
       <thead>
         <tr>
-          <th>Time</th>
-          <th>Source</th>
-          <th>Log Data</th>
-          <th>Detections</th>
-          <th>Recon Data</th>
-          <th>Actions</th>
+          <th scope="col">Time</th>
+          <th scope="col">Source</th>
+          <th scope="col">Log Data</th>
+          <th scope="col">Detections</th>
+          <th scope="col">Recon Data</th>
+          <th scope="col">Actions</th>
         </tr>
       </thead>
       <tbody>
         {% set logs = log_rows or [] %}
         {% for log in logs %}
         <tr>
-          <td>{{ log.last_update or 'N/A' }}</td>
-          <td class="source-address">{{ log.source_address or 'N/A' }}</td>
-          <td class="log-data"><pre>{{ log.raw_log or '' }}</pre></td>
-          <td class="{{ 'chip-true' if log.detected else 'chip-false' }}">
+          <td class="cell-time">{{ log.last_update or 'N/A' }}</td>
+          <td class="source-address cell-source">{{ log.source_address or 'N/A' }}</td>
+          <td class="log-data cell-data">
+            <pre class="cell code">{{ log.raw_log or '' }}</pre>
+          </td>
+          <td class="{{ 'chip-true' if log.detected else 'chip-false' }} cell-flag">
             {{ 'True' if log.detected else 'False' }}
           </td>
-          <td>
-            <pre class="recon-clamp" onclick="this.classList.toggle('expanded')">
-              {{ log.recon_data | tojson(indent=2) if log.recon_data else 'N/A' }}
+          <td class="cell-recon">
+            <pre class="recon-clamp cell code" onclick="this.classList.toggle('expanded')"
+                 title="Click to expand/collapse">
+{{ log.recon_data | tojson(indent=2) if log.recon_data else 'N/A' }}
             </pre>
           </td>
-          <td><button class="recon-btn">Send to Recon</button></td>
+          <td class="cell-actions">
+            <button class="recon-btn" type="button">Send to Recon</button>
+          </td>
         </tr>
         {% else %}
         <tr>
@@ -62,37 +67,88 @@
   </div>
 
   <script>
+    // Use safe DOM operations when inserting dynamic content so long text doesn't break markup
     const logsTableBody = document.querySelector(".hb-table tbody");
 
+    // Build a table cell with optional classes and a pre whose textContent is set safely
+    function makeCellWithPre(text, classes = '') {
+      const td = document.createElement('td');
+      if (classes) td.className = classes;
+      const pre = document.createElement('pre');
+      pre.className = 'cell code';
+      pre.textContent = (text !== undefined && text !== null) ? String(text) : '';
+      pre.style.margin = '0';
+      td.appendChild(pre);
+      return td;
+    }
+
+    // Build a plain td with text
+    function makeTextCell(text, classes = '') {
+      const td = document.createElement('td');
+      if (classes) td.className = classes;
+      td.textContent = (text !== undefined && text !== null) ? String(text) : '';
+      return td;
+    }
+
+    // EventSource for live streaming
     const evtSource = new EventSource("/stream-logs");
+
     evtSource.onmessage = function(event) {
-      const log = JSON.parse(event.data);
-      const row = document.createElement("tr");
+      try {
+        const log = JSON.parse(event.data);
+        const row = document.createElement("tr");
 
-      row.innerHTML = `
-        <td>${log.last_update || 'N/A'}</td>
-        <td class="source-address">${log.source_address || 'N/A'}</td>
-        <td class="log-data"><pre>${log.raw_log || ''}</pre></td>
-        <td class="${log.detected ? 'chip-true' : 'chip-false'}">
-          ${log.detected ? 'True' : 'False'}
-        </td>
-        <td>
-          <pre class="recon-clamp" onclick="this.classList.toggle('expanded')">
-            ${log.recon_data ? JSON.stringify(log.recon_data, null, 2) : 'N/A'}
-          </pre>
-        </td>
-        <td><button class="recon-btn">Send to Recon</button></td>
-      `;
+        // Time
+        row.appendChild(makeTextCell(log.last_update || 'N/A', 'cell-time'));
 
-      logsTableBody.prepend(row);
-      if (logsTableBody.rows.length > 100) logsTableBody.deleteRow(-1);
-      attachReconListener(row.querySelector(".recon-btn"));
+        // Source
+        row.appendChild(makeTextCell(log.source_address || 'N/A', 'source-address cell-source'));
+
+        // Raw log (pre)
+        row.appendChild(makeCellWithPre(log.raw_log || '', 'log-data cell-data'));
+
+        // Detected chip
+        const chipTd = makeTextCell(log.detected ? 'True' : 'False', 'cell-flag ' + (log.detected ? 'chip-true' : 'chip-false'));
+        row.appendChild(chipTd);
+
+        // Recon data pre (click-to-expand)
+        const reconTd = document.createElement('td');
+        reconTd.className = 'cell-recon';
+        const reconPre = document.createElement('pre');
+        reconPre.className = 'recon-clamp cell code';
+        reconPre.textContent = log.recon_data ? JSON.stringify(log.recon_data, null, 2) : 'N/A';
+        reconPre.title = 'Click to expand/collapse';
+        reconPre.addEventListener('click', function() { this.classList.toggle('expanded'); });
+        reconTd.appendChild(reconPre);
+        row.appendChild(reconTd);
+
+        // Actions (button)
+        const actionsTd = document.createElement('td');
+        actionsTd.className = 'cell-actions';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'recon-btn';
+        btn.textContent = 'Send to Recon';
+        actionsTd.appendChild(btn);
+        row.appendChild(actionsTd);
+
+        // prepend and trim to 100 rows
+        logsTableBody.prepend(row);
+        if (logsTableBody.rows.length > 100) logsTableBody.deleteRow(-1);
+
+        attachReconListener(btn);
+      } catch (err) {
+        // If parsing fails, silently ignore to avoid breaking the stream
+        console.error('Malformed stream-logs event.data', err);
+      }
     };
 
     function attachReconListener(button) {
+      if (!button) return;
       button.addEventListener("click", async () => {
         const row = button.closest("tr");
-        const sourceAddress = row.querySelector(".source-address").innerText;
+        const sourceAddressEl = row.querySelector(".source-address");
+        const sourceAddress = sourceAddressEl ? sourceAddressEl.innerText : '';
 
         try {
           const response = await fetch("/recon-logs", {
@@ -104,15 +160,23 @@
 
           const resultRow = document.createElement("tr");
           resultRow.classList.add("recon-result");
-          resultRow.innerHTML = `<td colspan="6"><pre>${JSON.stringify(result, null, 2)}</pre></td>`;
+          const td = document.createElement("td");
+          td.colSpan = 6;
+          const pre = document.createElement("pre");
+          pre.className = "cell code";
+          pre.textContent = JSON.stringify(result, null, 2);
+          td.appendChild(pre);
+          resultRow.appendChild(td);
           logsTableBody.appendChild(resultRow);
           resultRow.scrollIntoView({ behavior: "smooth" });
         } catch (err) {
-          alert("Error sending logs: " + err.message);
+          console.error(err);
+          alert("Error sending logs: " + (err && err.message ? err.message : err));
         }
       });
     }
 
+    // Attach to any server-rendered buttons
     document.querySelectorAll(".recon-btn").forEach(attachReconListener);
   </script>
 </body>
