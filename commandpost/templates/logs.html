@@ -15,6 +15,11 @@
   <hr>
   <h2>Logs</h2>
 
+  <!-- Toggle button for Recon filter -->
+  <button id="toggle-recon-filter" class="recon-btn" style="margin-bottom: 1rem;">
+    Show Recon Only
+  </button>
+
   <div class="table-wrap logs-table-container">
     <table class="hb-table" aria-describedby="logs">
       <colgroup>
@@ -67,10 +72,8 @@
   </div>
 
   <script>
-    // Use safe DOM operations when inserting dynamic content so long text doesn't break markup
     const logsTableBody = document.querySelector(".hb-table tbody");
 
-    // Build a table cell with optional classes and a pre whose textContent is set safely
     function makeCellWithPre(text, classes = '') {
       const td = document.createElement('td');
       if (classes) td.className = classes;
@@ -82,12 +85,36 @@
       return td;
     }
 
-    // Build a plain td with text
     function makeTextCell(text, classes = '') {
       const td = document.createElement('td');
       if (classes) td.className = classes;
       td.textContent = (text !== undefined && text !== null) ? String(text) : '';
       return td;
+    }
+
+    // Toggle recon-only filter
+    let showReconOnly = false;
+    const toggleBtn = document.getElementById("toggle-recon-filter");
+
+    toggleBtn.addEventListener("click", () => {
+      showReconOnly = !showReconOnly;
+      toggleBtn.textContent = showReconOnly ? "Show All" : "Show Recon Only";
+      applyReconFilter();
+    });
+
+    function applyReconFilter() {
+      const rows = document.querySelectorAll(".hb-table tbody tr");
+      rows.forEach(row => {
+        const reconCell = row.querySelector(".cell-recon pre");
+        if (!reconCell) return;
+        const txt = reconCell.textContent.trim();
+        const isRecon = !(txt === "N/A");
+        if (showReconOnly && !isRecon) {
+          row.style.display = "none";
+        } else {
+          row.style.display = "";
+        }
+      });
     }
 
     // EventSource for live streaming
@@ -98,20 +125,13 @@
         const log = JSON.parse(event.data);
         const row = document.createElement("tr");
 
-        // Time
         row.appendChild(makeTextCell(log.last_update || 'N/A', 'cell-time'));
-
-        // Source
         row.appendChild(makeTextCell(log.source_address || 'N/A', 'source-address cell-source'));
-
-        // Raw log (pre)
         row.appendChild(makeCellWithPre(log.raw_log || '', 'log-data cell-data'));
 
-        // Detected chip
         const chipTd = makeTextCell(log.detected ? 'True' : 'False', 'cell-flag ' + (log.detected ? 'chip-true' : 'chip-false'));
         row.appendChild(chipTd);
 
-        // Recon data pre (click-to-expand)
         const reconTd = document.createElement('td');
         reconTd.className = 'cell-recon';
         const reconPre = document.createElement('pre');
@@ -122,7 +142,6 @@
         reconTd.appendChild(reconPre);
         row.appendChild(reconTd);
 
-        // Actions (button)
         const actionsTd = document.createElement('td');
         actionsTd.className = 'cell-actions';
         const btn = document.createElement('button');
@@ -132,13 +151,15 @@
         actionsTd.appendChild(btn);
         row.appendChild(actionsTd);
 
-        // prepend and trim to 100 rows
         logsTableBody.prepend(row);
         if (logsTableBody.rows.length > 100) logsTableBody.deleteRow(-1);
 
         attachReconListener(btn);
+
+        // Apply filter immediately if toggled on
+        if (showReconOnly) applyReconFilter();
+
       } catch (err) {
-        // If parsing fails, silently ignore to avoid breaking the stream
         console.error('Malformed stream-logs event.data', err);
       }
     };
