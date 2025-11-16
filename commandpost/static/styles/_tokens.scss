@@ -1,38 +1,45 @@
-$bg:        #111;
-$panel:     #121212;
-$border:    #222;
-$text:      #e8e8e8;
-$muted:     #a0a0a0;
+// commandpost/static/styles/tokens.scss
 
-$thead-top: #191919;
-$thead-bot: #151515;
-$row-alt:   #161616;
-$row-hov:   #1c1c1c;
-$line:      #1f1f1f;
-$line-2:    #262626;
+// --- Colors ---
+$bg:        #111 !default;
+$panel:     #121212 !default;
+$border:    #222 !default;
+$text:      #e8e8e8 !default;
+$muted:     #a0a0a0 !default;
 
-$font-body: 14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
-$font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Liberation Mono", Consolas, monospace;
+$thead-top: #191919 !default;
+$thead-bot: #151515 !default;
+$row-alt:   #161616 !default;
+$row-hov:   #1c1c1c !default;
+$line:      #1f1f1f !default;
+$line-2:    #262626 !default;
 
-$radius:       12px;
-$radius-sm:    10px;
+// --- Fonts ---
+$font-body: 14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji" !default;
+$font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Liberation Mono", Consolas, monospace !default;
 
-$w-id:       12rem;
-$w-time:     11rem;
-$w-source:   10rem;
-$w-desc:     22rem;
-$w-reason:   20rem;
-$w-raw-min:  20rem;
-$w-flag:     7rem;
+// --- Border radius ---
+$radius:    12px !default;
+$radius-sm: 10px !default;
 
-$w-type:     8rem;
-$w-name:     16rem;
-$w-prompt:   28rem;
-$w-data:     28rem;
+// --- Column widths ---
+$w-id:       12rem !default;
+$w-time:     11rem !default;
+$w-source:   10rem !default;
+$w-desc:     22rem !default;
+$w-reason:   20rem !default;
+$w-raw-min:  20rem !default;
+$w-flag:     7rem !default;
+$w-type:     8rem !default;
+$w-name:     16rem !default;
+$w-prompt:   28rem !default;
+$w-data:     28rem !default;
 
-$cell-max-h: 6rem;
-$code-max-h: 12rem;
+// --- Max heights ---
+$cell-max-h: 6rem !default;
+$code-max-h: 12rem !default;
 
+// --- Utility classes ---
 .bg {
   background: $bg;
   color: $text;
