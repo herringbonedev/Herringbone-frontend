@@ -1,30 +1,54 @@
-@use 'tokens' as *; // Must be first line
+$bg:        #111;
+$panel:     #121212;
+$border:    #222;
+$text:      #e8e8e8;
+$muted:     #a0a0a0;
 
-* { box-sizing: border-box; }
+$thead-top: #191919;
+$thead-bot: #151515;
+$row-alt:   #161616;
+$row-hov:   #1c1c1c;
+$line:      #1f1f1f;
+$line-2:    #262626;
 
-html, body { height: 100%; }
+$font-body: 14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+$font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Liberation Mono", Consolas, monospace;
 
-body {
-  margin: 24px;
+$radius:       12px;
+$radius-sm:    10px;
+
+$w-id:       12rem;
+$w-time:     11rem;
+$w-source:   10rem;
+$w-desc:     22rem;
+$w-reason:   20rem;
+$w-raw-min:  20rem;
+$w-flag:     7rem;
+
+$w-type:     8rem;
+$w-name:     16rem;
+$w-prompt:   28rem;
+$w-data:     28rem;
+
+$cell-max-h: 6rem;
+$code-max-h: 12rem;
+
+.bg {
   background: $bg;
   color: $text;
   font: $font-body;
 }
 
-h1 { font-size: 1.6rem; margin: 0 0 .5rem; }
-h2 { font-size: 1.2rem; margin: 1.4rem 0 .6rem; }
-hr { border: 0; border-top: 1px solid $border; margin: 10px 0; }
-p { color: $muted; margin: .5rem 0 1rem; }
-
-/* Example usage of $radius-sm */
-.cell.code, pre {
-  font-family: $font-mono;
-  background: $row-alt;
-  border: 1px solid $line-2;
-  border-radius: $radius-sm; // now defined
-  padding: .6rem .8rem;
+.panel {
+  background: $panel;
+  border: 1px solid $border;
+  border-radius: $radius;
   color: $text;
-  white-space: pre-wrap;
-  word-break: break-word;
-  max-height: $code-max-h;
 }
+
+.thead-top { background: $thead-top; }
+.thead-bot { background: $thead-bot; }
+.row-alt   { background: $row-alt; }
+.row-hov   { background: $row-hov; }
+.rule      { border-color: $line; }
+.rule-2    { border-color: $line-2; }
