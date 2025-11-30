@@ -15,9 +15,36 @@
   <hr>
   <h2 id="logs">Logs</h2>
 
-  <button id="toggle-recon-filter" class="recon-btn" style="margin-bottom: 1rem;">
-    Show Recon Only
-  </button>
+  <!-- Controls: Pause/Play + Query bar -->
+  <div style="display:flex; flex-wrap:wrap; gap:0.75rem; align-items:center; margin-bottom:1rem;">
+    <button id="pause-play" class="recon-btn">
+      Pause
+    </button>
+
+    <div class="query-bar" style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
+      <label for="log-query" class="muted" style="font-size:0.9rem;">
+        Query:
+      </label>
+      <input
+        id="log-query"
+        type="text"
+        placeholder='e.g. source:10.0.0.5 AND recon:true OR raw~"failed"'
+        style="
+          min-width:260px;
+          padding:0.35rem 0.6rem;
+          border-radius:4px;
+          border:1px solid #555;
+          background:#111;
+          color:#eee;
+          font-family:monospace;
+          font-size:0.85rem;
+        "
+      />
+      <span class="muted" style="font-size:0.8rem; opacity:0.8;">
+        Syntax: <code>field:value</code>, <code>field~value</code>, fields: source, raw, log, detection, recon, time, any. Supports <code>AND</code>, <code>OR</code>, <code>NOT</code>.
+      </span>
+    </div>
+  </div>
 
   <div class="table-wrap logs-table-container">
     <table class="hb-table" aria-describedby="logs">
@@ -75,6 +102,7 @@
 
   <script>
     const logsTableBody = document.querySelector(".hb-table tbody");
+    const queryInput = document.getElementById("log-query");
 
     function makeCellWithPre(text, classes = "") {
       const td = document.createElement("td");
@@ -94,33 +122,250 @@
       return td;
     }
 
-    let showReconOnly = false;
-    const toggleBtn = document.getElementById("toggle-recon-filter");
+    /* ------------------------------
+       Pause / Play functionality
+       ------------------------------ */
+    let paused = false;
+    const pausePlayBtn = document.getElementById("pause-play");
 
-    toggleBtn.addEventListener("click", () => {
-      showReconOnly = !showReconOnly;
-      toggleBtn.textContent = showReconOnly ? "Show All" : "Show Recon Only";
-      applyReconFilter();
+    pausePlayBtn.addEventListener("click", () => {
+      paused = !paused;
+      pausePlayBtn.textContent = paused ? "Play" : "Pause";
     });
 
-    function applyReconFilter() {
-      const rows = document.querySelectorAll(".hb-table tbody tr");
-      rows.forEach(row => {
-        const reconCell = row.querySelector(".cell-recon pre");
-        if (!reconCell) return;
-        const txt = reconCell.textContent.trim();
-        const isRecon = !(txt === "N/A");
-        if (showReconOnly && !isRecon) {
-          row.style.display = "none";
-        } else {
-          row.style.display = "";
+    /* ------------------------------
+       Mini Query DSL with AND / OR / NOT
+       ------------------------------ */
+
+    /**
+     * Token types:
+     *  - { type: 'CLAUSE', clause: { field, op, value } }
+     *  - { type: 'OP', op: 'AND' | 'OR' | 'NOT' }
+     */
+    function parseQueryTokens(queryStr) {
+      const rawTokens = queryStr.trim().split(/\s+/);
+      const tokens = [];
+
+      for (const tokRaw of rawTokens) {
+        if (!tokRaw) continue;
+        const tok = tokRaw.trim();
+        if (!tok) continue;
+
+        // Operators
+        if (/^(AND|OR|NOT)$/i.test(tok)) {
+          tokens.push({ type: "OP", op: tok.toUpperCase() });
+          continue;
         }
+
+        // Clause
+        let field = "any";
+        let op = "contains"; // 'contains' or 'equals'
+        let value = tok;
+
+        const match = tok.match(/^([^:~]+)([:~])(.*)$/);
+        if (match) {
+          field = match[1].toLowerCase();
+          op = match[2] === ":" ? "equals" : "contains";
+          value = match[3];
+        }
+
+        tokens.push({
+          type: "CLAUSE",
+          clause: {
+            field,
+            op,
+            value: (value || "").toLowerCase()
+          }
+        });
+      }
+
+      return tokens;
+    }
+
+    /**
+     * Get text for a given logical field from a row.
+     */
+    function getFieldTextFromRow(row, field) {
+      const timeCell   = row.querySelector(".cell-time");
+      const sourceCell = row.querySelector(".source-address");
+      const rawPre     = row.querySelector(".log-data pre");
+      const detPre     = row.querySelector(".cell-detection-results pre");
+      const reconPre   = row.querySelector(".cell-recon pre");
+
+      const timeText   = timeCell   ? timeCell.textContent   : "";
+      const sourceText = sourceCell ? sourceCell.textContent : "";
+      const rawText    = rawPre     ? rawPre.textContent     : "";
+      const detText    = detPre     ? detPre.textContent     : "";
+      const reconText  = reconPre   ? reconPre.textContent   : "";
+
+      switch (field) {
+        case "time":
+          return timeText;
+        case "source":
+          return sourceText;
+        case "raw":
+        case "log":
+          return rawText;
+        case "detection":
+          return detText;
+        case "recon":
+          // For recon we consider existence:
+          //   recon:true  -> recon data exists (not "N/A")
+          //   recon:false -> recon data missing ("N/A")
+          return reconText.trim() === "N/A" ? "false" : "true";
+        case "any":
+        default:
+          return [timeText, sourceText, rawText, detText, reconText].join(" ");
+      }
+    }
+
+    function rowMatchesClause(row, clause) {
+      const { field, op, value } = clause;
+      const haystackRaw = getFieldTextFromRow(row, field) || "";
+      const haystack = haystackRaw.toLowerCase();
+
+      if (field === "recon") {
+        // For recon, equality is on "true"/"false"
+        if (op === "equals") {
+          return haystack === value;
+        } else {
+          return haystack.includes(value);
+        }
+      }
+
+      if (op === "equals") {
+        return haystack === value;
+      } else { // contains
+        return haystack.includes(value);
+      }
+    }
+
+    /**
+     * Apply NOT, AND, OR with precedence:
+     *  - NOT has higher precedence than AND
+     *  - AND has higher precedence than OR
+     *  - No parentheses support
+     * Returns boolean for one row.
+     */
+    function rowMatchesExpression(row, tokens) {
+      // If no tokens or no clauses => default show row
+      if (!tokens || tokens.length === 0) return true;
+
+      // Special handling for "No logs" row
+      const onlyCell = row.querySelector("td[colspan]");
+      if (onlyCell && onlyCell.colSpan >= 6) {
+        return tokens.length === 0;
+      }
+
+      // 1) Handle NOT binding to next clause
+      const processed = [];
+      for (let i = 0; i < tokens.length; i++) {
+        const tok = tokens[i];
+        if (tok.type === "OP" && tok.op === "NOT") {
+          const next = tokens[i + 1];
+          if (next && next.type === "CLAUSE") {
+            processed.push({
+              type: "TERM",
+              clause: next.clause,
+              negated: true
+            });
+            i++; // skip the next one
+          } else {
+            // NOT without a following clause - ignore
+          }
+        } else if (tok.type === "CLAUSE") {
+          processed.push({
+            type: "TERM",
+            clause: tok.clause,
+            negated: false
+          });
+        } else if (tok.type === "OP" && (tok.op === "AND" || tok.op === "OR")) {
+          processed.push(tok);
+        }
+      }
+
+      // If no terms, show all
+      const hasTerm = processed.some(t => t.type === "TERM");
+      if (!hasTerm) return true;
+
+      // 2) Split into OR-groups, each group is AND of terms
+      const groups = [];
+      let currentGroup = [];
+
+      function pushCurrentGroup() {
+        if (currentGroup.length > 0) {
+          groups.push(currentGroup);
+          currentGroup = [];
+        }
+      }
+
+      for (let i = 0; i < processed.length; i++) {
+        const tok = processed[i];
+        if (tok.type === "TERM") {
+          currentGroup.push(tok);
+        } else if (tok.type === "OP") {
+          if (tok.op === "OR") {
+            // end current group, start a new one
+            pushCurrentGroup();
+          } else if (tok.op === "AND") {
+            // AND just continues within the same group
+            // nothing special to do here structurally
+          }
+        }
+      }
+      pushCurrentGroup();
+
+      // 3) Evaluate: row matches if ANY group is satisfied (OR),
+      // and a group is satisfied if ALL terms in it are satisfied (AND).
+      for (const group of groups) {
+        let groupMatches = true;
+        for (const term of group) {
+          const clauseMatched = rowMatchesClause(row, term.clause);
+          const termMatched = term.negated ? !clauseMatched : clauseMatched;
+          if (!termMatched) {
+            groupMatches = false;
+            break;
+          }
+        }
+        if (groupMatches) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    function applyQueryFilter() {
+      const queryStr = queryInput.value.trim();
+      if (!queryStr) {
+        // Show all rows
+        const rows = logsTableBody.querySelectorAll("tr");
+        rows.forEach(row => {
+          row.style.display = "";
+        });
+        return;
+      }
+
+      const tokens = parseQueryTokens(queryStr);
+      const rows = logsTableBody.querySelectorAll("tr");
+      rows.forEach((row) => {
+        const visible = rowMatchesExpression(row, tokens);
+        row.style.display = visible ? "" : "none";
       });
     }
 
+    queryInput.addEventListener("input", () => {
+      applyQueryFilter();
+    });
+
+    /* ------------------------------
+       EventSource streaming
+       ------------------------------ */
     const evtSource = new EventSource("/stream-logs");
 
     evtSource.onmessage = function(event) {
+      if (paused) return; // ignore while paused
+
       try {
         const log = JSON.parse(event.data);
         const row = document.createElement("tr");
@@ -171,12 +416,19 @@
 
         attachReconListener(btn);
 
-        if (showReconOnly) applyReconFilter();
+        // Re-apply query filter so new row respects current query
+        if (queryInput.value.trim()) {
+          applyQueryFilter();
+        }
+
       } catch (err) {
         console.error("Malformed stream-logs event.data", err);
       }
     };
 
+    /* ------------------------------
+       Send log to Recon handler
+       ------------------------------ */
     function attachReconListener(button) {
       if (!button) return;
       button.addEventListener("click", async () => {
@@ -203,6 +455,10 @@
           resultRow.appendChild(td);
           logsTableBody.appendChild(resultRow);
           resultRow.scrollIntoView({ behavior: "smooth" });
+
+          if (queryInput.value.trim()) {
+            applyQueryFilter();
+          }
         } catch (err) {
           console.error(err);
           alert("Error sending logs: " + (err && err.message ? err.message : err));
