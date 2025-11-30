@@ -51,21 +51,17 @@
           <td class="log-data cell-data">
             <pre class="cell code">{{ log.raw_log or '' }}</pre>
           </td>
-          <td class="{{ 'chip-true' if log.detected else 'chip-false' }} cell-flag">
-            {{ 'True' if log.detected else 'False' }}
-          </td>
-          <td class="cell-recon">
-            <pre class="recon-clamp cell code" onclick="this.classList.toggle('expanded')"
-                 title="Click to expand/collapse">
-{{ log.recon_data | tojson(indent=2) if log.recon_data else 'N/A' }}
-            </pre>
-          </td>
           <td class="cell-detection-results">
             <pre class="detection-clamp cell code" onclick="this.classList.toggle('expanded')"
                  title="Click to expand/collapse">
 {{ log.detection_results | tojson(indent=2) if log.detection_results else 'N/A' }}
             </pre>
           </td>
+          <td class="cell-recon">
+            <pre class="recon-clamp cell code" onclick="this.classList.toggle('expanded')"
+                 title="Click to expand/collapse">
+{{ log.recon_data | tojson(indent=2) if log.recon_data else 'N/A' }}
+            </pre>
           <td class="cell-actions">
             <button class="recon-btn" type="button">Send to Recon</button>
           </td>
