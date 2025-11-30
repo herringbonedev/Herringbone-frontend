@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html>
 <head>
@@ -16,33 +17,46 @@
   <h2 id="logs">Logs</h2>
 
   <!-- Controls: Pause/Play + Query bar -->
-  <div style="display:flex; flex-wrap:wrap; gap:0.75rem; align-items:center; margin-bottom:1rem;">
-    <button id="pause-play" class="recon-btn">
+  <div style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1rem;">
+
+    <button id="pause-play" class="recon-btn" style="width:120px;">
       Pause
     </button>
 
-    <div class="query-bar" style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:center;">
+    <div class="query-bar" style="display:flex; flex-direction:column; gap:0.5rem;">
       <label for="log-query" class="muted" style="font-size:0.9rem;">
-        Query:
+        Query Language:
       </label>
-      <input
+
+      <!-- Multiline textarea for query language -->
+      <textarea
         id="log-query"
-        type="text"
-        placeholder='e.g. source:10.0.0.5 AND recon:true OR raw~"failed"'
+        placeholder='Examples:
+source:10.0.0.5 AND analysis.detection:true
+analysis.details.0.rule_name~Suspicious
+detection_results.detected:true
+recon.data.domain~google
+NOT analysis.details.0.matched:true
+'
         style="
-          min-width:260px;
-          padding:0.35rem 0.6rem;
-          border-radius:4px;
+          width:100%;
+          min-height:90px;
+          max-height:220px;
+          padding:0.6rem 0.8rem;
+          border-radius:6px;
           border:1px solid #555;
-          background:#111;
+          background:#0a0a0a;
           color:#eee;
           font-family:monospace;
-          font-size:0.85rem;
+          font-size:0.9rem;
+          resize:vertical;
         "
-      />
+      ></textarea>
+
       <span class="muted" style="font-size:0.8rem; opacity:0.8;">
-        Syntax: <code>field:value</code>, <code>field~value</code>, fields: source, raw, log, detection, recon, time, any. Supports <code>AND</code>, <code>OR</code>, <code>NOT</code>.
+        Syntax: <code>field:value</code>, <code>field~value</code>, supports <code>AND</code>, <code>OR</code>, <code>NOT</code>, and nested dot-paths (e.g. <code>analysis.detection:true</code>).
       </span>
+
     </div>
   </div>
 
@@ -100,375 +114,430 @@
     </table>
   </div>
 
-  <script>
-    const logsTableBody = document.querySelector(".hb-table tbody");
-    const queryInput = document.getElementById("log-query");
+<script>
+  const logsTableBody = document.querySelector(".hb-table tbody");
+  const queryInput = document.getElementById("log-query");
 
-    function makeCellWithPre(text, classes = "") {
-      const td = document.createElement("td");
-      if (classes) td.className = classes;
-      const pre = document.createElement("pre");
-      pre.className = "cell code";
-      pre.textContent = (text !== undefined && text !== null) ? String(text) : "";
-      pre.style.margin = "0";
-      td.appendChild(pre);
-      return td;
+  function makeCellWithPre(text, classes = "") {
+    const td = document.createElement("td");
+    if (classes) td.className = classes;
+    const pre = document.createElement("pre");
+    pre.className = "cell code";
+    pre.textContent = (text !== undefined && text !== null) ? String(text) : "";
+    pre.style.margin = "0";
+    td.appendChild(pre);
+    return td;
+  }
+
+  function makeTextCell(text, classes = "") {
+    const td = document.createElement("td");
+    if (classes) td.className = classes;
+    td.textContent = (text !== undefined && text !== null) ? String(text) : "";
+    return td;
+  }
+
+  /* ------------------------------
+     Pause / Play functionality
+     ------------------------------ */
+  let paused = false;
+  const pausePlayBtn = document.getElementById("pause-play");
+
+  pausePlayBtn.addEventListener("click", () => {
+    paused = !paused;
+    pausePlayBtn.textContent = paused ? "Play" : "Pause";
+  });
+
+  /* ============================================================
+     JSON utilities for nested dot-path access
+     ============================================================ */
+
+  function safeJSONParse(str) {
+    try {
+      return JSON.parse(str);
+    } catch (e) {
+      return null;
     }
+  }
 
-    function makeTextCell(text, classes = "") {
-      const td = document.createElement("td");
-      if (classes) td.className = classes;
-      td.textContent = (text !== undefined && text !== null) ? String(text) : "";
-      return td;
-    }
-
-    /* ------------------------------
-       Pause / Play functionality
-       ------------------------------ */
-    let paused = false;
-    const pausePlayBtn = document.getElementById("pause-play");
-
-    pausePlayBtn.addEventListener("click", () => {
-      paused = !paused;
-      pausePlayBtn.textContent = paused ? "Play" : "Pause";
-    });
-
-    /* ------------------------------
-       Mini Query DSL with AND / OR / NOT
-       ------------------------------ */
-
-    /**
-     * Token types:
-     *  - { type: 'CLAUSE', clause: { field, op, value } }
-     *  - { type: 'OP', op: 'AND' | 'OR' | 'NOT' }
-     */
-    function parseQueryTokens(queryStr) {
-      const rawTokens = queryStr.trim().split(/\s+/);
-      const tokens = [];
-
-      for (const tokRaw of rawTokens) {
-        if (!tokRaw) continue;
-        const tok = tokRaw.trim();
-        if (!tok) continue;
-
-        // Operators
-        if (/^(AND|OR|NOT)$/i.test(tok)) {
-          tokens.push({ type: "OP", op: tok.toUpperCase() });
-          continue;
-        }
-
-        // Clause
-        let field = "any";
-        let op = "contains"; // 'contains' or 'equals'
-        let value = tok;
-
-        const match = tok.match(/^([^:~]+)([:~])(.*)$/);
-        if (match) {
-          field = match[1].toLowerCase();
-          op = match[2] === ":" ? "equals" : "contains";
-          value = match[3];
-        }
-
-        tokens.push({
-          type: "CLAUSE",
-          clause: {
-            field,
-            op,
-            value: (value || "").toLowerCase()
-          }
-        });
-      }
-
-      return tokens;
-    }
-
-    /**
-     * Get text for a given logical field from a row.
-     */
-    function getFieldTextFromRow(row, field) {
-      const timeCell   = row.querySelector(".cell-time");
-      const sourceCell = row.querySelector(".source-address");
-      const rawPre     = row.querySelector(".log-data pre");
-      const detPre     = row.querySelector(".cell-detection-results pre");
-      const reconPre   = row.querySelector(".cell-recon pre");
-
-      const timeText   = timeCell   ? timeCell.textContent   : "";
-      const sourceText = sourceCell ? sourceCell.textContent : "";
-      const rawText    = rawPre     ? rawPre.textContent     : "";
-      const detText    = detPre     ? detPre.textContent     : "";
-      const reconText  = reconPre   ? reconPre.textContent   : "";
-
-      switch (field) {
-        case "time":
-          return timeText;
-        case "source":
-          return sourceText;
-        case "raw":
-        case "log":
-          return rawText;
-        case "detection":
-          return detText;
-        case "recon":
-          // For recon we consider existence:
-          //   recon:true  -> recon data exists (not "N/A")
-          //   recon:false -> recon data missing ("N/A")
-          return reconText.trim() === "N/A" ? "false" : "true";
-        case "any":
-        default:
-          return [timeText, sourceText, rawText, detText, reconText].join(" ");
+  function getNestedField(json, path) {
+    if (!json || !path) return undefined;
+    const parts = path.split(".");
+    let cur = json;
+    for (const key of parts) {
+      if (cur === null || cur === undefined) return undefined;
+      if (/^\d+$/.test(key)) {
+        const idx = parseInt(key, 10);
+        cur = Array.isArray(cur) ? cur[idx] : undefined;
+      } else {
+        cur = cur[key];
       }
     }
+    return cur;
+  }
 
-    function rowMatchesClause(row, clause) {
-      const { field, op, value } = clause;
-      const haystackRaw = getFieldTextFromRow(row, field) || "";
-      const haystack = haystackRaw.toLowerCase();
+  function matchValue(actual, expected, op) {
+    if (actual === undefined || actual === null) return false;
+    const actualStr = String(actual).toLowerCase();
+    const expectStr = String(expected).toLowerCase();
+    if (op === "equals") return actualStr === expectStr;
+    if (op === "contains") return actualStr.includes(expectStr);
+    return false;
+  }
 
-      if (field === "recon") {
-        // For recon, equality is on "true"/"false"
-        if (op === "equals") {
-          return haystack === value;
-        } else {
-          return haystack.includes(value);
-        }
+  /* ============================================================
+     QUERY TOKENIZATION (WITH DOT-PATH FIELDS)
+     ============================================================ */
+
+  function parseQueryTokens(queryStr) {
+    const raw = queryStr.trim().split(/\s+/);
+    const tokens = [];
+
+    for (const tok of raw) {
+      if (!tok) continue;
+
+      if (/^(AND|OR|NOT)$/i.test(tok)) {
+        tokens.push({ type: "OP", op: tok.toUpperCase() });
+        continue;
       }
 
+      // CLAUSE
+      let field = "any";
+      let op = "contains";
+      let val = tok;
+
+      const m = tok.match(/^([^:~]+)([:~])(.*)$/);
+      if (m) {
+        field = m[1];
+        op = m[2] === ":" ? "equals" : "contains";
+        val = m[3];
+      }
+
+      tokens.push({
+        type: "CLAUSE",
+        clause: {
+          field,
+          op,
+          value: (val || "").toLowerCase()
+        }
+      });
+    }
+
+    return tokens;
+  }
+
+  /* ============================================================
+     FIELD ACCESSORS
+     ============================================================ */
+
+  function getFieldTextFromRow(row, field) {
+    const timeCell   = row.querySelector(".cell-time");
+    const sourceCell = row.querySelector(".source-address");
+    const rawPre     = row.querySelector(".log-data pre");
+    const detPre     = row.querySelector(".cell-detection-results pre");
+    const reconPre   = row.querySelector(".cell-recon pre");
+
+    const timeText   = timeCell   ? timeCell.textContent   : "";
+    const sourceText = sourceCell ? sourceCell.textContent : "";
+    const rawText    = rawPre     ? rawPre.textContent     : "";
+    const detText    = detPre     ? detPre.textContent     : "";
+    const reconText  = reconPre   ? reconPre.textContent   : "";
+
+    switch (field) {
+      case "time":
+        return timeText;
+      case "source":
+        return sourceText;
+      case "raw":
+      case "log":
+        return rawText;
+      case "detection":
+        return detText;
+      case "recon":
+        // For recon (non-dot), treat as "true" if JSON exists, "false" if N/A
+        return reconText.trim() === "N/A" ? "false" : "true";
+      case "any":
+      default:
+        return [timeText, sourceText, rawText, detText, reconText].join(" ");
+    }
+  }
+
+  /* ============================================================
+     CLAUSE MATCHING (supports dot-path JSON)
+     ============================================================ */
+
+  function rowMatchesClause(row, clause) {
+    const { field, op, value } = clause;
+    const lowerField = field.toLowerCase();
+
+    const detPre = row.querySelector(".cell-detection-results pre");
+    const reconPre = row.querySelector(".cell-recon pre");
+
+    // Dot-path handling for JSON in detection/recon columns
+    if (field.includes(".")) {
+      const parts = field.split(".");
+      const root = parts[0].toLowerCase();
+      const pathRest = parts.slice(1).join(".");
+
+      // Detection / analysis JSON
+      if (["detection", "det", "detection_results", "analysis"].includes(root)) {
+        if (!detPre) return false;
+        const detJSON = safeJSONParse(detPre.textContent);
+        if (!detJSON) return false;
+
+        let base = detJSON;
+        if (root === "analysis") {
+          base = detJSON && detJSON.analysis;
+        }
+        const actual = pathRest ? getNestedField(base, pathRest) : base;
+        return matchValue(actual, value, op);
+      }
+
+      // Recon JSON
+      if (["recon", "recon_data"].includes(root)) {
+        if (!reconPre) return false;
+        const reconJSON = safeJSONParse(reconPre.textContent);
+        if (!reconJSON) return false;
+        const actual = pathRest ? getNestedField(reconJSON, pathRest) : reconJSON;
+        return matchValue(actual, value, op);
+      }
+
+      // Unknown root: fallback to text search on "any"
+    }
+
+    // Non-dot fields or fallback -> string-based
+    const haystackRaw = getFieldTextFromRow(row, lowerField) || "";
+    const haystack = haystackRaw.toLowerCase();
+
+    if (lowerField === "recon") {
+      // recon:true / recon:false handled via string "true"/"false"
       if (op === "equals") {
         return haystack === value;
-      } else { // contains
+      } else {
         return haystack.includes(value);
       }
     }
 
-    /**
-     * Apply NOT, AND, OR with precedence:
-     *  - NOT has higher precedence than AND
-     *  - AND has higher precedence than OR
-     *  - No parentheses support
-     * Returns boolean for one row.
-     */
-    function rowMatchesExpression(row, tokens) {
-      // If no tokens or no clauses => default show row
-      if (!tokens || tokens.length === 0) return true;
+    if (op === "equals") {
+      return haystack === value;
+    } else {
+      return haystack.includes(value);
+    }
+  }
 
-      // Special handling for "No logs" row
-      const onlyCell = row.querySelector("td[colspan]");
-      if (onlyCell && onlyCell.colSpan >= 6) {
-        return tokens.length === 0;
-      }
+  /* ============================================================
+     BOOLEAN EXPRESSION EVALUATION (NOT > AND > OR)
+     ============================================================ */
 
-      // 1) Handle NOT binding to next clause
-      const processed = [];
-      for (let i = 0; i < tokens.length; i++) {
-        const tok = tokens[i];
-        if (tok.type === "OP" && tok.op === "NOT") {
-          const next = tokens[i + 1];
-          if (next && next.type === "CLAUSE") {
-            processed.push({
-              type: "TERM",
-              clause: next.clause,
-              negated: true
-            });
-            i++; // skip the next one
-          } else {
-            // NOT without a following clause - ignore
-          }
-        } else if (tok.type === "CLAUSE") {
+  function rowMatchesExpression(row, tokens) {
+    if (!tokens || tokens.length === 0) return true;
+
+    // Special handling for "No logs" row
+    const onlyCell = row.querySelector("td[colspan]");
+    if (onlyCell && onlyCell.colSpan >= 6) {
+      return tokens.length === 0;
+    }
+
+    // Step 1: Bind NOT to following clauses
+    const processed = [];
+    for (let i = 0; i < tokens.length; i++) {
+      const tok = tokens[i];
+      if (tok.type === "OP" && tok.op === "NOT") {
+        const next = tokens[i + 1];
+        if (next && next.type === "CLAUSE") {
           processed.push({
             type: "TERM",
-            clause: tok.clause,
-            negated: false
+            clause: next.clause,
+            negated: true
           });
-        } else if (tok.type === "OP" && (tok.op === "AND" || tok.op === "OR")) {
-          processed.push(tok);
+          i++;
         }
-      }
-
-      // If no terms, show all
-      const hasTerm = processed.some(t => t.type === "TERM");
-      if (!hasTerm) return true;
-
-      // 2) Split into OR-groups, each group is AND of terms
-      const groups = [];
-      let currentGroup = [];
-
-      function pushCurrentGroup() {
-        if (currentGroup.length > 0) {
-          groups.push(currentGroup);
-          currentGroup = [];
-        }
-      }
-
-      for (let i = 0; i < processed.length; i++) {
-        const tok = processed[i];
-        if (tok.type === "TERM") {
-          currentGroup.push(tok);
-        } else if (tok.type === "OP") {
-          if (tok.op === "OR") {
-            // end current group, start a new one
-            pushCurrentGroup();
-          } else if (tok.op === "AND") {
-            // AND just continues within the same group
-            // nothing special to do here structurally
-          }
-        }
-      }
-      pushCurrentGroup();
-
-      // 3) Evaluate: row matches if ANY group is satisfied (OR),
-      // and a group is satisfied if ALL terms in it are satisfied (AND).
-      for (const group of groups) {
-        let groupMatches = true;
-        for (const term of group) {
-          const clauseMatched = rowMatchesClause(row, term.clause);
-          const termMatched = term.negated ? !clauseMatched : clauseMatched;
-          if (!termMatched) {
-            groupMatches = false;
-            break;
-          }
-        }
-        if (groupMatches) {
-          return true;
-        }
-      }
-
-      return false;
-    }
-
-    function applyQueryFilter() {
-      const queryStr = queryInput.value.trim();
-      if (!queryStr) {
-        // Show all rows
-        const rows = logsTableBody.querySelectorAll("tr");
-        rows.forEach(row => {
-          row.style.display = "";
+      } else if (tok.type === "CLAUSE") {
+        processed.push({
+          type: "TERM",
+          clause: tok.clause,
+          negated: false
         });
-        return;
+      } else if (tok.type === "OP" && (tok.op === "AND" || tok.op === "OR")) {
+        processed.push(tok);
       }
-
-      const tokens = parseQueryTokens(queryStr);
-      const rows = logsTableBody.querySelectorAll("tr");
-      rows.forEach((row) => {
-        const visible = rowMatchesExpression(row, tokens);
-        row.style.display = visible ? "" : "none";
-      });
     }
 
-    queryInput.addEventListener("input", () => {
-      applyQueryFilter();
+  const hasTerm = processed.some(t => t.type === "TERM");
+  if (!hasTerm) return true;
+
+  // Step 2: Group by OR; within each group terms are ANDed
+  const groups = [];
+  let currentGroup = [];
+
+  function pushCurrentGroup() {
+    if (currentGroup.length > 0) {
+      groups.push(currentGroup);
+      currentGroup = [];
+    }
+  }
+
+  for (let i = 0; i < processed.length; i++) {
+    const tok = processed[i];
+    if (tok.type === "TERM") {
+      currentGroup.push(tok);
+    } else if (tok.type === "OP") {
+      if (tok.op === "OR") {
+        pushCurrentGroup();
+      } else if (tok.op === "AND") {
+        // stay in same group
+      }
+    }
+  }
+  pushCurrentGroup();
+
+  // Step 3: Evaluate groups (OR of AND groups)
+  for (const group of groups) {
+    let groupMatches = true;
+    for (const term of group) {
+      const clauseMatched = rowMatchesClause(row, term.clause);
+      const termMatched = term.negated ? !clauseMatched : clauseMatched;
+      if (!termMatched) {
+        groupMatches = false;
+        break;
+      }
+    }
+    if (groupMatches) return true;
+  }
+
+  return false;
+}
+
+function applyQueryFilter() {
+  const queryStr = queryInput.value.trim();
+  const rows = logsTableBody.querySelectorAll("tr");
+
+  if (!queryStr) {
+    rows.forEach(row => { row.style.display = ""; });
+    return;
+  }
+
+  const tokens = parseQueryTokens(queryStr);
+  rows.forEach(row => {
+    const visible = rowMatchesExpression(row, tokens);
+    row.style.display = visible ? "" : "none";
+  });
+}
+
+queryInput.addEventListener("input", () => {
+  applyQueryFilter();
+});
+
+/* ============================================================
+   EventSource streaming
+   ============================================================ */
+
+const evtSource = new EventSource("/stream-logs");
+
+evtSource.onmessage = function(event) {
+  if (paused) return;
+
+  try {
+    const log = JSON.parse(event.data);
+    const row = document.createElement("tr");
+
+    row.appendChild(makeTextCell(log.last_update || "N/A", "cell-time"));
+    row.appendChild(makeTextCell(log.source_address || "N/A", "source-address cell-source"));
+    row.appendChild(makeCellWithPre(log.raw_log || "", "log-data cell-data"));
+
+    const detectionTd = document.createElement("td");
+    detectionTd.className = "cell-detection-results";
+    const detectionPre = document.createElement("pre");
+    detectionPre.className = "detection-clamp cell code";
+    detectionPre.textContent = log.detection_results
+      ? JSON.stringify(log.detection_results, null, 2)
+      : "N/A";
+    detectionPre.title = "Click to expand/collapse";
+    detectionPre.addEventListener("click", function () {
+      this.classList.toggle("expanded");
     });
+    detectionTd.appendChild(detectionPre);
+    row.appendChild(detectionTd);
 
-    /* ------------------------------
-       EventSource streaming
-       ------------------------------ */
-    const evtSource = new EventSource("/stream-logs");
+    const reconTd = document.createElement("td");
+    reconTd.className = "cell-recon";
+    const reconPre = document.createElement("pre");
+    reconPre.className = "recon-clamp cell code";
+    reconPre.textContent = log.recon_data
+      ? JSON.stringify(log.recon_data, null, 2)
+      : "N/A";
+    reconPre.title = "Click to expand/collapse";
+    reconPre.addEventListener("click", function () {
+      this.classList.toggle("expanded");
+    });
+    reconTd.appendChild(reconPre);
+    row.appendChild(reconTd);
 
-    evtSource.onmessage = function(event) {
-      if (paused) return; // ignore while paused
+    const actionsTd = document.createElement("td");
+    actionsTd.className = "cell-actions";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "recon-btn";
+    btn.textContent = "Send to Recon";
+    actionsTd.appendChild(btn);
+    row.appendChild(actionsTd);
 
-      try {
-        const log = JSON.parse(event.data);
-        const row = document.createElement("tr");
+    logsTableBody.prepend(row);
+    if (logsTableBody.rows.length > 100) logsTableBody.deleteRow(-1);
 
-        row.appendChild(makeTextCell(log.last_update || "N/A", "cell-time"));
-        row.appendChild(makeTextCell(log.source_address || "N/A", "source-address cell-source"));
-        row.appendChild(makeCellWithPre(log.raw_log || "", "log-data cell-data"));
+    attachReconListener(btn);
 
-        const detectionTd = document.createElement("td");
-        detectionTd.className = "cell-detection-results";
-        const detectionPre = document.createElement("pre");
-        detectionPre.className = "detection-clamp cell code";
-        detectionPre.textContent = log.detection_results
-          ? JSON.stringify(log.detection_results, null, 2)
-          : "N/A";
-        detectionPre.title = "Click to expand/collapse";
-        detectionPre.addEventListener("click", function() {
-          this.classList.toggle("expanded");
-        });
-        detectionTd.appendChild(detectionPre);
-        row.appendChild(detectionTd);
-
-        const reconTd = document.createElement("td");
-        reconTd.className = "cell-recon";
-        const reconPre = document.createElement("pre");
-        reconPre.className = "recon-clamp cell code";
-        reconPre.textContent = log.recon_data
-          ? JSON.stringify(log.recon_data, null, 2)
-          : "N/A";
-        reconPre.title = "Click to expand/collapse";
-        reconPre.addEventListener("click", function() {
-          this.classList.toggle("expanded");
-        });
-        reconTd.appendChild(reconPre);
-        row.appendChild(reconTd);
-
-        const actionsTd = document.createElement("td");
-        actionsTd.className = "cell-actions";
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "recon-btn";
-        btn.textContent = "Send to Recon";
-        actionsTd.appendChild(btn);
-        row.appendChild(actionsTd);
-
-        logsTableBody.prepend(row);
-        if (logsTableBody.rows.length > 100) logsTableBody.deleteRow(-1);
-
-        attachReconListener(btn);
-
-        // Re-apply query filter so new row respects current query
-        if (queryInput.value.trim()) {
-          applyQueryFilter();
-        }
-
-      } catch (err) {
-        console.error("Malformed stream-logs event.data", err);
-      }
-    };
-
-    /* ------------------------------
-       Send log to Recon handler
-       ------------------------------ */
-    function attachReconListener(button) {
-      if (!button) return;
-      button.addEventListener("click", async () => {
-        const row = button.closest("tr");
-        const sourceAddressEl = row ? row.querySelector(".source-address") : null;
-        const sourceAddress = sourceAddressEl ? sourceAddressEl.innerText : "";
-
-        try {
-          const response = await fetch("/recon-logs", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ source_address: sourceAddress })
-          });
-          const result = await response.json();
-
-          const resultRow = document.createElement("tr");
-          resultRow.classList.add("recon-result");
-          const td = document.createElement("td");
-          td.colSpan = 6;
-          const pre = document.createElement("pre");
-          pre.className = "cell code";
-          pre.textContent = JSON.stringify(result, null, 2);
-          td.appendChild(pre);
-          resultRow.appendChild(td);
-          logsTableBody.appendChild(resultRow);
-          resultRow.scrollIntoView({ behavior: "smooth" });
-
-          if (queryInput.value.trim()) {
-            applyQueryFilter();
-          }
-        } catch (err) {
-          console.error(err);
-          alert("Error sending logs: " + (err && err.message ? err.message : err));
-        }
-      });
+    if (queryInput.value.trim()) {
+      applyQueryFilter();
     }
+  } catch (err) {
+    console.error("Malformed stream-logs event.data", err);
+  }
+};
 
-    document
-      .querySelectorAll(".hb-table tbody .cell-actions .recon-btn")
-      .forEach(attachReconListener);
-  </script>
+/* ============================================================
+   Send log to Recon handler
+   ============================================================ */
+
+function attachReconListener(button) {
+  if (!button) return;
+  button.addEventListener("click", async () => {
+    const row = button.closest("tr");
+    const sourceAddressEl = row ? row.querySelector(".source-address") : null;
+    const sourceAddress = sourceAddressEl ? sourceAddressEl.innerText : "";
+
+    try {
+      const response = await fetch("/recon-logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source_address: sourceAddress }),
+      });
+      const result = await response.json();
+
+      const resultRow = document.createElement("tr");
+      resultRow.classList.add("recon-result");
+      const td = document.createElement("td");
+      td.colSpan = 6;
+      const pre = document.createElement("pre");
+      pre.className = "cell code";
+      pre.textContent = JSON.stringify(result, null, 2);
+      td.appendChild(pre);
+      resultRow.appendChild(td);
+      logsTableBody.appendChild(resultRow);
+      resultRow.scrollIntoView({ behavior: "smooth" });
+
+      if (queryInput.value.trim()) {
+        applyQueryFilter();
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error sending logs: " + (err && err.message ? err.message : err));
+    }
+  });
+}
+
+document
+  .querySelectorAll(".hb-table tbody .cell-actions .recon-btn")
+  .forEach(attachReconListener);
+</script>
 </body>
 </html>
