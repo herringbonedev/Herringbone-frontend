@@ -28,6 +28,7 @@
         <col class="col-data">
         <col class="col-detections">
         <col class="col-recon">
+        <col class="col-detection-results">
         <col class="col-actions">
       </colgroup>
       <thead>
@@ -37,6 +38,7 @@
           <th scope="col">Log Data</th>
           <th scope="col">Detections</th>
           <th scope="col">Recon Data</th>
+          <th scope="col">Detection Results</th>
           <th scope="col">Actions</th>
         </tr>
       </thead>
@@ -56,6 +58,12 @@
             <pre class="recon-clamp cell code" onclick="this.classList.toggle('expanded')"
                  title="Click to expand/collapse">
 {{ log.recon_data | tojson(indent=2) if log.recon_data else 'N/A' }}
+            </pre>
+          </td>
+          <td class="cell-detection-results">
+            <pre class="detection-clamp cell code" onclick="this.classList.toggle('expanded')"
+                 title="Click to expand/collapse">
+{{ log.detection_results | tojson(indent=2) if log.detection_results else 'N/A' }}
             </pre>
           </td>
           <td class="cell-actions">

@@ -62,10 +62,15 @@ p { color: $muted; margin: .5rem 0 1rem; }
 
   /* Column widths — prefer tokens so user can tweak */
   .col-time   { width: $w-time; min-width: 6rem; }
+  .col-name   { width: $w-name; min-width: 6rem; }
+  .col-severity   { width: $w-severity; min-width: 6rem; }
   .col-source { width: $w-source; min-width: 8rem; }
   .col-data   { width: $w-data; max-width: $w-data; }
+  .col-rule   { width: $w-rule; max-width: $w-rule; }
+  .col-description { width: $w-description; min-width: 6rem; }
   .col-detections { width: $w-flag; min-width: 5rem; }
   .col-recon  { width: $w-raw-min; max-width: $w-raw-min; }
+  .col-detection-results  { width: $w-raw-min; max-width: $w-raw-min; }
   .col-actions { width: 8rem; min-width: 6rem; }
 }
 
@@ -104,6 +109,32 @@ p { color: $muted; margin: .5rem 0 1rem; }
 
 /* Optional fade at bottom of preview to indicate truncation */
 .recon-clamp::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2.2rem;
+  pointer-events: none;
+  background: linear-gradient(transparent, rgba(0,0,0,0.55));
+}
+
+/* Detection results clamp: small preview by default, expands when clicked */
+.detection-clamp {
+  max-height: 7.5rem;  /* show a preview */
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  padding-right: 1rem; /* room for pseudo fade */
+}
+
+/* When expanded, allow full height (scrolling still supported) */
+.detection-clamp.expanded {
+  max-height: none;
+}
+
+/* Optional fade at bottom of preview to indicate truncation */
+.detection-clamp::after {
   content: "";
   position: absolute;
   left: 0;
