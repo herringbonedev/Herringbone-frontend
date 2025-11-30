@@ -13,9 +13,8 @@
     Commandpost (Herringbone Alpha UI)
   </h1>
   <hr>
-  <h2>Logs</h2>
+  <h2 id="logs">Logs</h2>
 
-  <!-- Toggle button for Recon filter -->
   <button id="toggle-recon-filter" class="recon-btn" style="margin-bottom: 1rem;">
     Show Recon Only
   </button>
@@ -28,7 +27,6 @@
         <col class="col-data">
         <col class="col-detection-results">
         <col class="col-recon">
-        <col class="col-detection-results">
         <col class="col-actions">
       </colgroup>
       <thead>
@@ -61,6 +59,7 @@
                  title="Click to expand/collapse">
 {{ log.recon_data | tojson(indent=2) if log.recon_data else 'N/A' }}
             </pre>
+          </td>
           <td class="cell-actions">
             <button class="recon-btn" type="button">Send to Recon</button>
           </td>
@@ -77,25 +76,24 @@
   <script>
     const logsTableBody = document.querySelector(".hb-table tbody");
 
-    function makeCellWithPre(text, classes = '') {
-      const td = document.createElement('td');
+    function makeCellWithPre(text, classes = "") {
+      const td = document.createElement("td");
       if (classes) td.className = classes;
-      const pre = document.createElement('pre');
-      pre.className = 'cell code';
-      pre.textContent = (text !== undefined && text !== null) ? String(text) : '';
-      pre.style.margin = '0';
+      const pre = document.createElement("pre");
+      pre.className = "cell code";
+      pre.textContent = (text !== undefined && text !== null) ? String(text) : "";
+      pre.style.margin = "0";
       td.appendChild(pre);
       return td;
     }
 
-    function makeTextCell(text, classes = '') {
-      const td = document.createElement('td');
+    function makeTextCell(text, classes = "") {
+      const td = document.createElement("td");
       if (classes) td.className = classes;
-      td.textContent = (text !== undefined && text !== null) ? String(text) : '';
+      td.textContent = (text !== undefined && text !== null) ? String(text) : "";
       return td;
     }
 
-    // Toggle recon-only filter
     let showReconOnly = false;
     const toggleBtn = document.getElementById("toggle-recon-filter");
 
@@ -120,7 +118,6 @@
       });
     }
 
-    // EventSource for live streaming
     const evtSource = new EventSource("/stream-logs");
 
     evtSource.onmessage = function(event) {
@@ -128,29 +125,44 @@
         const log = JSON.parse(event.data);
         const row = document.createElement("tr");
 
-        row.appendChild(makeTextCell(log.last_update || 'N/A', 'cell-time'));
-        row.appendChild(makeTextCell(log.source_address || 'N/A', 'source-address cell-source'));
-        row.appendChild(makeCellWithPre(log.raw_log || '', 'log-data cell-data'));
+        row.appendChild(makeTextCell(log.last_update || "N/A", "cell-time"));
+        row.appendChild(makeTextCell(log.source_address || "N/A", "source-address cell-source"));
+        row.appendChild(makeCellWithPre(log.raw_log || "", "log-data cell-data"));
 
-        const chipTd = makeTextCell(log.detected ? 'True' : 'False', 'cell-flag ' + (log.detected ? 'chip-true' : 'chip-false'));
-        row.appendChild(chipTd);
+        const detectionTd = document.createElement("td");
+        detectionTd.className = "cell-detection-results";
+        const detectionPre = document.createElement("pre");
+        detectionPre.className = "detection-clamp cell code";
+        detectionPre.textContent = log.detection_results
+          ? JSON.stringify(log.detection_results, null, 2)
+          : "N/A";
+        detectionPre.title = "Click to expand/collapse";
+        detectionPre.addEventListener("click", function() {
+          this.classList.toggle("expanded");
+        });
+        detectionTd.appendChild(detectionPre);
+        row.appendChild(detectionTd);
 
-        const reconTd = document.createElement('td');
-        reconTd.className = 'cell-recon';
-        const reconPre = document.createElement('pre');
-        reconPre.className = 'recon-clamp cell code';
-        reconPre.textContent = log.recon_data ? JSON.stringify(log.recon_data, null, 2) : 'N/A';
-        reconPre.title = 'Click to expand/collapse';
-        reconPre.addEventListener('click', function() { this.classList.toggle('expanded'); });
+        const reconTd = document.createElement("td");
+        reconTd.className = "cell-recon";
+        const reconPre = document.createElement("pre");
+        reconPre.className = "recon-clamp cell code";
+        reconPre.textContent = log.recon_data
+          ? JSON.stringify(log.recon_data, null, 2)
+          : "N/A";
+        reconPre.title = "Click to expand/collapse";
+        reconPre.addEventListener("click", function() {
+          this.classList.toggle("expanded");
+        });
         reconTd.appendChild(reconPre);
         row.appendChild(reconTd);
 
-        const actionsTd = document.createElement('td');
-        actionsTd.className = 'cell-actions';
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'recon-btn';
-        btn.textContent = 'Send to Recon';
+        const actionsTd = document.createElement("td");
+        actionsTd.className = "cell-actions";
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "recon-btn";
+        btn.textContent = "Send to Recon";
         actionsTd.appendChild(btn);
         row.appendChild(actionsTd);
 
@@ -159,11 +171,9 @@
 
         attachReconListener(btn);
 
-        // Apply filter immediately if toggled on
         if (showReconOnly) applyReconFilter();
-
       } catch (err) {
-        console.error('Malformed stream-logs event.data', err);
+        console.error("Malformed stream-logs event.data", err);
       }
     };
 
@@ -171,8 +181,8 @@
       if (!button) return;
       button.addEventListener("click", async () => {
         const row = button.closest("tr");
-        const sourceAddressEl = row.querySelector(".source-address");
-        const sourceAddress = sourceAddressEl ? sourceAddressEl.innerText : '';
+        const sourceAddressEl = row ? row.querySelector(".source-address") : null;
+        const sourceAddress = sourceAddressEl ? sourceAddressEl.innerText : "";
 
         try {
           const response = await fetch("/recon-logs", {
@@ -200,8 +210,9 @@
       });
     }
 
-    // Attach to any server-rendered buttons
-    document.querySelectorAll(".recon-btn").forEach(attachReconListener);
+    document
+      .querySelectorAll(".hb-table tbody .cell-actions .recon-btn")
+      .forEach(attachReconListener);
   </script>
 </body>
 </html>
