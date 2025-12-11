@@ -22,10 +22,10 @@ spec:
               protocol: TCP
           env:
             - name: LOGS_API_ENDPOINT
-              value: http://herringbone-logs-service.herringbone.svc.cluster.local:7002/herringbone/logs/get_docs?n=100
+              value: http://herringbone-logs-service.herringbone.svc.cluster.local:7010/herringbone/logs/get_docs?n=100
             - name: RULES_API_ENDPOINT
               value: http://detectionengine-ruleset-service.herringbone.svc.cluster.local:7002/detectionengine/ruleset/get_rules
             - name: CARDSET_API
-              value: "http://parser-cardset-service.herringbone.svc.cluster.local:7002/parser/cardset/"
+              value: "http://parser-cardset-service.herringbone.svc.cluster.local:7005/parser/cardset/"
             - name: RECON_SERVICE_URL
-              value: "http://herringbone-mind-recon-service.herringbone.svc.cluster.local:8002/recon"
+              value: "http://herringbone-mind-recon-service.herringbone.svc.cluster.local:8001/recon"
