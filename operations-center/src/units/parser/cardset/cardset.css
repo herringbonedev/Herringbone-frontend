@@ -1,0 +1,121 @@
+/* CardSet layout */
+.cardset-page {
+	display: flex;
+	gap: 1rem;
+	padding: 1rem;
+}
+
+.cardset-panel {
+	flex: 1;
+	background: var(--bg-panel);
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	padding: 1rem;
+}
+
+/* Headings */
+.cardset-panel h2 {
+	margin-top: 0;
+}
+
+.cardset-panel h3 {
+	margin-top: 0.75rem;
+	font-size: 0.9rem;
+}
+
+/* Inputs / textareas */
+.cardset-input {
+	width: 100%;
+	background: var(--bg-panel-2);
+	color: var(--text);
+	border: 1px solid var(--border);
+	border-radius: 4px;
+	padding: 0.4rem;
+	font-family: monospace;
+	font-size: 0.8rem;
+}
+
+.cardset-input.inline {
+	width: auto;
+	margin-left: 0.5rem;
+}
+
+/* Buttons */
+.cardset-btn {
+	background: var(--accent);
+	border: 1px solid var(--border);
+	color: #fff;
+	border-radius: 4px;
+	padding: 0.5rem 0.75rem;
+	cursor: pointer;
+	font-size: 0.8rem;
+	font-weight: bold;
+}
+
+.cardset-btn.secondary {
+	background: transparent;
+	color: var(--text);
+}
+
+.cardset-btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* Save button */
+.cardset-save {
+	width: 100%;
+	margin-top: 0.75rem;
+	padding: 0.6rem;
+}
+
+/* Regex / JSONP rows */
+.cardset-row {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-top: 0.5rem;
+}
+
+/* Status */
+.cardset-status {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	margin: 0.25rem 0 0.5rem 0;
+	font-size: 0.75rem;
+	opacity: 0.85;
+}
+
+.cardset-status.ok {
+	color: var(--green);
+}
+
+.cardset-status.err {
+	color: var(--red);
+}
+
+/* Saved cards */
+.cardset-saved {
+	margin-top: 1rem;
+}
+
+.cardset-saved-item {
+	background: var(--bg-panel-2);
+	border: 1px solid var(--border);
+	border-radius: 4px;
+	padding: 0.5rem;
+	margin-top: 0.4rem;
+	font-size: 0.75rem;
+}
+
+.cardset-saved-item.selected {
+	border-color: var(--accent);
+	box-shadow: 0 0 0 1px var(--accent);
+	background: var(--bg-panel);
+}
+
+.cardset-input:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}

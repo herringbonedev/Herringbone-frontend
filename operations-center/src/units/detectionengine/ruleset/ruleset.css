@@ -1,0 +1,86 @@
+.ruleset-page {
+	display: flex;
+	gap: 1rem;
+	padding: 1rem;
+}
+
+.ruleset-panel {
+	flex: 1;
+	background: var(--bg-panel);
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	padding: 1rem;
+}
+
+.ruleset-panel h2 {
+	margin-top: 0;
+}
+
+.ruleset-panel h3 {
+	margin-top: 0.75rem;
+	font-size: 0.9rem;
+}
+
+.ruleset-input {
+	width: 100%;
+	background: var(--bg-panel-2);
+	color: var(--text);
+	border: 1px solid var(--border);
+	border-radius: 4px;
+	padding: 0.4rem;
+	font-family: monospace;
+	font-size: 0.8rem;
+}
+
+.ruleset-btn {
+	background: var(--accent);
+	border: 1px solid var(--border);
+	color: #fff;
+	border-radius: 4px;
+	padding: 0.5rem 0.75rem;
+	cursor: pointer;
+	font-size: 0.8rem;
+	font-weight: bold;
+}
+
+.ruleset-btn.secondary {
+	background: transparent;
+	color: var(--text);
+}
+
+.ruleset-status {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	margin: 0.25rem 0 0.5rem 0;
+	font-size: 0.75rem;
+	opacity: 0.85;
+}
+
+.ruleset-status.ok {
+	color: var(--green);
+}
+
+.ruleset-status.err {
+	color: var(--red);
+}
+
+.ruleset-saved {
+	margin-top: 1rem;
+}
+
+.ruleset-saved-item {
+	background: var(--bg-panel-2);
+	border: 1px solid var(--border);
+	border-radius: 4px;
+	padding: 0.5rem;
+	margin-top: 0.4rem;
+	font-size: 0.75rem;
+	cursor: pointer;
+}
+
+.ruleset-saved-item.selected {
+	border-color: var(--accent);
+	box-shadow: 0 0 0 1px var(--accent);
+	background: var(--bg-panel);
+}
