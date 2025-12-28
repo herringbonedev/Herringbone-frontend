@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-ui:
-    uses: herringbone/.github/.github/workflows/microservice-build-test-push.yml@main
+    uses: herringbone/.github/.github/workflows/build-test-push.yml
     with:
       service_name: operations-center
       service_path: .
