@@ -65,6 +65,7 @@ export function CardTester({ card }: Props) {
 				let m: RegExpExecArray | null
 				let guard = 0
 				let captured = false
+				console.log(captured)
 
 				while ((m = re.exec(target)) !== null) {
 					if (guard++ > 1000) break
