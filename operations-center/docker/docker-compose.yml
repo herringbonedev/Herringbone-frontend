@@ -1,0 +1,8 @@
+services:
+  operations-center:
+    image: quay.io/herringbone/operations-center:dev
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8080:8080"

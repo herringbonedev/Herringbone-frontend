@@ -1,0 +1,16 @@
+name: Build & Push Operations Center UI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build-ui:
+    uses: herringbone/.github/.github/workflows/microservice-build-test-push.yml@main
+    with:
+      service_name: operations-center
+      service_path: .
+      dockerfile: docker/Dockerfile
+      kustomization_path: kustomization/operations-center/kustomization.yaml
+      image_repo: quay.io/herringbone/operations-center

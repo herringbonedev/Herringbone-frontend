@@ -1,0 +1,7 @@
+images:
+  - name: quay.io/herringbone/operations-center
+    newTag: latest
+    digest: ""
+resources:
+  - deployment.yaml
+  - service.yaml

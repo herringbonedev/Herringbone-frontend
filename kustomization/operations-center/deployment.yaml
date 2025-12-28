@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: operations-center
+  namespace: herringbone
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: operations-center
+  template:
+    metadata:
+      labels:
+        app: operations-center
+    spec:
+      containers:
+        - name: operations-center
+          image: quay.io/herringbone/operations-center:latest
+          ports:
+            - containerPort: 8080
+              name: http
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
