@@ -1,5 +1,5 @@
 # ---- build stage ----
-FROM cgr.dev/chainguard/node:20 AS build
+FROM cgr.dev/chainguard/node:latest AS build
 
 WORKDIR /app
 
