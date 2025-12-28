@@ -16,7 +16,7 @@ jobs:
     secrets: inherit
     with:
       service_name: operations-center
-      service_path: .
-      dockerfile: docker/Dockerfile
+      service_path: operations-center
+      dockerfile: operations-center/docker/Dockerfile
       kustomization_path: kustomization/operations-center/kustomization.yaml
       image_repo: quay.io/herringbone/operations-center
