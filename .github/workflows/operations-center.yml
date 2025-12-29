@@ -3,7 +3,9 @@ name: Build & Push Operations Center UI
 on:
   push:
     branches: [ main ]
-  pull_request:
+    paths:
+      - 'operations-center/**'
+      - '.github/workflows/operations-centerml'
 
 permissions:
   contents: write
