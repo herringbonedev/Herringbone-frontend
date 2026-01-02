@@ -6,7 +6,6 @@ type Props = {
 }
 
 function isPythonReCompatible(p: string): string | null {
-	// Reject variable-width look-behind for Python re
 	if (/\(\?<([=!]).*?[+*]/.test(p)) {
 		return "Variable-width look-behind is not supported in Python re"
 	}
@@ -22,24 +21,39 @@ export function CardTester({ card }: Props) {
 		let data: any
 		try {
 			data = JSON.parse(rawText)
-			const field = card.selector?.type?.trim()
-			const expected = card.selector?.value?.trim()
+		} catch {
+			return { ok: false, message: "Invalid JSON" }
+		}
 
-			if (!field || !expected) {
-				return { ok: false, message: "Selector not set" }
+		const expected = card.selector.value?.trim()
+		if (!expected) {
+			return { ok: false, message: "Selector not set" }
+		}
+
+		if (card.selector.type === "raw") {
+			const raw =
+				typeof data?.raw_log === "string"
+					? data.raw_log
+					: rawText
+
+			if (!raw.includes(expected)) {
+				return { ok: false, message: "Selector not matched" }
 			}
+		}
 
-			const actual = data?.[field]
+		if (card.selector.type === "source_address") {
+			const actual =
+				data?.source?.address ??
+				data?.source_address ??
+				data?.src_ip
 
-			if (actual === undefined) {
-				return { ok: false, message: `Field '${field}' not found` }
+			if (!actual) {
+				return { ok: false, message: "source address not found" }
 			}
 
 			if (String(actual) !== expected) {
 				return { ok: false, message: "Selector not matched" }
 			}
-		} catch {
-			return { ok: false, message: "Invalid JSON" }
 		}
 
 		const results: Record<string, any> = {}
@@ -49,7 +63,6 @@ export function CardTester({ card }: Props) {
 				? data.raw_log
 				: rawText
 
-		// ---- Regex testing ----
 		card.regex?.forEach(obj => {
 			const [k, p] = Object.entries(obj)[0]
 
@@ -64,26 +77,17 @@ export function CardTester({ card }: Props) {
 				const matches: string[] = []
 				let m: RegExpExecArray | null
 				let guard = 0
-				let captured = false
-				console.log(captured)
 
 				while ((m = re.exec(target)) !== null) {
 					if (guard++ > 1000) break
-
-					// Prevent infinite loop
 					if (m[0] === "") {
 						re.lastIndex++
 						continue
 					}
-
-					// If there is a capture group, take ONLY the first and stop
 					if (m.length > 1) {
 						matches.push(m[1])
-						captured = true
 						break
 					}
-
-					// Otherwise collect all full matches (IPs, etc.)
 					matches.push(m[0])
 				}
 
@@ -93,7 +97,6 @@ export function CardTester({ card }: Props) {
 			}
 		})
 
-		// ---- JSONPath-like testing ----
 		card.jsonp?.forEach(obj => {
 			const [k, path] = Object.entries(obj)[0]
 			let val: any = data

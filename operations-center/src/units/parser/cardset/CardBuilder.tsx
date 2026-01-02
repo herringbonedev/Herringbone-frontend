@@ -17,13 +17,16 @@ export function CardBuilder({
 	onPreview,
 }: Props) {
 	const [cardName, setCardName] = useState("")
-	const [selector, setSelector] = useState<Selector>({ type: "", value: "" })
+	const [selector, setSelector] = useState<Selector>({
+		type: "raw",
+		value: "",
+	})
 	const [regex, setRegex] = useState<KV[]>([])
 	const [jsonp, setJsonp] = useState<KV[]>([])
 
 	useEffect(() => {
 		setCardName(card.name || "")
-		setSelector(card.selector || { type: "", value: "" })
+		setSelector(card.selector || { type: "raw", value: "" })
 
 		const toKV = (items?: Record<string, string>[]) =>
 			items
@@ -56,7 +59,6 @@ export function CardBuilder({
 
 	const built = buildCard()
 
-	// 🔴 LIVE PREVIEW for tester
 	useEffect(() => {
 		onPreview(built)
 	}, [cardName, selector, regex, jsonp])
@@ -74,22 +76,35 @@ export function CardBuilder({
 
 			<label>Selector</label>
 			<div className="cardset-row">
-				<input
+				<select
 					className="cardset-input"
-					placeholder="type"
 					value={selector.type}
 					disabled={isEdit}
 					onChange={e =>
-						setSelector({ ...selector, type: e.target.value })
+						setSelector({
+							...selector,
+							type: e.target.value as
+								| "raw"
+								| "source_address",
+						})
 					}
-				/>
+				>
+					<option value="raw">raw</option>
+					<option value="source_address">
+						source_address
+					</option>
+				</select>
+
 				<input
 					className="cardset-input inline"
 					placeholder="value"
 					value={selector.value}
 					disabled={isEdit}
 					onChange={e =>
-						setSelector({ ...selector, value: e.target.value })
+						setSelector({
+							...selector,
+							value: e.target.value,
+						})
 					}
 				/>
 			</div>

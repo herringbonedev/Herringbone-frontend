@@ -8,7 +8,7 @@ import "./cardset.css"
 
 const emptyCard: Card = {
 	name: "",
-	selector: { type: "", value: "" },
+	selector: { type: "raw", value: "" },
 }
 
 function keyFor(card: Card): string {
