@@ -1,54 +1,23 @@
-export type MongoDate = {
-	$date: string
+export type EventSource = {
+	address: string
+	kind: string
 }
 
-export type MongoId = {
-	$oid: string
-}
-
-export type ReconResults = Record<string, any>
-
-export type MatcherRule = {
-	key: string
-	regex: string
-}
-
-export type DetectionDetail = {
-	rule_name: string
-	severity: number
-	description: string
-	matched: boolean
-	matcher_details?: string
-	matcher_rule?: MatcherRule
-}
-
-export type DetectionAnalysis = {
-	detection: boolean
-	details: DetectionDetail[]
-}
-
-export type DetectionResults = {
-	detected: boolean
-	updated_at?: MongoDate
-	analysis?: DetectionAnalysis
+export type EventState = {
+	_id?: string
+	event_id?: string
+	detected?: boolean
+	enriched?: boolean
+	parsed?: boolean
+	severity?: number | null
+	last_updated?: string
 }
 
 export type EventLog = {
-	_id: MongoId
-	source_address: string
-	raw_log: string
-
-	recon: boolean
-	detected: boolean
-
-	status: string | null
-	last_update?: MongoDate
-	last_processed?: MongoDate
-
-	recon_data?: {
-		results?: ReconResults
-		enrichment_error?: string
-	}
-
-	detection_results?: DetectionResults
+	_id: string
+	raw: string
+	source: EventSource
+	event_time: string
+	ingested_at: string
+	state?: EventState
 }

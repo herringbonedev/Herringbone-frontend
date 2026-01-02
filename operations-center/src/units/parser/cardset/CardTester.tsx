@@ -5,115 +5,70 @@ type Props = {
 	card: Card
 }
 
-function isPythonReCompatible(p: string): string | null {
-	if (/\(\?<([=!]).*?[+*]/.test(p)) {
-		return "Variable-width look-behind is not supported in Python re"
-	}
-	return null
-}
-
 export function CardTester({ card }: Props) {
-	const [rawText, setRawText] = useState("")
+	const [inputText, setInputText] = useState("")
 
-	const getMatches = () => {
-		if (!rawText.trim()) return { ok: false, message: "" }
-
-		let data: any
+	const getRawString = (): string => {
 		try {
-			data = JSON.parse(rawText)
+			const parsed = JSON.parse(inputText)
+			if (parsed && typeof parsed.raw === "string") {
+				return parsed.raw
+			}
 		} catch {
-			return { ok: false, message: "Invalid JSON" }
+			/* not JSON */
 		}
+		return inputText
+	}
 
-		const expected = card.selector.value?.trim()
-		if (!expected) {
+	const testCard = () => {
+		if (!inputText.trim()) return { ok: false, message: "" }
+
+		const raw = getRawString()
+
+		const selType = card.selector?.type
+		const selValue = card.selector?.value?.trim()
+
+		if (!selType || !selValue) {
 			return { ok: false, message: "Selector not set" }
 		}
 
-		if (card.selector.type === "raw") {
-			const raw =
-				typeof data?.raw_log === "string"
-					? data.raw_log
-					: rawText
-
-			if (!raw.includes(expected)) {
-				return { ok: false, message: "Selector not matched" }
-			}
+		if (selType !== "raw") {
+			return { ok: false, message: "Only raw selector supported in tester" }
 		}
 
-		if (card.selector.type === "source_address") {
-			const actual =
-				data?.source?.address ??
-				data?.source_address ??
-				data?.src_ip
-
-			if (!actual) {
-				return { ok: false, message: "source address not found" }
-			}
-
-			if (String(actual) !== expected) {
-				return { ok: false, message: "Selector not matched" }
-			}
+		if (!raw.includes(selValue)) {
+			return { ok: false, message: "Selector not matched" }
 		}
 
-		const results: Record<string, any> = {}
-
-		const target =
-			typeof data?.raw_log === "string"
-				? data.raw_log
-				: rawText
+		const results: Record<string, string[]> = {}
 
 		card.regex?.forEach(obj => {
-			const [k, p] = Object.entries(obj)[0]
-
-			const compatErr = isPythonReCompatible(p)
-			if (compatErr) {
-				results[k] = [`<invalid for python re: ${compatErr}>`]
-				return
-			}
-
+			const [key, pattern] = Object.entries(obj)[0]
 			try {
-				const re = new RegExp(p, "gm")
+				const re = new RegExp(pattern, "gm")
 				const matches: string[] = []
 				let m: RegExpExecArray | null
 				let guard = 0
 
-				while ((m = re.exec(target)) !== null) {
+				while ((m = re.exec(raw)) !== null) {
 					if (guard++ > 1000) break
 					if (m[0] === "") {
 						re.lastIndex++
 						continue
 					}
-					if (m.length > 1) {
-						matches.push(m[1])
-						break
-					}
 					matches.push(m[0])
 				}
 
-				results[k] = matches
+				results[key] = matches
 			} catch {
-				results[k] = ["<invalid regex>"]
+				results[key] = []
 			}
-		})
-
-		card.jsonp?.forEach(obj => {
-			const [k, path] = Object.entries(obj)[0]
-			let val: any = data
-			path
-				.replace(/^\$\.?/, "")
-				.split(".")
-				.filter(Boolean)
-				.forEach(p => {
-					val = val?.[p]
-				})
-			results[k] = val !== undefined ? [val] : []
 		})
 
 		return { ok: true, message: "Selector matched", results }
 	}
 
-	const matchState = getMatches()
+	const state = testCard()
 
 	return (
 		<div className="cardset-panel">
@@ -122,22 +77,14 @@ export function CardTester({ card }: Props) {
 			<textarea
 				className="cardset-input"
 				style={{ height: "200px" }}
-				value={rawText}
-				onChange={e => setRawText(e.target.value)}
-				placeholder="Paste raw JSON here..."
+				value={inputText}
+				onChange={e => setInputText(e.target.value)}
+				placeholder="Paste raw log or full event JSON"
 			/>
 
-			<div
-				className={`cardset-status ${
-					matchState.ok ? "ok" : "err"
-				}`}
-			>
-				<span>{matchState.ok ? "✔" : "✖"}</span>
-				<span>
-					{matchState.ok
-						? "Selector matched"
-						: matchState.message || "Selector not matched"}
-				</span>
+			<div className={`cardset-status ${state.ok ? "ok" : "err"}`}>
+				<span>{state.ok ? "✔" : "✖"}</span>
+				<span>{state.ok ? "Selector matched" : state.message}</span>
 			</div>
 
 			<h3>Matches</h3>
@@ -146,11 +93,7 @@ export function CardTester({ card }: Props) {
 				readOnly
 				className="cardset-input"
 				style={{ height: "220px" }}
-				value={
-					matchState.ok
-						? JSON.stringify(matchState.results, null, 2)
-						: ""
-				}
+				value={state.ok ? JSON.stringify(state.results, null, 2) : ""}
 			/>
 		</div>
 	)
