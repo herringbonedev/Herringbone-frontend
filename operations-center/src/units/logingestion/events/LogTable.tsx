@@ -5,6 +5,8 @@ type Props = {
 	logs: EventLog[]
 }
 
+type ParsedMap = Record<string, unknown[]>
+
 function fmt(ts?: string) {
 	if (!ts) return ""
 	try {
@@ -27,7 +29,10 @@ function DetailsCell({ log }: { log: EventLog }) {
 	const state = log.state || {}
 	const sev = state.severity
 
-	const lines: Array<[string, string]> = [
+	const parsed =
+		(log as EventLog & { parsed?: ParsedMap }).parsed || {}
+
+	const baseLines: Array<[string, string]> = [
 		["id", log._id],
 		["source.address", log.source?.address || ""],
 		["source.kind", log.source?.kind || ""],
@@ -39,6 +44,22 @@ function DetailsCell({ log }: { log: EventLog }) {
 		["state.severity", sev == null ? "" : String(sev)],
 		["state.last_updated", state.last_updated || ""],
 	]
+
+	const parsedEntries: Array<[string, unknown[]]> = []
+
+	for (const [k, v] of Object.entries(parsed)) {
+		if (Array.isArray(v) && v.length > 0) {
+			parsedEntries.push([k, v])
+		}
+	}
+
+	const copyAll = async () => {
+		try {
+			await navigator.clipboard.writeText(
+				JSON.stringify(log, null, 2)
+			)
+		} catch {}
+	}
 
 	return (
 		<div>
@@ -67,18 +88,51 @@ function DetailsCell({ log }: { log: EventLog }) {
 						borderRadius: "6px",
 						fontFamily: "monospace",
 						fontSize: "0.75rem",
-						maxWidth: "520px",
+						maxWidth: "640px",
 						whiteSpace: "pre-wrap",
 						wordBreak: "break-word",
 					}}
 				>
-					{lines
-						.filter(([_, v]) => v != null && String(v).trim() !== "")
+					<button
+						onClick={copyAll}
+						style={{
+							marginBottom: "0.35rem",
+							fontSize: "0.7rem",
+							padding: "0.1rem 0.4rem",
+							borderRadius: "4px",
+							border: "1px solid var(--border)",
+							cursor: "pointer",
+						}}
+					>
+						Copy JSON
+					</button>
+
+					{baseLines
+						.filter(([_, v]) => v.trim() !== "")
 						.map(([k, v]) => (
 							<div key={k}>
 								<strong>{k}</strong>: {v}
 							</div>
 						))}
+
+					{parsedEntries.length > 0 && (
+						<>
+							<div style={{ marginTop: "0.4rem" }}>
+								<strong>parsed</strong>:
+							</div>
+
+							{parsedEntries.map(([k, values]) => (
+								<div key={k} style={{ marginLeft: "0.6rem" }}>
+									<div>{k}:</div>
+									<ul style={{ margin: "0.1rem 0 0.3rem 1rem" }}>
+										{values.map((v, i) => (
+											<li key={i}>{String(v)}</li>
+										))}
+									</ul>
+								</div>
+							))}
+						</>
+					)}
 				</div>
 			)}
 		</div>
@@ -86,38 +140,46 @@ function DetailsCell({ log }: { log: EventLog }) {
 }
 
 export function LogTable({ logs }: Props) {
+	const sorted = [...logs].sort((a, b) => {
+		const ta = new Date(a.event_time || 0).getTime()
+		const tb = new Date(b.event_time || 0).getTime()
+		return tb - ta
+	})
+
 	return (
-		<table>
-			<thead>
-				<tr>
-					<th>Time</th>
-					<th>Source</th>
-					<th>State</th>
-					<th>Message</th>
-				</tr>
-			</thead>
-			<tbody>
-				{logs.map(log => {
-					const sev = log.state?.severity
-					return (
-						<tr
-							key={log._id}
-							style={
-								sev != null
-									? { background: severityColor(sev) }
-									: undefined
-							}
-						>
-							<td>{fmt(log.event_time)}</td>
-							<td>{log.source?.address || ""}</td>
-							<td>
-								<DetailsCell log={log} />
-							</td>
-							<td>{log.raw}</td>
-						</tr>
-					)
-				})}
-			</tbody>
-		</table>
+		<div style={{ maxHeight: "70vh", overflowY: "auto" }}>
+			<table>
+				<thead>
+					<tr>
+						<th>Time</th>
+						<th>Source</th>
+						<th>State</th>
+						<th>Message</th>
+					</tr>
+				</thead>
+				<tbody>
+					{sorted.map(log => {
+						const sev = log.state?.severity
+						return (
+							<tr
+								key={log._id}
+								style={
+									sev != null
+										? { background: severityColor(sev) }
+										: undefined
+								}
+							>
+								<td>{fmt(log.event_time)}</td>
+								<td>{log.source?.address || ""}</td>
+								<td>
+									<DetailsCell log={log} />
+								</td>
+								<td>{log.raw}</td>
+							</tr>
+						)
+					})}
+				</tbody>
+			</table>
+		</div>
 	)
 }

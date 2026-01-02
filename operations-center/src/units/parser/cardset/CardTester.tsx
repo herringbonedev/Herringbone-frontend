@@ -6,41 +6,46 @@ type Props = {
 }
 
 export function CardTester({ card }: Props) {
-	const [inputText, setInputText] = useState("")
+	const [input, setInput] = useState("")
 
-	const getRawString = (): string => {
+	const getMatches = () => {
+		if (!input.trim()) return { ok: false, message: "" }
+
+		let parsed: any = null
+		let raw = input
+
 		try {
-			const parsed = JSON.parse(inputText)
-			if (parsed && typeof parsed.raw === "string") {
-				return parsed.raw
-			}
+			parsed = JSON.parse(input)
+			if (typeof parsed?.raw === "string") raw = parsed.raw
+			if (typeof parsed?.raw_log === "string") raw = parsed.raw_log
 		} catch {
-			/* not JSON */
+			parsed = null
+			raw = input
 		}
-		return inputText
-	}
 
-	const testCard = () => {
-		if (!inputText.trim()) return { ok: false, message: "" }
-
-		const raw = getRawString()
-
-		const selType = card.selector?.type
-		const selValue = card.selector?.value?.trim()
-
-		if (!selType || !selValue) {
+		const selector = card.selector
+		if (!selector?.type || !selector?.value) {
 			return { ok: false, message: "Selector not set" }
 		}
 
-		if (selType !== "raw") {
-			return { ok: false, message: "Only raw selector supported in tester" }
+		if (selector.type === "raw") {
+			if (!raw.includes(selector.value)) {
+				return { ok: false, message: "Selector not matched" }
+			}
 		}
 
-		if (!raw.includes(selValue)) {
-			return { ok: false, message: "Selector not matched" }
+		if (selector.type === "source_address") {
+			const actual =
+				parsed?.source?.address ??
+				parsed?.source_address ??
+				parsed?.src_ip
+
+			if (!actual || String(actual) !== selector.value) {
+				return { ok: false, message: "Selector not matched" }
+			}
 		}
 
-		const results: Record<string, string[]> = {}
+		const results: Record<string, unknown[]> = {}
 
 		card.regex?.forEach(obj => {
 			const [key, pattern] = Object.entries(obj)[0]
@@ -56,19 +61,40 @@ export function CardTester({ card }: Props) {
 						re.lastIndex++
 						continue
 					}
-					matches.push(m[0])
+					if (m.length > 1) {
+						matches.push(m[1])
+					} else {
+						matches.push(m[0])
+					}
 				}
 
-				results[key] = matches
+				if (matches.length > 0) results[key] = matches
 			} catch {
 				results[key] = []
+			}
+		})
+
+		card.jsonp?.forEach(obj => {
+			const [key, path] = Object.entries(obj)[0]
+			let val: any = parsed
+
+			path
+				.replace(/^\$\.?/, "")
+				.split(".")
+				.filter(Boolean)
+				.forEach(p => {
+					val = val?.[p]
+				})
+
+			if (val !== undefined) {
+				results[key] = Array.isArray(val) ? val : [val]
 			}
 		})
 
 		return { ok: true, message: "Selector matched", results }
 	}
 
-	const state = testCard()
+	const matchState = getMatches()
 
 	return (
 		<div className="cardset-panel">
@@ -77,14 +103,18 @@ export function CardTester({ card }: Props) {
 			<textarea
 				className="cardset-input"
 				style={{ height: "200px" }}
-				value={inputText}
-				onChange={e => setInputText(e.target.value)}
-				placeholder="Paste raw log or full event JSON"
+				value={input}
+				onChange={e => setInput(e.target.value)}
+				placeholder="Paste event JSON or raw log"
 			/>
 
-			<div className={`cardset-status ${state.ok ? "ok" : "err"}`}>
-				<span>{state.ok ? "✔" : "✖"}</span>
-				<span>{state.ok ? "Selector matched" : state.message}</span>
+			<div className={`cardset-status ${matchState.ok ? "ok" : "err"}`}>
+				<span>{matchState.ok ? "✔" : "✖"}</span>
+				<span>
+					{matchState.ok
+						? "Selector matched"
+						: matchState.message || "Selector not matched"}
+				</span>
 			</div>
 
 			<h3>Matches</h3>
@@ -93,7 +123,11 @@ export function CardTester({ card }: Props) {
 				readOnly
 				className="cardset-input"
 				style={{ height: "220px" }}
-				value={state.ok ? JSON.stringify(state.results, null, 2) : ""}
+				value={
+					matchState.ok
+						? JSON.stringify(matchState.results, null, 2)
+						: ""
+				}
 			/>
 		</div>
 	)
