@@ -5,98 +5,79 @@ type Props = {
 	card: Card
 }
 
-function isPythonReCompatible(p: string): string | null {
-	// Reject variable-width look-behind for Python re
-	if (/\(\?<([=!]).*?[+*]/.test(p)) {
-		return "Variable-width look-behind is not supported in Python re"
-	}
-	return null
-}
-
 export function CardTester({ card }: Props) {
-	const [rawText, setRawText] = useState("")
+	const [input, setInput] = useState("")
 
 	const getMatches = () => {
-		if (!rawText.trim()) return { ok: false, message: "" }
+		if (!input.trim()) return { ok: false, message: "" }
 
-		let data: any
+		let parsed: any = null
+		let raw = input
+
 		try {
-			data = JSON.parse(rawText)
-			const field = card.selector?.type?.trim()
-			const expected = card.selector?.value?.trim()
-
-			if (!field || !expected) {
-				return { ok: false, message: "Selector not set" }
-			}
-
-			const actual = data?.[field]
-
-			if (actual === undefined) {
-				return { ok: false, message: `Field '${field}' not found` }
-			}
-
-			if (String(actual) !== expected) {
-				return { ok: false, message: "Selector not matched" }
-			}
+			parsed = JSON.parse(input)
+			if (typeof parsed?.raw === "string") raw = parsed.raw
+			if (typeof parsed?.raw_log === "string") raw = parsed.raw_log
 		} catch {
-			return { ok: false, message: "Invalid JSON" }
+			parsed = null
+			raw = input
 		}
 
-		const results: Record<string, any> = {}
+		const selector = card.selector
+		if (!selector?.type || !selector?.value) {
+			return { ok: false, message: "Selector not set" }
+		}
 
-		const target =
-			typeof data?.raw_log === "string"
-				? data.raw_log
-				: rawText
-
-		// ---- Regex testing ----
-		card.regex?.forEach(obj => {
-			const [k, p] = Object.entries(obj)[0]
-
-			const compatErr = isPythonReCompatible(p)
-			if (compatErr) {
-				results[k] = [`<invalid for python re: ${compatErr}>`]
-				return
+		if (selector.type === "raw") {
+			if (!raw.includes(selector.value)) {
+				return { ok: false, message: "Selector not matched" }
 			}
+		}
 
+		if (selector.type === "source_address") {
+			const actual =
+				parsed?.source?.address ??
+				parsed?.source_address ??
+				parsed?.src_ip
+
+			if (!actual || String(actual) !== selector.value) {
+				return { ok: false, message: "Selector not matched" }
+			}
+		}
+
+		const results: Record<string, unknown[]> = {}
+
+		card.regex?.forEach(obj => {
+			const [key, pattern] = Object.entries(obj)[0]
 			try {
-				const re = new RegExp(p, "gm")
+				const re = new RegExp(pattern, "gm")
 				const matches: string[] = []
 				let m: RegExpExecArray | null
 				let guard = 0
-				let captured = false
-				console.log(captured)
 
-				while ((m = re.exec(target)) !== null) {
+				while ((m = re.exec(raw)) !== null) {
 					if (guard++ > 1000) break
-
-					// Prevent infinite loop
 					if (m[0] === "") {
 						re.lastIndex++
 						continue
 					}
-
-					// If there is a capture group, take ONLY the first and stop
 					if (m.length > 1) {
 						matches.push(m[1])
-						captured = true
-						break
+					} else {
+						matches.push(m[0])
 					}
-
-					// Otherwise collect all full matches (IPs, etc.)
-					matches.push(m[0])
 				}
 
-				results[k] = matches
+				if (matches.length > 0) results[key] = matches
 			} catch {
-				results[k] = ["<invalid regex>"]
+				results[key] = []
 			}
 		})
 
-		// ---- JSONPath-like testing ----
 		card.jsonp?.forEach(obj => {
-			const [k, path] = Object.entries(obj)[0]
-			let val: any = data
+			const [key, path] = Object.entries(obj)[0]
+			let val: any = parsed
+
 			path
 				.replace(/^\$\.?/, "")
 				.split(".")
@@ -104,7 +85,10 @@ export function CardTester({ card }: Props) {
 				.forEach(p => {
 					val = val?.[p]
 				})
-			results[k] = val !== undefined ? [val] : []
+
+			if (val !== undefined) {
+				results[key] = Array.isArray(val) ? val : [val]
+			}
 		})
 
 		return { ok: true, message: "Selector matched", results }
@@ -119,16 +103,12 @@ export function CardTester({ card }: Props) {
 			<textarea
 				className="cardset-input"
 				style={{ height: "200px" }}
-				value={rawText}
-				onChange={e => setRawText(e.target.value)}
-				placeholder="Paste raw JSON here..."
+				value={input}
+				onChange={e => setInput(e.target.value)}
+				placeholder="Paste event JSON or raw log"
 			/>
 
-			<div
-				className={`cardset-status ${
-					matchState.ok ? "ok" : "err"
-				}`}
-			>
+			<div className={`cardset-status ${matchState.ok ? "ok" : "err"}`}>
 				<span>{matchState.ok ? "✔" : "✖"}</span>
 				<span>
 					{matchState.ok

@@ -5,7 +5,7 @@ export type MongoId =
 	  }
 
 export type Selector = {
-	type: string
+	type: "raw" | "source_address"
 	value: string
 }
 
