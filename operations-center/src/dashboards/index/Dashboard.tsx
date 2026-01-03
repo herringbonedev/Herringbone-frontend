@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import { useDashboardApi } from "./useDashboardApi"
+import { IncidentThroughput } from "./IncidentThroughput"
 
 function Panel(props: { title: string; children: ReactNode }) {
 	return (
@@ -15,6 +16,8 @@ export default function Dashboard() {
 		summary,
 		events,
 		detections,
+		incidents,
+		throughput,
 		loading,
 		error,
 		reload,
@@ -27,10 +30,7 @@ export default function Dashboard() {
 			{error && (
 				<div className="panel sev-med" style={{ marginBottom: "1rem" }}>
 					<strong>Error:</strong> {error}
-					<button
-						style={{ marginLeft: "1rem" }}
-						onClick={reload}
-					>
+					<button style={{ marginLeft: "1rem" }} onClick={reload}>
 						Retry
 					</button>
 				</div>
@@ -50,9 +50,7 @@ export default function Dashboard() {
 				</Panel>
 
 				<Panel title="Detected">
-					<strong className="sev-high">
-						{summary?.detected ?? "—"}
-					</strong>
+					<strong className="sev-high">{summary?.detected ?? "—"}</strong>
 				</Panel>
 
 				<Panel title="Undetected">
@@ -60,24 +58,24 @@ export default function Dashboard() {
 				</Panel>
 
 				<Panel title="High Severity">
-					<strong className="sev-high">
-						{summary?.high_severity ?? "—"}
-					</strong>
+					<strong className="sev-high">{summary?.high_severity ?? "—"}</strong>
 				</Panel>
 
 				<Panel title="Failed">
-					<strong className="sev-med">
-						{summary?.failed ?? "—"}
-					</strong>
+					<strong className="sev-med">{summary?.failed ?? "—"}</strong>
 				</Panel>
 			</div>
 
-			{/* LOWER ROW */}
+			{/* TRUTH GRAPH */}
+			<IncidentThroughput data={throughput} />
+
+			{/* TABLES */}
 			<div
 				style={{
 					display: "grid",
-					gridTemplateColumns: "2fr 1fr",
+					gridTemplateColumns: "2fr 1fr 1fr",
 					gap: "1rem",
+					marginTop: "1rem",
 				}}
 			>
 				<Panel title="Recent Events">
@@ -93,26 +91,14 @@ export default function Dashboard() {
 						<tbody>
 							{events.map(e => (
 								<tr key={e.event_id}>
-									<td>
-										{e.ingested_at
-											? new Date(e.ingested_at).toLocaleString()
-											: "—"}
-									</td>
+									<td>{e.ingested_at ? new Date(e.ingested_at).toLocaleString() : "—"}</td>
 									<td>{e.source?.address ?? "—"}</td>
-									<td>
-										{e.error
-											? <span className="sev-med">error</span>
-											: e.detected
-											? <span className="sev-high">detected</span>
-											: "ok"}
-									</td>
+									<td>{e.detected ? "detected" : "ok"}</td>
 									<td>{e.severity ?? "—"}</td>
 								</tr>
 							))}
 							{!loading && events.length === 0 && (
-								<tr>
-									<td colSpan={4}>No recent events</td>
-								</tr>
+								<tr><td colSpan={4}>No events</td></tr>
 							)}
 						</tbody>
 					</table>
@@ -129,20 +115,40 @@ export default function Dashboard() {
 						<tbody>
 							{detections.map((d, i) => (
 								<tr key={i}>
-									<td>
-										{d.inserted_at
-											? new Date(d.inserted_at).toLocaleString()
-											: "—"}
-									</td>
-									<td className="sev-high">
-										{d.severity ?? "—"}
-									</td>
+									<td>{d.inserted_at ? new Date(d.inserted_at).toLocaleString() : "—"}</td>
+									<td className="sev-high">{d.severity ?? "—"}</td>
 								</tr>
 							))}
 							{!loading && detections.length === 0 && (
-								<tr>
-									<td colSpan={2}>No detections</td>
+								<tr><td colSpan={2}>No detections</td></tr>
+							)}
+						</tbody>
+					</table>
+				</Panel>
+
+				<Panel title="Recent Incidents">
+					<table>
+						<thead>
+							<tr>
+								<th>Time</th>
+								<th>Title</th>
+								<th>Status</th>
+								<th>Priority</th>
+								<th>Owner</th>
+							</tr>
+						</thead>
+						<tbody>
+							{incidents.map(i => (
+								<tr key={i.incident_id}>
+									<td>{i.created_at ? new Date(i.created_at).toLocaleString() : "—"}</td>
+									<td>{i.title}</td>
+									<td>{i.status}</td>
+									<td className={i.priority === "high" ? "sev-high" : ""}>{i.priority}</td>
+									<td>{i.owner ?? "unassigned"}</td>
 								</tr>
+							))}
+							{!loading && incidents.length === 0 && (
+								<tr><td colSpan={5}>No incidents</td></tr>
 							)}
 						</tbody>
 					</table>

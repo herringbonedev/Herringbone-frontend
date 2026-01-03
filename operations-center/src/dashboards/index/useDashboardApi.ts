@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 
 const API_BASE = "http://127.0.0.1:7010"
 
-export type DashboardSummary = {
+export type Summary = {
 	events_24h: number
 	detected: number
 	undetected: number
@@ -10,7 +10,7 @@ export type DashboardSummary = {
 	failed: number
 }
 
-export type DashboardRecentEvent = {
+export type RecentEvent = {
 	event_id: string
 	ingested_at?: string
 	source?: { address?: string }
@@ -19,16 +19,33 @@ export type DashboardRecentEvent = {
 	error?: string
 }
 
-export type DashboardRecentDetection = {
+export type RecentDetection = {
 	event_id: string
 	severity?: number
 	inserted_at?: string
 }
 
+export type RecentIncident = {
+	incident_id: string
+	title: string
+	status: string
+	priority: string
+	owner: string | null
+	created_at?: string
+}
+
+export type IncidentThroughputPoint = {
+	ts: string
+	open: number
+	resolved: number
+}
+
 export function useDashboardApi() {
-	const [summary, setSummary] = useState<DashboardSummary | null>(null)
-	const [events, setEvents] = useState<DashboardRecentEvent[]>([])
-	const [detections, setDetections] = useState<DashboardRecentDetection[]>([])
+	const [summary, setSummary] = useState<Summary | null>(null)
+	const [events, setEvents] = useState<RecentEvent[]>([])
+	const [detections, setDetections] = useState<RecentDetection[]>([])
+	const [incidents, setIncidents] = useState<RecentIncident[]>([])
+	const [throughput, setThroughput] = useState<IncidentThroughputPoint[]>([])
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 
@@ -37,28 +54,21 @@ export function useDashboardApi() {
 		setError(null)
 
 		try {
-			const [summaryRes, eventsRes, detectionsRes] = await Promise.all([
-				fetch(`${API_BASE}/herringbone/logs/dashboard/summary`),
-				fetch(`${API_BASE}/herringbone/logs/dashboard/recent-events?n=10`),
-				fetch(`${API_BASE}/herringbone/logs/dashboard/recent-detections?n=10`),
+			const [s, e, d, i, t] = await Promise.all([
+				fetch(`${API_BASE}/herringbone/logs/dashboard/summary`).then(r => r.json()),
+				fetch(`${API_BASE}/herringbone/logs/dashboard/recent-events?n=10`).then(r => r.json()),
+				fetch(`${API_BASE}/herringbone/logs/dashboard/recent-detections?n=10`).then(r => r.json()),
+				fetch(`${API_BASE}/herringbone/logs/dashboard/recent-incidents?n=10`).then(r => r.json()),
+				fetch(`${API_BASE}/herringbone/logs/dashboard/incidents-throughput?days=7`).then(r => r.json()),
 			])
 
-			if (!summaryRes.ok) throw new Error("Failed to load dashboard summary")
-			if (!eventsRes.ok) throw new Error("Failed to load recent events")
-			if (!detectionsRes.ok) throw new Error("Failed to load recent detections")
-
-			const summaryJson = await summaryRes.json()
-			const eventsJson = await eventsRes.json()
-			const detectionsJson = await detectionsRes.json()
-
-			setSummary(summaryJson)
-			setEvents(Array.isArray(eventsJson) ? eventsJson : [])
-			setDetections(Array.isArray(detectionsJson) ? detectionsJson : [])
-		} catch (e: any) {
-			setError(e?.message || "Failed to load dashboard data")
-			setSummary(null)
-			setEvents([])
-			setDetections([])
+			setSummary(s)
+			setEvents(e)
+			setDetections(d)
+			setIncidents(i)
+			setThroughput(t)
+		} catch (err: any) {
+			setError(err?.message || "Failed to load dashboard")
 		} finally {
 			setLoading(false)
 		}
@@ -72,6 +82,8 @@ export function useDashboardApi() {
 		summary,
 		events,
 		detections,
+		incidents,
+		throughput,
 		loading,
 		error,
 		reload: load,
