@@ -32,6 +32,16 @@ function DetailsCell({ log }: { log: EventLog }) {
 	const parsed =
 		(log as EventLog & { parsed?: ParsedMap }).parsed || {}
 
+	const detections =
+		(state.analysis?.details as
+			| Array<{
+					rule_name?: string
+					severity?: number
+					description?: string
+					matched?: boolean
+			  }>
+			| undefined) || []
+
 	const baseLines: Array<[string, string]> = [
 		["id", log._id],
 		["source.address", log.source?.address || ""],
@@ -39,17 +49,16 @@ function DetailsCell({ log }: { log: EventLog }) {
 		["event_time", log.event_time || ""],
 		["ingested_at", log.ingested_at || ""],
 		["state.detected", String(state.detected ?? false)],
-		["state.enriched", String(state.enriched ?? false)],
 		["state.parsed", String(state.parsed ?? false)],
 		["state.severity", sev == null ? "" : String(sev)],
 		["state.last_updated", state.last_updated || ""],
 	]
 
-	const parsedEntries: Array<[string, unknown[]]> = []
+	const parsedEntries: Record<string, unknown[]> = {}
 
 	for (const [k, v] of Object.entries(parsed)) {
 		if (Array.isArray(v) && v.length > 0) {
-			parsedEntries.push([k, v])
+			parsedEntries[k] = v
 		}
 	}
 
@@ -81,58 +90,108 @@ function DetailsCell({ log }: { log: EventLog }) {
 			{open && (
 				<div
 					style={{
-						marginTop: "0.35rem",
-						padding: "0.35rem 0.5rem",
+						marginTop: "0.4rem",
+						padding: "0.5rem",
 						background: "var(--bg-panel-2)",
 						border: "1px solid var(--border)",
 						borderRadius: "6px",
+						display: "grid",
+						gridTemplateColumns: "280px 1fr 1fr",
+						gap: "0.75rem",
 						fontFamily: "monospace",
 						fontSize: "0.75rem",
-						maxWidth: "640px",
-						whiteSpace: "pre-wrap",
-						wordBreak: "break-word",
+						maxWidth: "1100px",
 					}}
 				>
-					<button
-						onClick={copyAll}
-						style={{
-							marginBottom: "0.35rem",
-							fontSize: "0.7rem",
-							padding: "0.1rem 0.4rem",
-							borderRadius: "4px",
-							border: "1px solid var(--border)",
-							cursor: "pointer",
-						}}
-					>
-						Copy JSON
-					</button>
+					<div>
+						<button
+							onClick={copyAll}
+							style={{
+								marginBottom: "0.4rem",
+								fontSize: "0.7rem",
+								padding: "0.1rem 0.4rem",
+								borderRadius: "4px",
+								border: "1px solid var(--border)",
+								cursor: "pointer",
+							}}
+						>
+							Copy JSON
+						</button>
 
-					{baseLines
-						.filter(([_, v]) => v.trim() !== "")
-						.map(([k, v]) => (
-							<div key={k}>
-								<strong>{k}</strong>: {v}
-							</div>
-						))}
-
-					{parsedEntries.length > 0 && (
-						<>
-							<div style={{ marginTop: "0.4rem" }}>
-								<strong>parsed</strong>:
-							</div>
-
-							{parsedEntries.map(([k, values]) => (
-								<div key={k} style={{ marginLeft: "0.6rem" }}>
-									<div>{k}:</div>
-									<ul style={{ margin: "0.1rem 0 0.3rem 1rem" }}>
-										{values.map((v, i) => (
-											<li key={i}>{String(v)}</li>
-										))}
-									</ul>
+						{baseLines
+							.filter(([_, v]) => v.trim() !== "")
+							.map(([k, v]) => (
+								<div key={k}>
+									<strong>{k}</strong>: {v}
 								</div>
 							))}
-						</>
-					)}
+					</div>
+
+					<div
+						style={{
+							background: "var(--bg-panel-1)",
+							border: "1px solid var(--border)",
+							borderRadius: "4px",
+							padding: "0.4rem",
+							overflowX: "auto",
+						}}
+					>
+						<strong>Parsed</strong>
+						{Object.keys(parsedEntries).length > 0 ? (
+							<pre>{JSON.stringify(parsedEntries, null, 2)}</pre>
+						) : (
+							<div style={{ opacity: 0.6 }}>no parsed data</div>
+						)}
+					</div>
+
+					<div
+						style={{
+							background: "var(--bg-panel-1)",
+							border: "1px solid var(--border)",
+							borderRadius: "4px",
+							padding: "0.4rem",
+							overflowX: "auto",
+						}}
+					>
+						<strong>Detections</strong>
+
+						{detections.length > 0 ? (
+							detections.map((d, i) => (
+								<div
+									key={i}
+									style={{
+										marginTop: "0.35rem",
+										padding: "0.35rem",
+										borderRadius: "4px",
+										background:
+											d.matched
+												? severityColor(d.severity ?? 0)
+												: "transparent",
+										border: "1px solid var(--border)",
+									}}
+								>
+									<div>
+										<strong>{d.rule_name || "rule"}</strong>
+									</div>
+									{d.description && (
+										<div style={{ opacity: 0.8 }}>
+											{d.description}
+										</div>
+									)}
+									<div>
+										severity: {d.severity ?? ""}
+									</div>
+									<div>
+										matched: {String(d.matched)}
+									</div>
+								</div>
+							))
+						) : (
+							<div style={{ opacity: 0.6 }}>
+								no detections
+							</div>
+						)}
+					</div>
 				</div>
 			)}
 		</div>
