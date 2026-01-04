@@ -17,8 +17,6 @@ export const router = createBrowserRouter([
 			{ path: "logingestion", element: <EventsPage /> },
 			{ path: "cardset", element: <CardSetPage /> },
 			{ path: "ruleset", element: <RuleSetPage /> },
-
-			// Incidents
 			{ path: "incidents", element: <IncidentListPage /> },
 			{ path: "incidents/:id", element: <IncidentDetailPage /> },
 		],
