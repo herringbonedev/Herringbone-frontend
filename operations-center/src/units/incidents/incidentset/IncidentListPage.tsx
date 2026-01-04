@@ -28,7 +28,7 @@ export default function IncidentListPage() {
 					</tr>
 				</thead>
 				<tbody>
-					{incidents.map((incident, idx) => {
+					{incidents.map(incident => {
 						let id: string | null = null
 
 						if (typeof incident._id === "string") {

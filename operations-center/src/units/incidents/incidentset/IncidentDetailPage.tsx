@@ -1,7 +1,6 @@
 import { useState } from "react"
 import { useParams } from "react-router-dom"
 import { useIncidentDetail } from "./useIncidentDetail"
-import type { Incident } from "./incidentTypes"
 
 const STATUSES = ["open", "investigating", "resolved"]
 const PRIORITIES = ["low", "medium", "high", "critical"]
