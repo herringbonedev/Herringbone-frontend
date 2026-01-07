@@ -6,7 +6,6 @@ import EventsPage from "./units/logingestion/events/EventsPage"
 import CardSetPage from "./units/parser/cardset/CardSetPage"
 import RuleSetPage from "./units/detectionengine/ruleset/RuleSetPage"
 import IncidentListPage from "./units/incidents/incidentset/IncidentListPage"
-import IncidentDetailPage from "./units/incidents/incidentset/IncidentDetailPage"
 
 export const router = createBrowserRouter([
 	{
@@ -18,7 +17,6 @@ export const router = createBrowserRouter([
 			{ path: "cardset", element: <CardSetPage /> },
 			{ path: "ruleset", element: <RuleSetPage /> },
 			{ path: "incidents", element: <IncidentListPage /> },
-			{ path: "incidents/:id", element: <IncidentDetailPage /> },
 		],
 	},
 ])
