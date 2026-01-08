@@ -5,35 +5,50 @@ type Props = {
 	onDelete: (id: string) => void
 }
 
+function getId(r: any): string | null {
+	if (!r) return null
+	if (typeof r._id === "string") return r._id
+	if (typeof r._id === "object" && r._id?.$oid) return r._id.$oid
+	return null
+}
+
 export function SavedRules({
 	rules,
 	selected,
 	onSelect,
 	onDelete,
 }: Props) {
+	const list = Array.isArray(rules) ? rules : []
+
 	return (
 		<div className="ruleset-panel">
 			<h2>Saved Rules</h2>
 
 			<div className="ruleset-saved">
-				{rules.map(r => {
-					const id =
-						typeof r._id === "string"
-							? r._id
-							: r._id?.$oid
+				{list.length === 0 && (
+					<div style={{ opacity: 0.6 }}>No rules found.</div>
+				)}
+
+				{list.map((r, i) => {
+					// HARD GUARD — imported or partial rules
+					if (!r || !r.rule) return null
+
+					const id = getId(r)
+					if (!id) return null
+
+					const selectedId = getId(selected)
+					const isSelected = selectedId === id
 
 					return (
 						<div
-							key={id}
+							key={id || i}
 							className={`ruleset-saved-item ${
-								selected?._id === r._id ||
-								selected?._id?.$oid === id
-									? "selected"
-									: ""
+								isSelected ? "selected" : ""
 							}`}
 							onClick={() => onSelect(r)}
 						>
 							<strong>{r.name || id}</strong>
+
 							{r.severity !== undefined && (
 								<div>Severity: {r.severity}</div>
 							)}
@@ -43,8 +58,7 @@ export function SavedRules({
 								style={{ marginTop: "0.4rem" }}
 								onClick={e => {
 									e.stopPropagation()
-									if (id) onDelete(id)
-									else alert("Invalid rule id")
+									onDelete(id)
 								}}
 							>
 								Delete

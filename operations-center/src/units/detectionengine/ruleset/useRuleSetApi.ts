@@ -1,9 +1,27 @@
 const API_BASE = "http://localhost:7002/detectionengine/ruleset"
 
+function normalizeMongoId<T extends Record<string, any>>(obj: T): T {
+	if (obj && typeof obj === "object" && "_id" in obj) {
+		const id = (obj as any)._id
+		if (typeof id === "object" && id?.$oid) {
+			return { ...obj, _id: id.$oid }
+		}
+	}
+	return obj
+}
+
+function normalizeMongoDocs<T extends Record<string, any>>(docs: T[]): T[] {
+	return docs.map(normalizeMongoId)
+}
+
 export function useRuleSetApi() {
 	const getRules = async () => {
-		const r = await fetch(`${API_BASE}/get_rules`)
-		return r.json()
+		const res = await fetch(`${API_BASE}/get_rules`)
+		if (!res.ok) throw new Error(await res.text())
+
+		const data = await res.json()
+
+		return Array.isArray(data) ? normalizeMongoDocs(data) : data
 	}
 
 	const insertRule = async (rule: any) => {
@@ -16,11 +34,19 @@ export function useRuleSetApi() {
 	}
 
 	const updateRule = async (rule: any) => {
+		
+		const normalized = normalizeMongoId(rule)
+
+		if (!normalized._id || typeof normalized._id !== "string") {
+			throw new Error("updateRule: missing or invalid _id")
+		}
+
 		const res = await fetch(`${API_BASE}/update_rule`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(rule),
+			body: JSON.stringify(normalized),
 		})
+
 		if (!res.ok) throw new Error(await res.text())
 	}
 
@@ -31,5 +57,28 @@ export function useRuleSetApi() {
 		if (!res.ok) throw new Error(await res.text())
 	}
 
-	return { getRules, insertRule, updateRule, deleteRule }
+	const importRules = async (rules: any[]) => {
+		if (!Array.isArray(rules)) {
+			throw new Error("Rule pack must be an array")
+		}
+
+		for (const r of rules) {
+			if (!r?.rule?.key || !r?.rule?.regex) {
+				console.warn("Skipping invalid rule", r)
+				continue
+			}
+
+			// never trust incoming _id
+			const { _id, ...clean } = r
+			await insertRule(clean)
+		}
+	}
+
+	return {
+		getRules,
+		insertRule,
+		updateRule,
+		deleteRule,
+		importRules,
+	}
 }
