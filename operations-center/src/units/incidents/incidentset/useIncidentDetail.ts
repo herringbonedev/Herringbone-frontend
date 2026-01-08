@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { fetchIncidents } from "./incidentApi"
+import { fetchIncident } from "./incidentApi"
 import type { IncidentApi, Incident } from "./types"
 
 function normalizeIncident(raw: IncidentApi): Incident {
@@ -10,15 +10,16 @@ function normalizeIncident(raw: IncidentApi): Incident {
 		status: raw.status,
 		priority: raw.priority,
 		owner: raw.owner,
-		events: raw.events,
-		detections: raw.detections,
+		events: Array.isArray(raw.events) ? raw.events : [],
+		detections: Array.isArray(raw.detections) ? raw.detections : [],
+		notes: Array.isArray(raw.notes) ? raw.notes : [],
 		created_at: raw.created_at?.$date,
 		updated_at: raw.updated_at?.$date,
 	}
 }
 
-export function useIncidents() {
-	const [incidents, setIncidents] = useState<Incident[]>([])
+export function useIncidentDetail(id: string) {
+	const [incident, setIncident] = useState<Incident | null>(null)
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
 
@@ -26,8 +27,8 @@ export function useIncidents() {
 		try {
 			setLoading(true)
 			setError(null)
-			const data = await fetchIncidents()
-			setIncidents(data.map(normalizeIncident))
+			const data = await fetchIncident(id)
+			setIncident(normalizeIncident(data))
 		} catch (e: any) {
 			setError(e?.message ?? "error")
 		} finally {
@@ -37,7 +38,7 @@ export function useIncidents() {
 
 	useEffect(() => {
 		load()
-	}, [])
+	}, [id])
 
-	return { incidents, loading, error, reload: load }
+	return { incident, loading, error, reload: load }
 }

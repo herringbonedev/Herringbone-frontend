@@ -1,4 +1,5 @@
-import { useIncidents } from "./useIncidents"
+import { useNavigate } from "react-router-dom"
+import { useIncidentList } from "./useIncidentList"
 
 function fmt(ts?: string) {
 	if (!ts) return ""
@@ -6,7 +7,8 @@ function fmt(ts?: string) {
 }
 
 export default function IncidentListPage() {
-	const { incidents, loading, error, reload } = useIncidents()
+	const { incidents, loading, error, reload } = useIncidentList()
+	const navigate = useNavigate()
 
 	return (
 		<div style={{ padding: "1.25rem" }}>
@@ -25,20 +27,30 @@ export default function IncidentListPage() {
 				<table style={{ width: "100%", borderCollapse: "collapse" }}>
 					<thead>
 						<tr>
-							<th align="left">Priority</th>
-							<th align="left">Status</th>
-							<th align="left">Title</th>
-							<th align="left">Created</th>
-							<th align="left">Updated</th>
-							<th align="left">Owner</th>
+							<th>Priority</th>
+							<th>Status</th>
+							<th>Title</th>
+							<th>Events</th>
+							<th>Detections</th>
+							<th>Notes</th>
+							<th>Created</th>
+							<th>Updated</th>
+							<th>Owner</th>
 						</tr>
 					</thead>
 					<tbody>
 						{incidents.map(i => (
-							<tr key={i._id}>
+							<tr
+								key={i._id}
+								style={{ cursor: "pointer" }}
+								onClick={() => navigate(`/incidents/${i._id}`)}
+							>
 								<td>{i.priority ?? "—"}</td>
 								<td>{i.status ?? "—"}</td>
 								<td>{i.title ?? "(no title)"}</td>
+								<td>{i.events.length}</td>
+								<td>{i.detections.length}</td>
+								<td>{i.notes.length}</td>
 								<td>{fmt(i.created_at)}</td>
 								<td>{fmt(i.updated_at)}</td>
 								<td>{i.owner ?? "Unassigned"}</td>
