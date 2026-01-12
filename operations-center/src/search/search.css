@@ -260,3 +260,8 @@
   opacity: 0.4;
   cursor: default;
 }
+
+.mono {
+  font-family: ui-monospace, monospace;
+  color: #9da7b3;
+}

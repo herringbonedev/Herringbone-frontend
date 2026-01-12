@@ -2,10 +2,65 @@ import { useState } from "react"
 import { useSearchApi } from "./useSearchApi"
 import "./search.css"
 
-function rawPreview(s: any, max = 160) {
-  if (s == null) return ""
-  const str = typeof s === "string" ? s : JSON.stringify(s)
-  return str.length > max ? str.slice(0, max) + "…" : str
+function preview(val: any, max = 120) {
+  if (val == null) return ""
+  const s = typeof val === "string" ? val : JSON.stringify(val)
+  return s.length > max ? s.slice(0, max) + "…" : s
+}
+
+function shortId(id: string) {
+  return id.length > 8 ? id.slice(-8) : id
+}
+
+function extractMessage(row: any): string {
+  return (
+    row.raw ||
+    row.message ||
+    row.description ||
+    row?.parsed?.command ||
+    row?.parsed?.message ||
+    ""
+  )
+}
+
+function buildColumns(rows: any[]) {
+  if (!rows.length) return []
+
+  const priority = [
+    "severity",
+    "event_time",
+    "ingested_at",
+    "created_at",
+    "source.ip",
+    "source.host",
+  ]
+
+  const fields = new Set<string>()
+
+  rows.forEach(r => {
+    Object.keys(r).forEach(k => {
+      const v = r[k]
+      if (
+        typeof v === "string" ||
+        typeof v === "number" ||
+        typeof v === "boolean"
+      ) {
+        fields.add(k)
+      }
+    })
+  })
+
+  const ordered: string[] = []
+
+  for (const p of priority) {
+    if (fields.has(p)) ordered.push(p)
+  }
+
+  for (const f of fields) {
+    if (!ordered.includes(f) && f !== "_id") ordered.push(f)
+  }
+
+  return ordered.slice(0, 6) // limit width
 }
 
 export default function SearchPage() {
@@ -20,6 +75,8 @@ export default function SearchPage() {
   const [page, setPage] = useState(1)
 
   const { search, loading, error } = useSearchApi()
+
+  const columns = buildColumns(results)
 
   async function runSearch(cursor: string | null, reset: boolean) {
     let queryObj: Record<string, any>
@@ -36,9 +93,7 @@ export default function SearchPage() {
     setNextAfter(resp.next_after || null)
     setOpenId(null)
 
-    if (reset) {
-      setPage(1)
-    }
+    if (reset) setPage(1)
   }
 
   async function resetSearch() {
@@ -49,7 +104,7 @@ export default function SearchPage() {
 
   async function nextPage() {
     if (!nextAfter) return
-    setPage((p) => p + 1)
+    setPage(p => p + 1)
     await runSearch(nextAfter, false)
   }
 
@@ -63,7 +118,7 @@ export default function SearchPage() {
             <span>Collection</span>
             <select
               value={collection}
-              onChange={(e) => setCollection(e.target.value)}
+              onChange={e => setCollection(e.target.value)}
               className="search-select"
             >
               <option value="events">events</option>
@@ -81,7 +136,7 @@ export default function SearchPage() {
             <input
               className="search-input"
               value={String(limit)}
-              onChange={(e) => {
+              onChange={e => {
                 const n = parseInt(e.target.value || "0", 10)
                 setLimit(Number.isFinite(n) ? n : 100)
               }}
@@ -102,7 +157,7 @@ export default function SearchPage() {
           <textarea
             className="search-textarea"
             value={queryText}
-            onChange={(e) => setQueryText(e.target.value)}
+            onChange={e => setQueryText(e.target.value)}
             spellCheck={false}
           />
         </div>
@@ -131,34 +186,36 @@ export default function SearchPage() {
           <table className="results-table">
             <thead>
               <tr>
-                <th className="col-id">_id</th>
-                <th className="col-raw">raw</th>
-                <th className="col-source">source</th>
-                <th className="col-time">event_time</th>
-                <th className="col-time">ingested_at</th>
-                <th className="col-action"></th>
+                <th>ID</th>
+                <th>Message</th>
+                {columns.map(c => (
+                  <th key={c}>{c}</th>
+                ))}
+                <th></th>
               </tr>
             </thead>
 
             <tbody>
-              {results.map((row) => {
-                const id = String(row?._id ?? "")
+              {results.map(row => {
+                const id = String(row._id)
                 const isOpen = openId === id
 
                 return (
                   <>
-                    <tr key={id} className="row">
-                      <td className="col-id">{id}</td>
-                      <td className="col-raw">{rawPreview(row?.raw)}</td>
-                      <td className="col-source">
-                        {row?.source ? rawPreview(row.source, 120) : "-"}
-                      </td>
-                      <td className="col-time">{row?.event_time || "-"}</td>
-                      <td className="col-time">{row?.ingested_at || "-"}</td>
-                      <td className="col-action">
+                    <tr key={id}>
+                      <td className="mono">{shortId(id)}</td>
+                      <td>{preview(extractMessage(row))}</td>
+
+                      {columns.map(c => (
+                        <td key={c}>{preview(row[c])}</td>
+                      ))}
+
+                      <td>
                         <button
                           className="link-button"
-                          onClick={() => setOpenId(isOpen ? null : id)}
+                          onClick={() =>
+                            setOpenId(isOpen ? null : id)
+                          }
                         >
                           {isOpen ? "Hide" : "View"}
                         </button>
@@ -167,7 +224,7 @@ export default function SearchPage() {
 
                     {isOpen && (
                       <tr>
-                        <td colSpan={6}>
+                        <td colSpan={columns.length + 3}>
                           <pre className="json-viewer">
 {JSON.stringify(row, null, 2)}
                           </pre>
@@ -180,7 +237,7 @@ export default function SearchPage() {
 
               {results.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={6} className="empty">
+                  <td colSpan={columns.length + 3} className="empty">
                     No results
                   </td>
                 </tr>
