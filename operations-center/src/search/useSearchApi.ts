@@ -32,16 +32,32 @@ export function useSearchApi() {
     collection: string,
     query: Record<string, any>,
     limit = 100,
-    after?: string | null
+    after?: string | null,
+    fromTs?: string | null,
+    toTs?: string | null,
+    severityMin?: number | null,
+    severityMax?: number | null
   ) {
     setLoading(true)
     setError(null)
 
     try {
       const params = new URLSearchParams()
+
       params.set("limit", String(limit))
       params.set("q", JSON.stringify(query))
+
       if (after) params.set("after", after)
+      if (fromTs) params.set("from_ts", fromTs)
+      if (toTs) params.set("to_ts", toTs)
+
+      if (severityMin !== null && severityMin !== undefined) {
+        params.set("severity_min", String(severityMin))
+      }
+
+      if (severityMax !== null && severityMax !== undefined) {
+        params.set("severity_max", String(severityMax))
+      }
 
       const res = await fetch(
         `${API_BASE}/herringbone/search/${collection}?${params.toString()}`,
