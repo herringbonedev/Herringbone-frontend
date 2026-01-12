@@ -19,6 +19,7 @@ function App() {
 				<Link to="/cardset">CardSet</Link>
 				<Link to="/ruleset">RuleSet</Link>
 				<Link to="/incidents">Incidents</Link>
+				<Link to="/search">Search</Link>
 			</div>
 
 			{/* Page content */}
