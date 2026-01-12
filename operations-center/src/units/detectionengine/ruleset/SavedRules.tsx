@@ -12,61 +12,47 @@ function getId(r: any): string | null {
 	return null
 }
 
-export function SavedRules({
-	rules,
-	selected,
-	onSelect,
-	onDelete,
-}: Props) {
+export function SavedRules({ rules, selected, onSelect, onDelete }: Props) {
 	const list = Array.isArray(rules) ? rules : []
 
 	return (
-		<div className="ruleset-panel">
-			<h2>Saved Rules</h2>
+		<div className="ruleset-saved">
+			{list.length === 0 && (
+				<div style={{ opacity: 0.6 }}>No rules found.</div>
+			)}
 
-			<div className="ruleset-saved">
-				{list.length === 0 && (
-					<div style={{ opacity: 0.6 }}>No rules found.</div>
-				)}
+			{list.map((r, i) => {
+				if (!r || !r.rule) return null
 
-				{list.map((r, i) => {
-					// HARD GUARD — imported or partial rules
-					if (!r || !r.rule) return null
+				const id = getId(r)
+				if (!id) return null
 
-					const id = getId(r)
-					if (!id) return null
+				const selectedId = getId(selected)
+				const isSelected = selectedId === id
 
-					const selectedId = getId(selected)
-					const isSelected = selectedId === id
+				return (
+					<div
+						key={id || i}
+						className={`ruleset-saved-item ${isSelected ? "selected" : ""}`}
+						onClick={() => onSelect(r)}
+					>
+						<strong>{r.name || id}</strong>
 
-					return (
-						<div
-							key={id || i}
-							className={`ruleset-saved-item ${
-								isSelected ? "selected" : ""
-							}`}
-							onClick={() => onSelect(r)}
+						{r.severity !== undefined && <div>Severity: {r.severity}</div>}
+
+						<button
+							className="ruleset-btn secondary"
+							style={{ marginTop: "0.4rem" }}
+							onClick={e => {
+								e.stopPropagation()
+								onDelete(id)
+							}}
 						>
-							<strong>{r.name || id}</strong>
-
-							{r.severity !== undefined && (
-								<div>Severity: {r.severity}</div>
-							)}
-
-							<button
-								className="ruleset-btn secondary"
-								style={{ marginTop: "0.4rem" }}
-								onClick={e => {
-									e.stopPropagation()
-									onDelete(id)
-								}}
-							>
-								Delete
-							</button>
-						</div>
-					)
-				})}
-			</div>
+							Delete
+						</button>
+					</div>
+				)
+			})}
 		</div>
 	)
 }

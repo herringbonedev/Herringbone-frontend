@@ -2,14 +2,21 @@
 	display: flex;
 	gap: 1rem;
 	padding: 1rem;
+	height: calc(100vh - 2rem);
+	align-items: stretch;
+	overflow: hidden;
 }
 
 .ruleset-panel {
 	flex: 1;
+	min-width: 0;
 	background: var(--bg-panel);
 	border: 1px solid var(--border);
 	border-radius: 6px;
 	padding: 1rem;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
 }
 
 .ruleset-panel h2 {
@@ -21,6 +28,7 @@
 	font-size: 0.9rem;
 }
 
+/* Inputs / textareas */
 .ruleset-input {
 	width: 100%;
 	background: var(--bg-panel-2);
@@ -32,6 +40,7 @@
 	font-size: 0.8rem;
 }
 
+/* Buttons */
 .ruleset-btn {
 	background: var(--accent);
 	border: 1px solid var(--border);
@@ -48,6 +57,7 @@
 	color: var(--text);
 }
 
+/* Status */
 .ruleset-status {
 	display: flex;
 	align-items: center;
@@ -65,8 +75,39 @@
 	color: var(--red);
 }
 
+/* Left layout */
+.ruleset-left-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	margin-bottom: 0.75rem;
+}
+
+.ruleset-builder-scroll {
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
+	padding-right: 0.25rem;
+}
+
+.ruleset-tester-box {
+	margin-top: 0.75rem;
+	padding-top: 0.75rem;
+	border-top: 1px solid var(--border);
+}
+
+/* Right layout */
+.ruleset-saved-scroll {
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
+	padding-right: 0.25rem;
+}
+
+/* Saved rules */
 .ruleset-saved {
-	margin-top: 1rem;
+	margin-top: 0.5rem;
 }
 
 .ruleset-saved-item {
@@ -83,4 +124,15 @@
 	border-color: var(--accent);
 	box-shadow: 0 0 0 1px var(--accent);
 	background: var(--bg-panel);
+}
+
+/* Chips (used by correlate_on) */
+.ruleset-chip {
+	background: var(--bg-panel-2);
+	border: 1px solid var(--border);
+	border-radius: 999px;
+	padding: 0.2rem 0.5rem;
+	font-size: 0.75rem;
+	cursor: pointer;
+	user-select: none;
 }

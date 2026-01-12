@@ -1,56 +1,81 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 type Props = {
 	rule: any | null
 }
 
-export function RuleTester({ rule }: Props) {
-	const [text, setText] = useState("")
-	const [result, setResult] = useState<string | null>(null)
+function resolvePath(obj: any, path: string) {
+	return path.split(".").reduce((acc, p) => {
+		if (!acc || typeof acc !== "object") return undefined
+		return acc[p]
+	}, obj)
+}
 
-	const runTest = () => {
-		if (!rule?.rule?.regex || !rule?.rule?.key) {
-			setResult("Rule incomplete")
+export function RuleTester({ rule }: Props) {
+	const [input, setInput] = useState("")
+	const [result, setResult] = useState<string[]>([])
+
+	const test = () => {
+		if (!rule || !rule.rule?.key) return
+
+		let data: any
+		try {
+			data = JSON.parse(input)
+		} catch {
+			setResult(["Invalid JSON"])
 			return
 		}
 
-		try {
-			const re = new RegExp(rule.rule.regex)
-			const hit = re.test(text)
-			setResult(hit ? "Matched" : "Not matched")
-		} catch {
-			setResult("Invalid regex")
+		const findings: string[] = []
+
+		const keyValue = resolvePath(data, rule.rule.key)
+		if (keyValue === undefined) {
+			findings.push(`Missing rule key: ${rule.rule.key}`)
+		} else if (rule.rule.regex) {
+			const r = new RegExp(rule.rule.regex)
+			const values = Array.isArray(keyValue) ? keyValue : [keyValue]
+			if (!values.some(v => r.test(String(v)))) {
+				findings.push("Regex did not match")
+			}
 		}
+
+		if (Array.isArray(rule.correlate_on)) {
+			for (const field of rule.correlate_on) {
+				const v = resolvePath(data, field)
+				if (v === undefined || (Array.isArray(v) && v.length === 0)) {
+					findings.push(`Missing correlate field: ${field}`)
+				}
+			}
+		}
+
+		if (findings.length === 0) {
+			findings.push("Rule and correlation fields satisfied")
+		}
+
+		setResult(findings)
 	}
 
-	// Auto-run when rule or input changes
-	useEffect(() => {
-		if (text.trim()) {
-			runTest()
-		}
-	}, [rule, text])
-
 	return (
-		<div className="ruleset-panel">
-			<h2>Test Rule</h2>
+		<div>
+			<h3>Rule Tester</h3>
 
 			<textarea
 				className="ruleset-input"
-				style={{ height: "200px" }}
-				value={text}
-				onChange={e => setText(e.target.value)}
-				placeholder="Paste raw log here..."
+				style={{ height: "140px" }}
+				placeholder="Paste event JSON here"
+				value={input}
+				onChange={e => setInput(e.target.value)}
 			/>
 
-			{result && (
-				<div
-					className={`ruleset-status ${
-						result === "Matched" ? "ok" : "err"
-					}`}
-				>
-					{result}
-				</div>
-			)}
+			<button className="ruleset-btn secondary" onClick={test}>
+				Test Rule
+			</button>
+
+			<div style={{ marginTop: "0.5rem", fontSize: "0.85rem" }}>
+				{result.map((r, i) => (
+					<div key={i}>{r}</div>
+				))}
+			</div>
 		</div>
 	)
 }

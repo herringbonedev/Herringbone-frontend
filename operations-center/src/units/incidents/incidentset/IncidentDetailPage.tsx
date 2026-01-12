@@ -1,5 +1,6 @@
 import { useParams } from "react-router-dom"
 import { useIncidentDetail } from "./useIncidentDetail"
+import { useIncidentEvents } from "./eventsApi"
 import { addIncidentNote, updateIncident } from "./incidentApi"
 import { useState } from "react"
 import "./incidents.css"
@@ -8,12 +9,42 @@ function fmt(ts: string) {
 	return new Date(ts).toLocaleString()
 }
 
+function buildIndicators(events: any[]) {
+	const map = new Map<string, Set<string>>()
+
+	for (const ev of events) {
+		if (!ev.parsed) continue
+
+		for (const [key, values] of Object.entries(ev.parsed)) {
+			if (!Array.isArray(values) || values.length === 0) continue
+			if (!map.has(key)) map.set(key, new Set())
+			for (const v of values) {
+				map.get(key)!.add(v)
+			}
+		}
+	}
+
+	return Array.from(map.entries()).map(([key, values]) => ({
+		key,
+		values: Array.from(values),
+	}))
+}
+
 export default function IncidentDetailPage() {
 	const { incidentId } = useParams()
 	const { incident, loading, error, reload } = useIncidentDetail(incidentId!)
 	const [note, setNote] = useState("")
 	const [submitting, setSubmitting] = useState(false)
 	const [updating, setUpdating] = useState(false)
+
+	const eventIds = incident?.events ?? []
+
+	const {
+		events: relatedEvents,
+		loading: eventsLoading,
+	} = useIncidentEvents(eventIds)
+
+	const indicators = buildIndicators(relatedEvents)
 
 	if (loading) return <div className="page">Loading…</div>
 	if (error) return <div className="page error">{error}</div>
@@ -94,15 +125,46 @@ export default function IncidentDetailPage() {
 
 			<div className="incident-grid">
 				<div className="incident-panel">
+					<div className="section-title">Indicators</div>
+
+					{indicators.length === 0 && (
+						<div className="empty">No indicators extracted</div>
+					)}
+
+					<div className="indicator-table">
+						{indicators.map(ind => (
+							<div key={ind.key} className="indicator-row">
+								<div className="indicator-key">{ind.key}</div>
+								<div className="indicator-values">
+									{ind.values.join(", ")}
+								</div>
+							</div>
+						))}
+					</div>
+				</div>
+
+				<div className="incident-panel">
 					<div className="section-title">Related Events</div>
 
-					{i.events.length === 0 && (
+					{eventsLoading && (
+						<div className="empty">Loading events…</div>
+					)}
+
+					{!eventsLoading && relatedEvents.length === 0 && (
 						<div className="empty">No related events</div>
 					)}
 
 					<div className="mono-list">
-						{i.events.map(eid => (
-							<div key={eid}>{eid}</div>
+						{relatedEvents.map(ev => (
+							<div key={ev._id} className="event-row">
+								<span className="event-id">{ev._id}</span>
+								{ev.state?.severity !== null &&
+									ev.state?.severity !== undefined && (
+										<span className="event-severity">
+											Severity {ev.state.severity}
+										</span>
+									)}
+							</div>
 						))}
 					</div>
 				</div>

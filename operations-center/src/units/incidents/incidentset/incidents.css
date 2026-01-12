@@ -1,5 +1,5 @@
 .incident-page {
-	max-width: 1100px;
+	max-width: 1200px;
 	margin: 0 auto;
 	padding: 1.5rem;
 	display: flex;
@@ -10,8 +10,8 @@
 .incident-panel {
 	background: linear-gradient(
 		180deg,
-		rgba(18, 24, 32, 0.95),
-		rgba(12, 18, 26, 0.95)
+		rgba(18, 24, 32, 0.96),
+		rgba(12, 18, 26, 0.96)
 	);
 	border: 1px solid rgba(255, 255, 255, 0.08);
 	border-radius: 8px;
@@ -20,7 +20,7 @@
 
 .incident-header h2 {
 	margin: 0;
-	font-size: 1.25rem;
+	font-size: 1.3rem;
 	font-weight: 600;
 }
 
@@ -32,23 +32,14 @@
 
 .incident-pill {
 	font-size: 0.7rem;
-	letter-spacing: 0.04em;
+	letter-spacing: 0.05em;
 	text-transform: uppercase;
 	padding: 0.25rem 0.6rem;
 	border-radius: 999px;
 	background: rgba(255, 255, 255, 0.08);
-}
-
-.incident-pill.priority.high {
-	background: rgba(220, 38, 38, 0.25);
-}
-
-.incident-pill.status {
-	background: rgba(59, 130, 246, 0.25);
-}
-
-.incident-pill.owner {
-	background: rgba(16, 185, 129, 0.25);
+	color: inherit;
+	border: none;
+	outline: none;
 }
 
 .incident-grid {
@@ -57,31 +48,17 @@
 	gap: 1rem;
 }
 
-.incident-pill select,
-.incident-pill input {
-	background: transparent;
-	border: none;
-	color: inherit;
-	font-size: 0.7rem;
-	text-transform: uppercase;
-	letter-spacing: 0.05em;
-	outline: none;
-}
-
 .section-title {
-	font-size: 0.85rem;
+	font-size: 0.75rem;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	opacity: 0.7;
 	margin-bottom: 0.75rem;
 }
 
-.mono-list {
-	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+.empty {
+	opacity: 0.5;
 	font-size: 0.8rem;
-	display: flex;
-	flex-direction: column;
-	gap: 0.25rem;
 }
 
 .note-list {
@@ -98,14 +75,13 @@
 .note-meta {
 	font-size: 0.7rem;
 	opacity: 0.65;
-	margin-bottom: 0.15rem;
 	display: flex;
-	gap: 0.5rem;
+	justify-content: space-between;
 }
 
 .note-body {
-	white-space: pre-wrap;
 	font-size: 0.85rem;
+	white-space: pre-wrap;
 }
 
 .note-input {
@@ -135,12 +111,37 @@
 	cursor: pointer;
 }
 
-.note-input button:disabled {
-	opacity: 0.6;
-	cursor: default;
+.indicator-table {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	font-size: 0.8rem;
 }
 
-.empty {
-	opacity: 0.5;
-	font-size: 0.8rem;
+.indicator-row {
+	display: grid;
+	grid-template-columns: 160px 1fr;
+	gap: 0.5rem;
+	padding: 0.25rem 0;
+}
+
+.indicator-key {
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+	opacity: 0.7;
+}
+
+.indicator-values {
+	white-space: pre-wrap;
+}
+
+.event-row {
+	display: flex;
+	justify-content: space-between;
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+	font-size: 0.75rem;
+	opacity: 0.85;
+}
+
+.event-severity {
+	color: rgba(220, 38, 38, 0.85);
 }
