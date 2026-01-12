@@ -18,7 +18,7 @@ export const router = createBrowserRouter([
 			{ path: "cardset", element: <CardSetPage /> },
 			{ path: "ruleset", element: <RuleSetPage /> },
 			{ path: "incidents", element: <IncidentListPage /> },
-			{ path: "incidents/:id", element: <IncidentDetailPage /> },
+			{ path: "incidents/:incidentId", element: <IncidentDetailPage /> },
 		],
 	},
 ])

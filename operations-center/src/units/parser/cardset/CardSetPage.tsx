@@ -39,9 +39,63 @@ export default function CardSetPage() {
 		}
 	}
 
+	const importParsePack = async (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0]
+		if (!file) return
+
+		try {
+			const text = await file.text()
+			const parsed = JSON.parse(text)
+
+			if (Array.isArray(parsed)) {
+				for (const c of parsed) {
+					if (c?.selector) {
+						await saveCard(c)
+					}
+				}
+			}
+
+			e.target.value = ""
+			setCurrentCard(emptyCard)
+			setPreviewCard(emptyCard)
+			setIsEditing(false)
+			setSelectedKey(null)
+		} catch {
+			alert("Invalid parse pack")
+		}
+	}
+
 	return (
-		<div>
-			<div className="cardset-page">
+		<div className="cardset-page">
+			<div className="cardset-panel cardset-left">
+				<div className="cardset-left-header">
+					<h2>Card Builder</h2>
+
+					<div style={{ display: "flex", gap: "0.5rem" }}>
+						<label className="cardset-btn secondary">
+							Import Parse Pack
+							<input
+								type="file"
+								accept="application/json"
+								onChange={importParsePack}
+								style={{ display: "none" }}
+							/>
+						</label>
+
+						<button
+							className="cardset-btn secondary"
+							onClick={() => {
+								setSelectedKey(null)
+								setCurrentCard(emptyCard)
+								setPreviewCard(emptyCard)
+								setIsEditing(false)
+							}}
+						>
+							New
+						</button>
+					</div>
+				</div>
+
 				<CardBuilder
 					card={currentCard}
 					isEdit={isEditing}
@@ -62,21 +116,24 @@ export default function CardSetPage() {
 					onPreview={c => setPreviewCard(c)}
 				/>
 
-				<CardTester card={previewCard} />
+				<div className="cardset-tester-box">
+					<CardTester card={previewCard} />
+				</div>
 			</div>
 
-			<div
-				className="cardset-panel"
-				style={{ margin: "0 1rem 1rem 1rem" }}
-			>
-				<SavedCards
-					cards={cards}
-					loading={loading}
-					error={error}
-					selectedKey={selectedKey}
-					onDelete={card => deleteCard(card)}
-					onSelect={handleSelect}
-				/>
+			<div className="cardset-panel cardset-right">
+				<h2>Saved Cards</h2>
+
+				<div className="cardset-saved-scroll">
+					<SavedCards
+						cards={cards}
+						loading={loading}
+						error={error}
+						selectedKey={selectedKey}
+						onDelete={card => deleteCard(card)}
+						onSelect={handleSelect}
+					/>
+				</div>
 			</div>
 		</div>
 	)

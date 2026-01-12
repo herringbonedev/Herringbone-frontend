@@ -61,11 +61,7 @@ export function CardTester({ card }: Props) {
 						re.lastIndex++
 						continue
 					}
-					if (m.length > 1) {
-						matches.push(m[1])
-					} else {
-						matches.push(m[0])
-					}
+					matches.push(m.length > 1 ? m[1] : m[0])
 				}
 
 				if (matches.length > 0) results[key] = matches
@@ -97,12 +93,12 @@ export function CardTester({ card }: Props) {
 	const matchState = getMatches()
 
 	return (
-		<div className="cardset-panel">
-			<h2>Test Input</h2>
+		<div className="cardset-tester">
+			<h3>Test Input</h3>
 
 			<textarea
 				className="cardset-input"
-				style={{ height: "200px" }}
+				style={{ height: "140px" }}
 				value={input}
 				onChange={e => setInput(e.target.value)}
 				placeholder="Paste event JSON or raw log"
@@ -122,7 +118,7 @@ export function CardTester({ card }: Props) {
 			<textarea
 				readOnly
 				className="cardset-input"
-				style={{ height: "220px" }}
+				style={{ height: "160px" }}
 				value={
 					matchState.ok
 						? JSON.stringify(matchState.results, null, 2)

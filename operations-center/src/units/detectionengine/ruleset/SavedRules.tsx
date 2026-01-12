@@ -5,54 +5,54 @@ type Props = {
 	onDelete: (id: string) => void
 }
 
-export function SavedRules({
-	rules,
-	selected,
-	onSelect,
-	onDelete,
-}: Props) {
+function getId(r: any): string | null {
+	if (!r) return null
+	if (typeof r._id === "string") return r._id
+	if (typeof r._id === "object" && r._id?.$oid) return r._id.$oid
+	return null
+}
+
+export function SavedRules({ rules, selected, onSelect, onDelete }: Props) {
+	const list = Array.isArray(rules) ? rules : []
+
 	return (
-		<div className="ruleset-panel">
-			<h2>Saved Rules</h2>
+		<div className="ruleset-saved">
+			{list.length === 0 && (
+				<div style={{ opacity: 0.6 }}>No rules found.</div>
+			)}
 
-			<div className="ruleset-saved">
-				{rules.map(r => {
-					const id =
-						typeof r._id === "string"
-							? r._id
-							: r._id?.$oid
+			{list.map((r, i) => {
+				if (!r || !r.rule) return null
 
-					return (
-						<div
-							key={id}
-							className={`ruleset-saved-item ${
-								selected?._id === r._id ||
-								selected?._id?.$oid === id
-									? "selected"
-									: ""
-							}`}
-							onClick={() => onSelect(r)}
+				const id = getId(r)
+				if (!id) return null
+
+				const selectedId = getId(selected)
+				const isSelected = selectedId === id
+
+				return (
+					<div
+						key={id || i}
+						className={`ruleset-saved-item ${isSelected ? "selected" : ""}`}
+						onClick={() => onSelect(r)}
+					>
+						<strong>{r.name || id}</strong>
+
+						{r.severity !== undefined && <div>Severity: {r.severity}</div>}
+
+						<button
+							className="ruleset-btn secondary"
+							style={{ marginTop: "0.4rem" }}
+							onClick={e => {
+								e.stopPropagation()
+								onDelete(id)
+							}}
 						>
-							<strong>{r.name || id}</strong>
-							{r.severity !== undefined && (
-								<div>Severity: {r.severity}</div>
-							)}
-
-							<button
-								className="ruleset-btn secondary"
-								style={{ marginTop: "0.4rem" }}
-								onClick={e => {
-									e.stopPropagation()
-									if (id) onDelete(id)
-									else alert("Invalid rule id")
-								}}
-							>
-								Delete
-							</button>
-						</div>
-					)
-				})}
-			</div>
+							Delete
+						</button>
+					</div>
+				)
+			})}
 		</div>
 	)
 }

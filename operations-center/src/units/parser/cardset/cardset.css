@@ -3,14 +3,26 @@
 	display: flex;
 	gap: 1rem;
 	padding: 1rem;
+
+	/* was: height: calc(100vh - 2rem); overflow: hidden; */
+	min-height: calc(100vh - 2rem);
+	align-items: stretch;
 }
 
+/* Panels */
 .cardset-panel {
 	flex: 1;
+	min-width: 0;
 	background: var(--bg-panel);
 	border: 1px solid var(--border);
 	border-radius: 6px;
 	padding: 1rem;
+
+	display: flex;
+	flex-direction: column;
+
+	/* was: overflow: hidden; */
+	overflow: visible;
 }
 
 /* Headings */
@@ -20,7 +32,7 @@
 
 .cardset-panel h3 {
 	margin-top: 0.75rem;
-	font-size: 0.9rem;
+	font-size: 0.95rem;
 }
 
 /* Inputs / textareas */
@@ -29,10 +41,13 @@
 	background: var(--bg-panel-2);
 	color: var(--text);
 	border: 1px solid var(--border);
-	border-radius: 4px;
-	padding: 0.4rem;
+	border-radius: 6px;
+
+	/* less “squished” */
+	padding: 0.55rem;
 	font-family: monospace;
-	font-size: 0.8rem;
+	font-size: 0.9rem;
+	line-height: 1.25;
 }
 
 .cardset-input.inline {
@@ -45,10 +60,10 @@
 	background: var(--accent);
 	border: 1px solid var(--border);
 	color: #fff;
-	border-radius: 4px;
-	padding: 0.5rem 0.75rem;
+	border-radius: 6px;
+	padding: 0.55rem 0.85rem;
 	cursor: pointer;
-	font-size: 0.8rem;
+	font-size: 0.85rem;
 	font-weight: bold;
 }
 
@@ -66,7 +81,7 @@
 .cardset-save {
 	width: 100%;
 	margin-top: 0.75rem;
-	padding: 0.6rem;
+	padding: 0.7rem;
 }
 
 /* Regex / JSONP rows */
@@ -83,8 +98,8 @@
 	align-items: center;
 	gap: 0.4rem;
 	margin: 0.25rem 0 0.5rem 0;
-	font-size: 0.75rem;
-	opacity: 0.85;
+	font-size: 0.8rem;
+	opacity: 0.9;
 }
 
 .cardset-status.ok {
@@ -95,6 +110,35 @@
 	color: var(--red);
 }
 
+/* Left header */
+.cardset-left-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	margin-bottom: 0.75rem;
+}
+
+/* Tester box stays normal flow (no flex tricks that compress inputs) */
+.cardset-tester-box {
+	margin-top: 0.75rem;
+	padding-top: 0.75rem;
+	border-top: 1px solid var(--border);
+}
+
+/* Right side: only the Saved Cards list scrolls */
+.cardset-right {
+	/* keeps right panel from growing taller than viewport */
+	max-height: calc(100vh - 2rem);
+}
+
+.cardset-saved-scroll {
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
+	padding-right: 0.25rem;
+}
+
 /* Saved cards */
 .cardset-saved {
 	margin-top: 1rem;
@@ -103,10 +147,10 @@
 .cardset-saved-item {
 	background: var(--bg-panel-2);
 	border: 1px solid var(--border);
-	border-radius: 4px;
-	padding: 0.5rem;
-	margin-top: 0.4rem;
-	font-size: 0.75rem;
+	border-radius: 6px;
+	padding: 0.6rem;
+	margin-top: 0.5rem;
+	font-size: 0.8rem;
 }
 
 .cardset-saved-item.selected {

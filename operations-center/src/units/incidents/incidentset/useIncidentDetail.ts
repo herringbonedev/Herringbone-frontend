@@ -1,72 +1,44 @@
 import { useEffect, useState } from "react"
-import type { Incident } from "./incidentTypes"
+import { fetchIncident } from "./incidentApi"
+import type { IncidentApi, Incident } from "./types"
 
-const API_BASE = "http://127.0.0.1:7011"
+function normalizeIncident(raw: IncidentApi): Incident {
+	return {
+		_id: raw._id.$oid,
+		title: raw.title,
+		description: raw.description,
+		status: raw.status,
+		priority: raw.priority,
+		owner: raw.owner,
+		events: Array.isArray(raw.events) ? raw.events : [],
+		detections: Array.isArray(raw.detections) ? raw.detections : [],
+		notes: Array.isArray(raw.notes) ? raw.notes : [],
+		created_at: raw.created_at?.$date,
+		updated_at: raw.updated_at?.$date,
+	}
+}
 
-export function useIncidentDetail(rawId: string) {
+export function useIncidentDetail(id: string) {
 	const [incident, setIncident] = useState<Incident | null>(null)
-	const [loading, setLoading] = useState(false)
+	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
 
-	// normalize id defensively
-	const id =
-		typeof rawId === "string"
-			? rawId
-			: (rawId as any)?.$oid
-
-	const load = async () => {
-		if (!id) {
-			setError("Invalid incident id")
-			return
-		}
-
-		setLoading(true)
-		setError(null)
-
+	async function load() {
 		try {
-			const res = await fetch(
-				`${API_BASE}/incidents/incidentset/get_incident?id=${encodeURIComponent(
-					id
-				)}`
-			)
-
-			if (!res.ok) {
-				throw new Error(`HTTP ${res.status}`)
-			}
-
-			setIncident(await res.json())
+			setLoading(true)
+			setError(null)
+			const data = await fetchIncident(id)
+			setIncident(normalizeIncident(data))
 		} catch (e: any) {
-			setError(e?.message || "Failed to load incident")
-			setIncident(null)
+			setError(e?.message ?? "error")
 		} finally {
 			setLoading(false)
 		}
-	}
-
-	const update = async (patch: Partial<Incident>) => {
-		if (!id) return
-
-		await fetch(
-			`${API_BASE}/incidents/incidentset/update_incident`,
-			{
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ _id: id, ...patch }),
-			}
-		)
-
-		load()
 	}
 
 	useEffect(() => {
 		load()
 	}, [id])
 
-	return {
-		incident,
-		loading,
-		error,
-		reload: load,
-		update,
-	}
+	return { incident, loading, error, reload: load }
 }
