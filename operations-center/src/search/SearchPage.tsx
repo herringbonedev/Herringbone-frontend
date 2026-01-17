@@ -1,9 +1,9 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import React from "react"
 import { useSearchApi } from "./useSearchApi"
+import { useSearchSchema } from "./useSearchSchema"
+import { FilterBuilder, type FilterRow } from "./FilterBuilder"
 import "./search.css"
-
-const COLLECTIONS_WITH_SEVERITY = new Set(["detections", "event_state"])
-const COLLECTIONS_WITH_PRIORITY = new Set(["incidents"])
 
 function preview(val: any, max = 120) {
   if (val == null) return ""
@@ -16,37 +16,24 @@ function shortId(id: string) {
 }
 
 function extractMessage(row: any): string {
-  return (
-    row.raw ||
-    row.message ||
-    row.description ||
-    row?.parsed?.command ||
-    row?.parsed?.message ||
-    ""
-  )
+  return row.raw || row.message || row.description || row?.parsed?.command || row?.parsed?.message || ""
 }
 
 function buildColumns(rows: any[]) {
   if (!rows.length) return []
-
-  const priority = ["severity", "priority", "event_time", "ingested_at", "created_at", "source"]
-
+  const priority = ["severity", "priority", "event_time", "ingested_at", "created_at"]
   const fields = new Set<string>()
 
   rows.forEach(r => {
     Object.keys(r).forEach(k => {
       const v = r[k]
-      if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
-        fields.add(k)
-      }
+      if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") fields.add(k)
     })
   })
 
   const ordered: string[] = []
-
   for (const p of priority) if (fields.has(p)) ordered.push(p)
   for (const f of fields) if (!ordered.includes(f) && f !== "_id") ordered.push(f)
-
   return ordered.slice(0, 6)
 }
 
@@ -67,22 +54,53 @@ function computeRange(range: string) {
   return { from: from.toISOString(), to: now.toISOString() }
 }
 
-function levelToRange(level: string): [number | null, number | null] {
-  switch (level) {
-    case "low": return [1, 39]
-    case "medium": return [40, 69]
-    case "high": return [70, 89]
-    case "critical": return [90, 100]
-    default: return [null, null]
+function rowToCondition(row: FilterRow) {
+  if (!row.field || !row.kind) return null
+
+  if (row.kind === "range") {
+    const r: any = {}
+    if (row.min != null) r["$gte"] = row.min
+    if (row.max != null) r["$lte"] = row.max
+    if (!Object.keys(r).length) return null
+    return { [row.field]: r }
   }
+
+  if (row.kind === "in") {
+    const v = row.values
+    if (!v) return null
+    return { [row.field]: { "$in": [v] } }
+  }
+
+  return null
+}
+
+function buildFilterQuery(rows: FilterRow[]) {
+  const conds: { cond: any; join: "and" | "or" }[] = []
+
+  rows.forEach((r, idx) => {
+    const c = rowToCondition(r)
+    if (!c) return
+    conds.push({ cond: c, join: idx === 0 ? "and" : (r.join || "and") })
+  })
+
+  if (!conds.length) return {}
+
+  let cur = conds[0].cond
+  for (let i = 1; i < conds.length; i++) {
+    const join = conds[i].join
+    cur = join === "or" ? { "$or": [cur, conds[i].cond] } : { "$and": [cur, conds[i].cond] }
+  }
+
+  return cur
 }
 
 export default function SearchPage() {
   const [collection, setCollection] = useState("events")
-  const [queryText, setQueryText] = useState("{}")
   const [limit, setLimit] = useState(100)
   const [timeRange, setTimeRange] = useState("24h")
-  const [level, setLevel] = useState("any")
+
+  const [filters, setFilters] = useState<FilterRow[]>([])
+  const [queryText, setQueryText] = useState("{}")
 
   const [results, setResults] = useState<any[]>([])
   const [openId, setOpenId] = useState<string | null>(null)
@@ -90,15 +108,27 @@ export default function SearchPage() {
   const [page, setPage] = useState(1)
 
   const { search, loading, error } = useSearchApi()
+  const { fields } = useSearchSchema(collection)
   const columns = buildColumns(results)
 
-  const supportsSeverity = COLLECTIONS_WITH_SEVERITY.has(collection)
-  const supportsPriority = COLLECTIONS_WITH_PRIORITY.has(collection)
+  useEffect(() => {
+    setFilters([])
+    setQueryText("{}")
+    setResults([])
+    setNextAfter(null)
+    setPage(1)
+    setOpenId(null)
+  }, [collection])
+
+  useEffect(() => {
+    const q = buildFilterQuery(filters)
+    setQueryText(JSON.stringify(q, null, 2))
+  }, [filters])
 
   async function runSearch(cursor: string | null, reset: boolean) {
-    let queryObj: Record<string, any>
+    let q: Record<string, any>
     try {
-      queryObj = JSON.parse(queryText || "{}")
+      q = JSON.parse(queryText || "{}")
     } catch (e: any) {
       alert("Invalid JSON query: " + e.message)
       return
@@ -106,30 +136,23 @@ export default function SearchPage() {
 
     const range = computeRange(timeRange)
 
-    let minVal: number | null = null
-    let maxVal: number | null = null
-
-    if (supportsSeverity || supportsPriority) {
-      const r = levelToRange(level)
-      minVal = r[0]
-      maxVal = r[1]
-    }
-
     const resp = await search(
       collection,
-      queryObj,
+      q,
       limit,
       cursor,
       range.from,
       range.to,
-      minVal,
-      maxVal
+      null,
+      null,
+      null,
+      null,
+      null
     )
 
     setResults(resp.results || [])
     setNextAfter(resp.next_after || null)
     setOpenId(null)
-
     if (reset) setPage(1)
   }
 
@@ -144,8 +167,6 @@ export default function SearchPage() {
     setPage(p => p + 1)
     await runSearch(nextAfter, false)
   }
-
-  const levelLabel = supportsPriority ? "Priority" : "Severity"
 
   return (
     <div className="search-page">
@@ -177,19 +198,6 @@ export default function SearchPage() {
             </select>
           </label>
 
-          {(supportsSeverity || supportsPriority) && (
-            <label className="search-label">
-              <span>{levelLabel}</span>
-              <select value={level} onChange={e => setLevel(e.target.value)} className="search-select">
-                <option value="any">Any</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="critical">Critical</option>
-              </select>
-            </label>
-          )}
-
           <label className="search-label">
             <span>Limit</span>
             <input
@@ -204,9 +212,18 @@ export default function SearchPage() {
           </button>
         </div>
 
+        <div style={{ marginTop: 8 }}>
+          <FilterBuilder fields={fields} value={filters} onChange={setFilters} />
+        </div>
+
         <div className="search-query">
           <div className="search-query-label">Query (JSON)</div>
-          <textarea className="search-textarea" value={queryText} onChange={e => setQueryText(e.target.value)} />
+          <textarea
+            className="search-textarea"
+            style={{ minHeight: 180 }}
+            value={queryText}
+            onChange={e => setQueryText(e.target.value)}
+          />
         </div>
 
         {error && <div className="search-error">{error}</div>}
@@ -215,11 +232,8 @@ export default function SearchPage() {
       <div className="search-results">
         <div className="results-header">
           <div className="results-title">Page {page} ({results.length})</div>
-
           <div className="pagination-controls">
-            <button onClick={nextPage} disabled={!nextAfter || loading} className="page-btn">
-              Next →
-            </button>
+            <button onClick={nextPage} disabled={!nextAfter || loading} className="page-btn">Next →</button>
           </div>
         </div>
 
@@ -233,15 +247,14 @@ export default function SearchPage() {
                 <th></th>
               </tr>
             </thead>
-
             <tbody>
               {results.map(row => {
                 const id = String(row._id)
                 const isOpen = openId === id
 
                 return (
-                  <>
-                    <tr key={id}>
+                  <React.Fragment key={id}>
+                    <tr>
                       <td className="mono">{shortId(id)}</td>
                       <td>{preview(extractMessage(row))}</td>
                       {columns.map(c => <td key={c}>{preview(row[c])}</td>)}
@@ -251,7 +264,6 @@ export default function SearchPage() {
                         </button>
                       </td>
                     </tr>
-
                     {isOpen && (
                       <tr>
                         <td colSpan={columns.length + 3}>
@@ -259,17 +271,9 @@ export default function SearchPage() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </React.Fragment>
                 )
               })}
-
-              {results.length === 0 && !loading && (
-                <tr>
-                  <td colSpan={columns.length + 3} className="empty">
-                    No results
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>

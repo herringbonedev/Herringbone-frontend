@@ -12,16 +12,8 @@ export type SearchResponse = {
 async function safeReadJson(res: Response) {
   const text = await res.text()
   const trimmed = text.trim()
-
   if (!trimmed) return null
-
-  try {
-    return JSON.parse(trimmed)
-  } catch {
-    throw new Error(
-      `Backend returned non-JSON (HTTP ${res.status}): ${trimmed.slice(0, 120)}`
-    )
-  }
+  return JSON.parse(trimmed)
 }
 
 export function useSearchApi() {
@@ -35,8 +27,11 @@ export function useSearchApi() {
     after?: string | null,
     fromTs?: string | null,
     toTs?: string | null,
-    severityMin?: number | null,
-    severityMax?: number | null
+    filterField?: string | null,
+    filterKind?: "range" | "in" | null,
+    filterMin?: number | null,
+    filterMax?: number | null,
+    filterIn?: string | null
   ) {
     setLoading(true)
     setError(null)
@@ -51,13 +46,11 @@ export function useSearchApi() {
       if (fromTs) params.set("from_ts", fromTs)
       if (toTs) params.set("to_ts", toTs)
 
-      if (severityMin !== null && severityMin !== undefined) {
-        params.set("severity_min", String(severityMin))
-      }
-
-      if (severityMax !== null && severityMax !== undefined) {
-        params.set("severity_max", String(severityMax))
-      }
+      if (filterField) params.set("filter_field", filterField)
+      if (filterKind) params.set("filter_kind", filterKind)
+      if (filterMin != null) params.set("filter_min", String(filterMin))
+      if (filterMax != null) params.set("filter_max", String(filterMax))
+      if (filterIn) params.set("filter_in", filterIn)
 
       const res = await fetch(
         `${API_BASE}/herringbone/search/${collection}?${params.toString()}`,
@@ -67,17 +60,12 @@ export function useSearchApi() {
       const data = await safeReadJson(res)
 
       if (!res.ok) {
-        const msg =
-          typeof data?.detail === "string"
-            ? data.detail
-            : `HTTP ${res.status}`
-        throw new Error(msg)
+        throw new Error(data?.detail || `HTTP ${res.status}`)
       }
 
       return data as SearchResponse
     } catch (err: any) {
-      const msg = err?.message || "Search failed"
-      setError(msg)
+      setError(err.message || "Search failed")
       throw err
     } finally {
       setLoading(false)
