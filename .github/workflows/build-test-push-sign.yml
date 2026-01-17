@@ -1,0 +1,192 @@
+name: Microservice Build, Test, Push, and Sign
+
+on:
+  workflow_call:
+    inputs:
+      service_name:
+        required: true
+        type: string
+      service_path:
+        required: true
+        type: string
+      dockerfile:
+        required: true
+        type: string
+      kustomization_path:
+        required: true
+        type: string
+      image_repo:
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: write
+  id-token: write
+
+concurrency:
+  group: microservice-build-${{ inputs.service_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test-push:
+    runs-on: ubuntu-latest
+    if: github.actor != 'dependabot[bot]'
+
+    env:
+      SERVICE_NAME: ${{ inputs.service_name }}
+      SERVICE_PATH: ${{ inputs.service_path }}
+      DOCKERFILE: ${{ inputs.dockerfile }}
+      KUSTOMIZE_PATH: ${{ inputs.kustomization_path }}
+      IMAGE_REPO: ${{ inputs.image_repo }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Install yq v4
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+          yq --version
+
+      - name: Log in to Quay
+        uses: docker/login-action@v3
+        with:
+          registry: quay.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Set image tag
+        id: vars
+        run: |
+          SHORT_SHA=${GITHUB_SHA::8}
+          TAG="sha-${SHORT_SHA}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Build image
+        run: |
+          docker build -t $IMAGE_REPO:${{ steps.vars.outputs.tag }} -f $DOCKERFILE $SERVICE_PATH
+
+      - name: Push image
+        run: |
+          docker push $IMAGE_REPO:${{ steps.vars.outputs.tag }}
+
+      - name: Get digest
+        id: digest
+        run: |
+          DIGEST=$(skopeo inspect docker://$IMAGE_REPO:${{ steps.vars.outputs.tag }} | jq -r '.Digest')
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+
+      - uses: sigstore/cosign-installer@v3
+
+      - name: Sign image (keyless)
+        run: |
+          cosign sign --yes $IMAGE_REPO:${{ steps.vars.outputs.tag }}
+
+      # -----------------------------
+      # Update kustomize
+      # -----------------------------
+      - name: Update kustomization.yaml
+        run: |
+          set -euo pipefail
+          export IMAGE="$IMAGE_REPO"
+          export TAG="${{ steps.vars.outputs.tag }}"
+          export DIGEST="${{ steps.digest.outputs.digest }}"
+
+          yq eval -i '
+            (.images[] | select(.name == env(IMAGE))).newTag = env(TAG)
+          ' "$KUSTOMIZE_PATH"
+
+          yq eval -i '
+            (.images[] | select(.name == env(IMAGE))).digest = env(DIGEST)
+          ' "$KUSTOMIZE_PATH"
+
+      # -----------------------------
+      # Update docker compose (digest pinned)
+      # -----------------------------
+      - name: Update docker compose files
+        run: |
+          set -euo pipefail
+          export IMAGE_REPO="$IMAGE_REPO"
+          export DIGEST="${{ steps.digest.outputs.digest }}"
+
+          MATCHED=false
+
+          for file in docker/compose.*.yml; do
+            if grep -q "$IMAGE_REPO" "$file"; then
+              echo "Updating $file"
+
+              yq eval -i '
+                (.services[]
+                  | select(has("image") and (.image | contains(env(IMAGE_REPO))))
+                  .image
+                ) = env(IMAGE_REPO) + "@" + env(DIGEST)
+              ' "$file"
+
+              MATCHED=true
+            fi
+          done
+
+          if [ "$MATCHED" = false ]; then
+            echo "ERROR: No compose files matched $IMAGE_REPO"
+            grep -R "image:" docker/compose.*.yml || true
+            exit 1
+          fi
+
+      # -----------------------------
+      # Update platform manifest (digest pinned)
+      # -----------------------------
+      - name: Update platform release manifest
+        run: |
+          set -euo pipefail
+          export SERVICE="${{ inputs.service_name }}"
+          export IMAGE="$IMAGE_REPO@${{ steps.digest.outputs.digest }}"
+
+          mkdir -p platform
+          if [ ! -f platform/release.yaml ]; then
+            echo "services: {}" > platform/release.yaml
+          fi
+
+          yq eval -i '
+            .services[env(SERVICE)] = env(IMAGE)
+          ' platform/release.yaml
+
+      - name: Detect changes
+        id: bump
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create PR
+        if: steps.bump.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore(${{ inputs.service_name }}): bump image to ${{ steps.digest.outputs.digest }}"
+          title: "chore(${{ inputs.service_name }}): bump ${{ inputs.service_name }} image"
+          body: |
+            Automated update for ${{ inputs.service_name }}
+
+            Image:
+              ${{ inputs.image_repo }}@${{ steps.digest.outputs.digest }}
+
+            Updated:
+              - ${{ inputs.kustomization_path }}
+          branch: auto/update/${{ inputs.service_name }}-digest
+          delete-branch: true
+          signoff: true
+          labels: |
+            automation
+            digest
+
+      - name: Cleanup
+        if: always()
+        run: docker system prune -af || true
