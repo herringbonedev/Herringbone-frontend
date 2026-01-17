@@ -7,6 +7,8 @@ import CardSetPage from "./units/parser/cardset/CardSetPage"
 import RuleSetPage from "./units/detectionengine/ruleset/RuleSetPage"
 import IncidentListPage from "./units/incidents/incidentset/IncidentListPage"
 import IncidentDetailPage from "./units/incidents/incidentset/IncidentDetailPage"
+import SearchPage from "./search/SearchPage"
+
 
 export const router = createBrowserRouter([
 	{
@@ -19,6 +21,7 @@ export const router = createBrowserRouter([
 			{ path: "ruleset", element: <RuleSetPage /> },
 			{ path: "incidents", element: <IncidentListPage /> },
 			{ path: "incidents/:incidentId", element: <IncidentDetailPage /> },
+			{ path: "search", element: <SearchPage /> },
 		],
 	},
 ])
