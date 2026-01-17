@@ -109,23 +109,31 @@ jobs:
           ' "$KUSTOMIZE_PATH"
 
       # -----------------------------
-      # Update docker compose files
+      # Update docker compose files (digest pinned)
       # -----------------------------
       - name: Update docker compose files
         run: |
           set -euo pipefail
 
-          export TAG="${{ steps.vars.outputs.tag }}"
-          export IMAGE="$IMAGE_REPO"
+          export IMAGE_REPO="$IMAGE_REPO"
+          export DIGEST="${{ steps.digest.outputs.digest }}"
 
-          echo "[*] Updating docker compose files for $IMAGE:$TAG"
+          echo "[*] Updating docker compose files for $IMAGE_REPO@$DIGEST"
 
           for file in docker/compose.*.yml; do
-            if grep -q "$IMAGE:" "$file"; then
+            if grep -q "$IMAGE_REPO" "$file"; then
               echo "  - Updating $file"
 
               yq eval -i '
-                (.services[].image | select(. == env(IMAGE) + ":*")) = env(IMAGE) + ":" + env(TAG)
+                (.services[] 
+                  | select(has("image") and 
+                    (
+                      .image == env(IMAGE_REPO) or
+                      (.image | startswith(env(IMAGE_REPO) + ":")) or
+                      (.image | startswith(env(IMAGE_REPO) + "@"))
+                    )
+                  ).image
+                ) = env(IMAGE_REPO) + "@" + env(DIGEST)
               ' "$file"
             fi
           done
@@ -177,6 +185,8 @@ jobs:
 
             Updated:
               - ${{ inputs.kustomization_path }}
+              - docker/compose.*.yml
+              - platform/release.yaml
           branch: auto/update/${{ inputs.service_name }}-digest
           delete-branch: true
           signoff: true
