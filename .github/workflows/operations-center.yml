@@ -5,7 +5,7 @@ on:
     branches: [ main ]
     paths:
       - 'operations-center/**'
-      - '.github/workflows/operations-centerml'
+      - '.github/workflows/operations-center.yml'
 
 permissions:
   contents: write
