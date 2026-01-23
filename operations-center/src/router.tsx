@@ -9,19 +9,29 @@ import IncidentListPage from "./units/incidents/incidentset/IncidentListPage"
 import IncidentDetailPage from "./units/incidents/incidentset/IncidentDetailPage"
 import SearchPage from "./search/SearchPage"
 
+import LoginPage from "./auth/LoginPage"
+import RequireAuth from "./auth/RequireAuth"
 
 export const router = createBrowserRouter([
-	{
-		path: "/",
-		element: <App />,
-		children: [
-			{ index: true, element: <Dashboard /> },
-			{ path: "logingestion", element: <EventsPage /> },
-			{ path: "cardset", element: <CardSetPage /> },
-			{ path: "ruleset", element: <RuleSetPage /> },
-			{ path: "incidents", element: <IncidentListPage /> },
-			{ path: "incidents/:incidentId", element: <IncidentDetailPage /> },
-			{ path: "search", element: <SearchPage /> },
-		],
-	},
+  {
+    path: "/login",
+    element: <LoginPage />,
+  },
+  {
+    path: "/",
+    element: (
+      <RequireAuth>
+        <App />
+      </RequireAuth>
+    ),
+    children: [
+      { index: true, element: <Dashboard /> },
+      { path: "logingestion", element: <EventsPage /> },
+      { path: "cardset", element: <CardSetPage /> },
+      { path: "ruleset", element: <RuleSetPage /> },
+      { path: "incidents", element: <IncidentListPage /> },
+      { path: "incidents/:incidentId", element: <IncidentDetailPage /> },
+      { path: "search", element: <SearchPage /> },
+    ],
+  },
 ])

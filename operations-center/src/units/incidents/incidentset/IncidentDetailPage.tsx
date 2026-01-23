@@ -2,7 +2,7 @@ import { useParams } from "react-router-dom"
 import { useIncidentDetail } from "./useIncidentDetail"
 import { useIncidentEvents } from "./eventsApi"
 import { addIncidentNote, updateIncident } from "./incidentApi"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import "./incidents.css"
 
 function fmt(ts: string) {
@@ -37,6 +37,9 @@ export default function IncidentDetailPage() {
 	const [submitting, setSubmitting] = useState(false)
 	const [updating, setUpdating] = useState(false)
 
+	// Local editable owner field
+	const [owner, setOwner] = useState("")
+
 	const eventIds = incident?.events ?? []
 
 	const {
@@ -45,6 +48,13 @@ export default function IncidentDetailPage() {
 	} = useIncidentEvents(eventIds)
 
 	const indicators = buildIndicators(relatedEvents)
+
+	// Keep owner in sync with backend value
+	useEffect(() => {
+		if (incident) {
+			setOwner(incident.owner ?? "")
+		}
+	}, [incident?.owner])
 
 	if (loading) return <div className="page">Loading…</div>
 	if (error) return <div className="page error">{error}</div>
@@ -106,17 +116,13 @@ export default function IncidentDetailPage() {
 					<input
 						className="incident-pill owner"
 						placeholder="Assign to…"
-						value={i.owner ?? ""}
+						value={owner}
 						disabled={updating}
-						onBlur={e =>
-							updateField("owner", e.target.value || null)
-						}
+						onChange={e => setOwner(e.target.value)}
+						onBlur={() => updateField("owner", owner || null)}
 						onKeyDown={e => {
 							if (e.key === "Enter") {
-								updateField(
-									"owner",
-									(e.target as HTMLInputElement).value || null
-								)
+								updateField("owner", owner || null)
 							}
 						}}
 					/>

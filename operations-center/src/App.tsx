@@ -1,33 +1,102 @@
-import { Link, Outlet } from "react-router-dom"
+import { Link, Outlet, useNavigate } from "react-router-dom"
+import { useEffect, useState } from "react"
+
+type UserInfo = {
+  id: string
+  email: string
+  role: string
+}
+
+function getUserFromToken(): UserInfo | null {
+  const token = localStorage.getItem("hb_token")
+  if (!token) return null
+
+  try {
+    const [, payload] = token.split(".")
+    const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"))
+    const data = JSON.parse(json)
+
+    return {
+      id: data.sub,
+      email: data.email,
+      role: data.role,
+    }
+  } catch {
+    return null
+  }
+}
 
 function App() {
-	return (
-		<div>
-			{/* Top menu bar */}
-			<div
-				style={{
-					display: "flex",
-					gap: "1rem",
-					padding: "0.75rem 1rem",
-					borderBottom: "1px solid var(--border)",
-					background: "var(--bg-panel)",
-				}}
-			>
-				<strong>Herringbone</strong>
-				<Link to="/">Home</Link>
-				<Link to="/logingestion">Log Ingestion</Link>
-				<Link to="/cardset">CardSet</Link>
-				<Link to="/ruleset">RuleSet</Link>
-				<Link to="/incidents">Incidents</Link>
-				<Link to="/search">Search</Link>
-			</div>
+  const navigate = useNavigate()
+  const [user, setUser] = useState<UserInfo | null>(null)
 
-			{/* Page content */}
-			<div style={{ padding: "1rem" }}>
-				<Outlet />
-			</div>
-		</div>
-	)
+  useEffect(() => {
+    setUser(getUserFromToken())
+  }, [])
+
+  function logout() {
+    localStorage.removeItem("hb_token")
+    setUser(null)
+    navigate("/login", { replace: true })
+  }
+
+  return (
+    <div>
+      <div
+        style={{
+          display: "flex",
+          gap: "1rem",
+          padding: "0.75rem 1rem",
+          borderBottom: "1px solid var(--border)",
+          background: "var(--bg-panel)",
+          alignItems: "center",
+        }}
+      >
+        <strong>Herringbone</strong>
+
+        <Link to="/">Home</Link>
+        <Link to="/logingestion">Log Ingestion</Link>
+        <Link to="/cardset">CardSet</Link>
+        <Link to="/ruleset">RuleSet</Link>
+        <Link to="/incidents">Incidents</Link>
+        <Link to="/search">Search</Link>
+
+        <div
+          style={{
+            marginLeft: "auto",
+            display: "flex",
+            gap: "0.75rem",
+            alignItems: "center",
+          }}
+        >
+          {user && (
+            <>
+              <span>{user.email}</span>
+              <span style={{ opacity: 0.7 }}>({user.role})</span>
+
+              <button
+                onClick={logout}
+                style={{
+                  padding: "4px 8px",
+                  borderRadius: 4,
+                  border: "1px solid var(--border)",
+                  background: "transparent",
+                  color: "inherit",
+                  cursor: "pointer",
+                }}
+              >
+                Logout
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div style={{ padding: "1rem" }}>
+        <Outlet />
+      </div>
+    </div>
+  )
 }
 
 export default App
