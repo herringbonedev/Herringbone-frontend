@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom"
 import type { ReactNode } from "react"
 
-const AUTH_ENABLED = import.meta.env.AUTH_ENABLED === "true"
+const AUTH_ENABLED = import.meta.env.VITE_AUTH_ENABLED === "true"
 
 type Props = {
   children: ReactNode
