@@ -4,8 +4,9 @@ import { useEffect, useState } from "react"
 type UserInfo = {
   id: string
   email: string
-  role: string
 }
+
+const authEnabled = import.meta.env.VITE_AUTH_ENABLED === "true"
 
 function getUserFromToken(): UserInfo | null {
   const token = localStorage.getItem("hb_token")
@@ -19,7 +20,6 @@ function getUserFromToken(): UserInfo | null {
     return {
       id: data.sub,
       email: data.email,
-      role: data.role,
     }
   } catch {
     return null
@@ -60,6 +60,7 @@ function App() {
         <Link to="/ruleset">RuleSet</Link>
         <Link to="/incidents">Incidents</Link>
         <Link to="/search">Search</Link>
+        {authEnabled && user && <Link to="/teams">Teams</Link>}
 
         <div
           style={{
@@ -69,10 +70,10 @@ function App() {
             alignItems: "center",
           }}
         >
+          {authEnabled && user && <Link to="/profile">{user.email}</Link>}
+
           {user && (
             <>
-              <span>{user.email}</span>
-              <span style={{ opacity: 0.7 }}>({user.role})</span>
 
               <button
                 onClick={logout}

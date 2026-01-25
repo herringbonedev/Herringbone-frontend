@@ -8,9 +8,12 @@ import RuleSetPage from "./units/detectionengine/ruleset/RuleSetPage"
 import IncidentListPage from "./units/incidents/incidentset/IncidentListPage"
 import IncidentDetailPage from "./units/incidents/incidentset/IncidentDetailPage"
 import SearchPage from "./search/SearchPage"
-
 import LoginPage from "./auth/LoginPage"
 import RequireAuth from "./auth/RequireAuth"
+import UserProfilePage from "./auth/UserProfilePage"
+import TeamsPage from "./auth/TeamsPage"
+
+const authEnabled = import.meta.env.VITE_AUTH_ENABLED === "true"
 
 export const router = createBrowserRouter([
   {
@@ -32,6 +35,13 @@ export const router = createBrowserRouter([
       { path: "incidents", element: <IncidentListPage /> },
       { path: "incidents/:incidentId", element: <IncidentDetailPage /> },
       { path: "search", element: <SearchPage /> },
+
+      ...(authEnabled
+        ? [
+            { path: "profile", element: <UserProfilePage /> },
+            { path: "teams", element: <TeamsPage /> },
+          ]
+        : []),
     ],
   },
 ])
