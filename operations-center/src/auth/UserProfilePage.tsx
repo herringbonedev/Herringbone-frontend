@@ -1,19 +1,8 @@
 import { useState } from "react"
 import { getUserFromToken } from "./jwt"
 
-const AUTH_ENABLED = import.meta.env.VITE_AUTH_ENABLED === "true"
-
 export default function UserProfilePage() {
   const [showToken, setShowToken] = useState(false)
-
-  if (!AUTH_ENABLED) {
-    return (
-      <div style={{ padding: 24 }}>
-        <h2>User Profile</h2>
-        <p style={{ color: "#888" }}>Authentication is disabled.</p>
-      </div>
-    )
-  }
 
   const user = getUserFromToken()
   const token = localStorage.getItem("hb_token")

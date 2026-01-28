@@ -6,8 +6,6 @@ type UserInfo = {
   email: string
 }
 
-const authEnabled = import.meta.env.VITE_AUTH_ENABLED === "true"
-
 function getUserFromToken(): UserInfo | null {
   const token = localStorage.getItem("hb_token")
   if (!token) return null
@@ -60,7 +58,8 @@ function App() {
         <Link to="/ruleset">RuleSet</Link>
         <Link to="/incidents">Incidents</Link>
         <Link to="/search">Search</Link>
-        {authEnabled && user && <Link to="/teams">Teams</Link>}
+        <Link to="/teams">Teams</Link>
+        <Link to="/services">Services</Link>
 
         <div
           style={{
@@ -70,7 +69,7 @@ function App() {
             alignItems: "center",
           }}
         >
-          {authEnabled && user && <Link to="/profile">{user.email}</Link>}
+          {user && <Link to="/profile">{user.email}</Link>}
 
           {user && (
             <>

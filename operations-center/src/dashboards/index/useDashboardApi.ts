@@ -35,7 +35,7 @@ export type RecentIncident = {
 }
 
 export type IncidentThroughputPoint = {
-	ts: string
+	ts: number   // unix ms timestamp
 	open: number
 	resolved: number
 }
@@ -66,7 +66,15 @@ export function useDashboardApi() {
 			setEvents(e)
 			setDetections(d)
 			setIncidents(i)
-			setThroughput(t)
+
+			// Normalize timestamps → unix ms
+			const normalizedThroughput: IncidentThroughputPoint[] = (t || []).map((p: any) => ({
+				ts: typeof p.ts === "string" ? Date.parse(p.ts) : Number(p.ts),
+				open: Number(p.open) || 0,
+				resolved: Number(p.resolved) || 0,
+			}))
+
+			setThroughput(normalizedThroughput)
 		} catch (err: any) {
 			setError(err?.message || "Failed to load dashboard")
 		} finally {

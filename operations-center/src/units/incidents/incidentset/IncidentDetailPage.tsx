@@ -14,6 +14,18 @@ function fmt(ts: string) {
   return new Date(ts).toLocaleString()
 }
 
+function getCurrentUserEmail(): string {
+  const token = localStorage.getItem("hb_token")
+  if (!token) return "unknown"
+
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]))
+    return payload.email || payload.sub || "unknown"
+  } catch {
+    return "unknown"
+  }
+}
+
 function buildIndicators(events: any[]) {
   const map = new Map<string, Set<string>>()
 
@@ -104,7 +116,8 @@ export default function IncidentDetailPage() {
     if (!note.trim()) return
     setSubmitting(true)
     try {
-      await addIncidentNote(i._id, "analyst", note.trim())
+      const author = getCurrentUserEmail()
+	  await addIncidentNote(i._id, author, note.trim())
       setNote("")
       await reload()
     } finally {

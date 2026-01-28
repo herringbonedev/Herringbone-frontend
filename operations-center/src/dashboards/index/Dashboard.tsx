@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import { useDashboardApi } from "./useDashboardApi"
 import { IncidentThroughput } from "./IncidentThroughput"
+import { useNavigate } from "react-router-dom"
 
 function Panel(props: { title: string; children: ReactNode }) {
 	return (
@@ -22,6 +23,8 @@ export default function Dashboard() {
 		error,
 		reload,
 	} = useDashboardApi()
+
+	const navigate = useNavigate()
 
 	return (
 		<div style={{ padding: "1rem" }}>
@@ -60,10 +63,6 @@ export default function Dashboard() {
 				<Panel title="High Severity">
 					<strong className="sev-high">{summary?.high_severity ?? "—"}</strong>
 				</Panel>
-
-				<Panel title="Failed">
-					<strong className="sev-med">{summary?.failed ?? "—"}</strong>
-				</Panel>
 			</div>
 
 			{/* TRUTH GRAPH */}
@@ -98,7 +97,9 @@ export default function Dashboard() {
 								</tr>
 							))}
 							{!loading && events.length === 0 && (
-								<tr><td colSpan={4}>No events</td></tr>
+								<tr>
+									<td colSpan={4}>No events</td>
+								</tr>
 							)}
 						</tbody>
 					</table>
@@ -120,7 +121,9 @@ export default function Dashboard() {
 								</tr>
 							))}
 							{!loading && detections.length === 0 && (
-								<tr><td colSpan={2}>No detections</td></tr>
+								<tr>
+									<td colSpan={2}>No detections</td>
+								</tr>
 							)}
 						</tbody>
 					</table>
@@ -139,16 +142,39 @@ export default function Dashboard() {
 						</thead>
 						<tbody>
 							{incidents.map(i => (
-								<tr key={i.incident_id}>
+								<tr
+									key={i.incident_id}
+									tabIndex={0}
+									onClick={() => navigate(`/incidents/${i.incident_id}`)}
+									onKeyDown={e => {
+										if (e.key === "Enter") {
+											navigate(`/incidents/${i.incident_id}`)
+										}
+									}}
+									style={{
+										cursor: "pointer",
+										transition: "background 0.15s ease",
+									}}
+									onMouseEnter={e =>
+										(e.currentTarget.style.background = "rgba(255,255,255,0.05)")
+									}
+									onMouseLeave={e =>
+										(e.currentTarget.style.background = "transparent")
+									}
+								>
 									<td>{i.created_at ? new Date(i.created_at).toLocaleString() : "—"}</td>
 									<td>{i.title}</td>
 									<td>{i.status}</td>
-									<td className={i.priority === "high" ? "sev-high" : ""}>{i.priority}</td>
+									<td className={i.priority === "high" ? "sev-high" : ""}>
+										{i.priority}
+									</td>
 									<td>{i.owner ?? "unassigned"}</td>
 								</tr>
 							))}
 							{!loading && incidents.length === 0 && (
-								<tr><td colSpan={5}>No incidents</td></tr>
+								<tr>
+									<td colSpan={5}>No incidents</td>
+								</tr>
 							)}
 						</tbody>
 					</table>
