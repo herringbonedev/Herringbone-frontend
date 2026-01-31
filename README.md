@@ -4,8 +4,6 @@ This repository contains the **Herringbone Operations Center frontend**, a web-b
 
 The frontend is implemented as a modern **React + TypeScript** application, built with **Vite**, and designed to run both locally (for development) and in Kubernetes (for deployment alongside the backend services).
 
----
-
 ## Repository Structure
 
 ```text
@@ -22,8 +20,6 @@ Herringbone-frontend/
 └── LICENSE
 ```
 
----
-
 ## Operations Center
 
 The **Operations Center** is the primary UI for interacting with Herringbone.
@@ -37,8 +33,6 @@ Key capabilities include:
 
 The frontend communicates with backend Herringbone APIs and expects authentication tokens issued by the Herringbone auth service.
 
----
-
 ## Prerequisites
 
 For local development you will need:
@@ -46,8 +40,6 @@ For local development you will need:
 - Node.js 18+
 - npm (or compatible package manager)
 - Docker (optional, for containerized runs)
-
----
 
 ## Local Development
 
@@ -70,8 +62,6 @@ By default, Vite will start a local development server and hot-reload changes.
 
 Backend API endpoints are configured via environment variables and/or Vite configuration.
 
----
-
 ## Building the Frontend
 
 To produce a production build:
@@ -81,8 +71,6 @@ npm run build
 ```
 
 This outputs static assets suitable for serving behind NGINX or another web server.
-
----
 
 ## Docker
 
@@ -96,8 +84,6 @@ docker build -t herringbone-operations-center .
 ```
 
 A `docker-compose.yml` is also included for local container testing.
-
----
 
 ## Kubernetes Deployment
 
@@ -114,8 +100,6 @@ These include:
 
 They are intended to be used as part of a larger Herringbone deployment (for example via GitOps or Argo CD).
 
----
-
 ## CI / CD
 
 GitHub Actions workflows are included to:
@@ -126,8 +110,6 @@ GitHub Actions workflows are included to:
 - Sign images
 
 These workflows are designed to integrate with the broader Herringbone release pipeline.
-
----
 
 ## Authentication Model
 
@@ -141,21 +123,3 @@ Auth-related components live under:
 ```text
 operations-center/src/auth/
 ```
-
----
-
-## Relationship to the Backend
-
-This repository contains **only frontend code**.
-
-It is designed to work alongside:
-- The main Herringbone backend repository
-- The `hbctl` control-plane CLI (for local orchestration)
-
-The frontend does not start or manage backend services directly.
-
----
-
-## License
-
-See the `LICENSE` file for licensing information.
