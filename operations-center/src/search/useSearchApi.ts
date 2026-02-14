@@ -16,6 +16,14 @@ async function safeReadJson(res: Response) {
   return JSON.parse(trimmed)
 }
 
+function authHeaders(extra?: Record<string, string>) {
+  const token = localStorage.getItem("hb_token")
+  return {
+    Authorization: `Bearer ${token}`,
+    ...(extra || {}),
+  }
+}
+
 export function useSearchApi() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -54,12 +62,19 @@ export function useSearchApi() {
 
       const res = await fetch(
         `${API_BASE}/herringbone/search/${collection}?${params.toString()}`,
-        { headers: { Accept: "application/json" } }
+        {
+          headers: authHeaders({
+            Accept: "application/json",
+          }),
+        }
       )
 
       const data = await safeReadJson(res)
 
       if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error("Unauthorized – please log in again")
+        }
         throw new Error(data?.detail || `HTTP ${res.status}`)
       }
 

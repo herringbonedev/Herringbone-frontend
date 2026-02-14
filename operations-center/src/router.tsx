@@ -12,8 +12,7 @@ import LoginPage from "./auth/LoginPage"
 import RequireAuth from "./auth/RequireAuth"
 import UserProfilePage from "./auth/UserProfilePage"
 import TeamsPage from "./auth/TeamsPage"
-
-const authEnabled = import.meta.env.VITE_AUTH_ENABLED === "true"
+import ServiceAccountsPage from "./auth/ServiceAccountsPage"
 
 export const router = createBrowserRouter([
   {
@@ -35,13 +34,9 @@ export const router = createBrowserRouter([
       { path: "incidents", element: <IncidentListPage /> },
       { path: "incidents/:incidentId", element: <IncidentDetailPage /> },
       { path: "search", element: <SearchPage /> },
-
-      ...(authEnabled
-        ? [
-            { path: "profile", element: <UserProfilePage /> },
-            { path: "teams", element: <TeamsPage /> },
-          ]
-        : []),
+      { path: "profile", element: <UserProfilePage /> },
+      { path: "teams", element: <TeamsPage /> },
+      { path: "services", element: <ServiceAccountsPage /> },
     ],
   },
 ])

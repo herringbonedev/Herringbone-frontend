@@ -9,6 +9,14 @@ export type SchemaField = {
 
 const API_BASE = "http://127.0.0.1:7014"
 
+function authHeaders(extra?: Record<string, string>) {
+  const token = localStorage.getItem("hb_token")
+  return {
+    Authorization: `Bearer ${token}`,
+    ...(extra || {}),
+  }
+}
+
 export function useSearchSchema(collection: string) {
   const [fields, setFields] = useState<SchemaField[]>([])
   const [loading, setLoading] = useState(false)
@@ -24,13 +32,22 @@ export function useSearchSchema(collection: string) {
       try {
         const res = await fetch(
           `${API_BASE}/herringbone/search/${collection}/schema`,
-          { headers: { Accept: "application/json" } }
+          {
+            headers: authHeaders({
+              Accept: "application/json",
+            }),
+          }
         )
 
         const text = await res.text()
         const data = text.trim() ? JSON.parse(text) : null
 
-        if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`)
+        if (!res.ok) {
+          if (res.status === 401) {
+            throw new Error("Unauthorized – please log in again")
+          }
+          throw new Error(data?.detail || `HTTP ${res.status}`)
+        }
 
         if (!cancelled) setFields(data.fields || [])
       } catch (e: any) {
@@ -41,7 +58,9 @@ export function useSearchSchema(collection: string) {
     }
 
     load()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [collection])
 
   return { fields, loading, error }

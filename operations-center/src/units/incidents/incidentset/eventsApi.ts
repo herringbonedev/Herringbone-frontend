@@ -2,6 +2,16 @@ import { useEffect, useState } from "react"
 
 const API_BASE = "http://127.0.0.1:7010"
 
+function getAuthHeaders() {
+	const token = localStorage.getItem("hb_token")
+	if (!token) throw new Error("Not authenticated")
+
+	return {
+		"Content-Type": "application/json",
+		Authorization: `Bearer ${token}`,
+	}
+}
+
 export type IncidentEvent = {
 	_id: string
 	raw: string
@@ -13,7 +23,9 @@ export type IncidentEvent = {
 }
 
 async function fetchEvent(id: string): Promise<IncidentEvent | null> {
-	const res = await fetch(`${API_BASE}/herringbone/logs/events/${id}`)
+	const res = await fetch(`${API_BASE}/herringbone/logs/events/${id}`,{
+		headers: getAuthHeaders(),
+	})
 	if (!res.ok) return null
 	return res.json()
 }
