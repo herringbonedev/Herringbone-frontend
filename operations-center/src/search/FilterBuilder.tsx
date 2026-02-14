@@ -1,3 +1,4 @@
+
 import type { SchemaField } from "./useSearchSchema"
 
 export type FilterRow = {
@@ -39,7 +40,8 @@ export function FilterBuilder({ fields, value, onChange }: Props) {
         const field = fields.find(f => f.path === row.field)
 
         const isNumber = field?.types.includes("number")
-        const isEnum = field?.types.includes("string") && field.enum?.length
+        const isEnum =
+          field?.types.includes("string") && Array.isArray(field.enum)
 
         const canShowValue = !!row.field && (isNumber || isEnum)
 
@@ -147,10 +149,14 @@ export function FilterBuilder({ fields, value, onChange }: Props) {
               </select>
             )}
 
-            <button className="link-button" onClick={addRow}>+</button>
+            <button className="link-button" onClick={addRow}>
+              +
+            </button>
 
             {rows.length > 1 ? (
-              <button className="link-button" onClick={() => removeRow(i)}>−</button>
+              <button className="link-button" onClick={() => removeRow(i)}>
+                −
+              </button>
             ) : (
               <span />
             )}
