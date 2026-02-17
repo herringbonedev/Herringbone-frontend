@@ -329,7 +329,7 @@ export default function ServiceAccountsPage() {
       await loadServices()
 
       // Refresh manageService from updated list (so generate-token uses updated scopes)
-      const updated = services.find(s => s.service_name === manageService.service_name)
+      // const updated = services.find(s => s.service_name === manageService.service_name)
       // services state may be stale until loadServices resolves; do a lightweight refetch
       const resp = await fetch(`${AUTH_API_BASE}/herringbone/auth/services`, {
         headers: authHeaders(token),
