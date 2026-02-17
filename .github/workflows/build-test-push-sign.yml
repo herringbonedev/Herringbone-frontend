@@ -70,7 +70,10 @@ jobs:
 
       - name: Build image
         run: |
-          docker build -t $IMAGE_REPO:${{ steps.vars.outputs.tag }} -f $DOCKERFILE $SERVICE_PATH
+          docker build \
+            -t $IMAGE_REPO:${{ steps.vars.outputs.tag }} \
+            -f $DOCKERFILE \
+            $SERVICE_PATH
 
       - name: Push image
         run: |
@@ -88,21 +91,66 @@ jobs:
         run: |
           cosign sign --yes $IMAGE_REPO:${{ steps.vars.outputs.tag }}
 
+      - name: Update kustomization.yaml
+        run: |
+          set -euo pipefail
+
+          export IMAGE="$IMAGE_REPO"
+          export TAG="${{ steps.vars.outputs.tag }}"
+          export DIGEST="${{ steps.digest.outputs.digest }}"
+
+          yq eval -i '
+            (.images[] | select(.name == env(IMAGE))).newTag = env(TAG)
+          ' "$KUSTOMIZE_PATH"
+
+          yq eval -i '
+            (.images[] | select(.name == env(IMAGE))).digest = env(DIGEST)
+          ' "$KUSTOMIZE_PATH"
+
+      - name: Update platform release manifest
+        run: |
+          set -euo pipefail
+
+          export SERVICE="${{ inputs.service_name }}"
+          export IMAGE_REPO="$IMAGE_REPO"
+          export TAG="${{ steps.vars.outputs.tag }}"
+          export DIGEST="${{ steps.digest.outputs.digest }}"
+          export FULL_IMAGE="${IMAGE_REPO}:${TAG}@${DIGEST}"
+
+          mkdir -p platform
+          if [ ! -f platform/release.yaml ]; then
+            echo "services: {}" > platform/release.yaml
+          fi
+
+          yq eval -i '
+            .services[env(SERVICE)] = env(FULL_IMAGE)
+          ' platform/release.yaml
+
+      - name: Detect changes
+        id: bump
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Create PR
         if: steps.bump.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "chore(${{ inputs.service_name }}): bump image to ${{ steps.digest.outputs.digest }}"
+          commit-message: "chore(${{ inputs.service_name }}): bump image"
           title: "chore(${{ inputs.service_name }}): bump ${{ inputs.service_name }} image"
           body: |
             Automated update for ${{ inputs.service_name }}
 
             Image:
-              ${{ inputs.image_repo }}@${{ steps.digest.outputs.digest }}
+              ${{ inputs.image_repo }}:${{ steps.vars.outputs.tag }}@${{ steps.digest.outputs.digest }}
 
             Updated:
               - ${{ inputs.kustomization_path }}
+              - platform/release.yaml
           branch: auto/update/${{ inputs.service_name }}-digest
           delete-branch: true
           signoff: true
