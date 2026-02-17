@@ -1,125 +1,168 @@
 # Herringbone Frontend
 
-This repository contains the **Herringbone Operations Center frontend**, a web-based UI for operating and observing the Herringbone platform.
+This repository contains the Herringbone Operations Center UI.
 
-The frontend is implemented as a modern **React + TypeScript** application, built with **Vite**, and designed to run both locally (for development) and in Kubernetes (for deployment alongside the backend services).
+It is a React + TypeScript application built with Vite. It runs locally
+for development and is deployed as static assets behind NGINX in
+Kubernetes.
+
+The UI talks to Herringbone backend services over HTTP and assumes a
+working auth service issuing JWTs.
+
+## What This Repo Is
+
+This repo is the operational UI for:
+
+-   Service account management
+-   Authentication flows
+-   Search
+-   Incidents
+-   Rule management
+-   Parser card management
+-   Dashboards
+-   Log inspection
+
+Everything here exists to operate Herringbone.
+
+## High-Level Architecture
+
+Browser │ │ JWT ▼ Operations Center (React + Vite build) │ ├── /auth ├──
+/search ├── /units/\* ├── /dashboards │ ▼ Herringbone API Services ├──
+auth ├── search ├── detectionengine ├── parser ├── incidents └──
+logingestion
+
+The frontend is intentionally thin. Most business logic belongs in
+backend services.
 
 ## Repository Structure
 
-```text
-Herringbone-frontend/
-├── operations-center/        # Main frontend application
-│   ├── src/                  # React / TypeScript source code
-│   ├── docker/               # Docker + NGINX runtime assets
-│   ├── Makefile              # Common build / run targets
-│   ├── package.json          # Frontend dependencies
-│   └── vite.config.ts        # Vite configuration
-├── kustomization/
-│   └── operations-center/    # Kubernetes manifests (deployment + service)
-├── .github/workflows/        # CI workflows (build, test, push, sign)
-└── LICENSE
-```
+operations-center/ │ ├── src/ │ ├── App.tsx │ ├── main.tsx │ ├──
+router.tsx │ │ │ ├── auth/ │ │ ├── LoginPage.tsx │ │ ├──
+ServiceAccountsPage.tsx │ │ ├── RequireAuth.tsx │ │ ├── useAuth.ts │ │
+└── **test**/ │ │ │ ├── search/ │ ├── dashboards/ │ └── units/ │ ├──
+detectionengine/ │ ├── incidents/ │ ├── logingestion/ │ └── parser/ │
+├── docker/ │ ├── Dockerfile │ ├── docker-compose.yml │ └── nginx.conf │
+├── vitest.config.ts ├── vite.config.ts └── Makefile
 
-## Operations Center
+All frontend code lives under operations-center/src.
 
-The **Operations Center** is the primary UI for interacting with Herringbone.
-
-Key capabilities include:
-- Authentication and user context handling
-- Viewing and managing incidents
-- Inspecting parsed and enriched data
-- Interacting with detection and parser outputs
-- Administrative and operational workflows
-
-The frontend communicates with backend Herringbone APIs and expects authentication tokens issued by the Herringbone auth service.
-
-## Prerequisites
-
-For local development you will need:
-
-- Node.js 18+
-- npm (or compatible package manager)
-- Docker (optional, for containerized runs)
+Tests live next to their features under **test**/.
 
 ## Local Development
 
-All frontend development happens in the `operations-center/` directory.
+Requirements:
 
-### Install dependencies
+-   Node 18+
+-   npm
 
-```bash
-cd operations-center
-npm install
-```
+Install:
 
-### Run the dev server
+cd operations-center npm install
 
-```bash
+Run dev server:
+
 npm run dev
-```
 
-By default, Vite will start a local development server and hot-reload changes.
+Build:
 
-Backend API endpoints are configured via environment variables and/or Vite configuration.
-
-## Building the Frontend
-
-To produce a production build:
-
-```bash
 npm run build
-```
 
-This outputs static assets suitable for serving behind NGINX or another web server.
+Preview production build:
+
+npm run preview
+
+## Testing
+
+Vitest + Testing Library are used.
+
+Run tests:
+
+npm run test
+
+Run with coverage:
+
+npm run test -- --coverage
+
+Coverage thresholds are enforced in CI.
+
+If you add a page or hook, you are expected to add tests.
 
 ## Docker
 
-A Dockerfile is provided for running the Operations Center as a container.
+Production image serves static build through NGINX.
 
-Build the image:
+Build:
 
-```bash
-cd operations-center
-docker build -t herringbone-operations-center .
-```
+cd operations-center docker build -t herringbone-operations-center .
 
-A `docker-compose.yml` is also included for local container testing.
+Local container test:
 
-## Kubernetes Deployment
+docker compose up
 
-Kubernetes manifests are provided under:
+NGINX config lives in docker/nginx.conf.
 
-```text
+## Kubernetes
+
+Kubernetes manifests are in:
+
 kustomization/operations-center/
-```
 
-These include:
-- Deployment
-- Service
-- Kustomization file
+The frontend is deployed as:
 
-They are intended to be used as part of a larger Herringbone deployment (for example via GitOps or Argo CD).
+-   Deployment
+-   Service
 
-## CI / CD
+It expects backend services to already exist in-cluster.
 
-GitHub Actions workflows are included to:
+## Authentication
 
-- Build the frontend
-- Run tests
-- Build and push container images
-- Sign images
+Auth is JWT-based.
 
-These workflows are designed to integrate with the broader Herringbone release pipeline.
+Flow:
 
-## Authentication Model
+LoginPage ↓ JWT stored in localStorage ↓ RequireAuth route guard ↓ API
+calls include Authorization: Bearer `<token>`{=html}
 
-The Operations Center relies on:
-- JWT-based authentication
-- Tokens issued by the Herringbone auth service
-- Client-side token storage and enforcement via route guards
+Auth code lives in:
 
-Auth-related components live under:
+src/auth/
 
-```text
-operations-center/src/auth/
-```
+If auth changes in the backend, frontend must match claim structure.
+
+## Adding a New Page
+
+Minimum expectations:
+
+1.  Page component under appropriate domain folder
+2.  Hook for API calls
+3.  Route registration in router.tsx
+4.  Tests under **test**/
+5.  Coverage maintained above threshold
+
+Pattern:
+
+FeaturePage.tsx useFeatureApi.ts **test**/FeaturePage.test.tsx
+
+Keep logic in hooks where possible. Keep components mostly declarative.
+
+## Design Philosophy
+
+-   No heavy state libraries
+-   No unnecessary abstraction
+-   Hooks for API
+-   Explicit state
+-   Deterministic UI
+-   Backend owns real logic
+
+If something becomes hard to test, the design is probably wrong.
+
+## CI
+
+There is a required workflow that:
+
+-   Runs on changes to operations-center
+-   Executes tests
+-   Enforces coverage
+-   Auto-passes for unrelated changes
+
+If coverage drops, the check fails.
