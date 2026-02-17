@@ -1,4 +1,4 @@
-name: Build & Push Operations Center UI
+name: Build, Push & Sign Operations Center UI
 
 on:
   push:
