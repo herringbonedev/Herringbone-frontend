@@ -2,9 +2,7 @@
 
 This repository contains the Herringbone Operations Center UI.
 
-It is a React + TypeScript application built with Vite. It runs locally
-for development and is deployed as static assets behind NGINX in
-Kubernetes.
+It is a React + TypeScript application built with Vite.
 
 The UI talks to Herringbone backend services over HTTP and assumes a
 working auth service issuing JWTs.
