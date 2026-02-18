@@ -5,9 +5,6 @@ on:
     branches:
       - main
     types: [opened, synchronize, reopened]
-  push:
-    branches:
-      - main
 
 permissions:
   contents: read
@@ -24,19 +21,13 @@ jobs:
           fetch-depth: 0
 
       - name: Determine diff range
-        id: diff
         run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            git fetch origin "${{ github.base_ref }}" --depth=1
-            echo "range=origin/${{ github.base_ref }}...HEAD" >> $GITHUB_OUTPUT
-          else
-            echo "range=HEAD~1...HEAD" >> $GITHUB_OUTPUT
-          fi
+          git fetch origin "${{ github.base_ref }}" --depth=1
 
       - name: Detect operations-center changes
         id: detect
         run: |
-          CHANGED_FILES=$(git diff --name-only ${{ steps.diff.outputs.range }} || true)
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD || true)
 
           echo "Changed files:"
           echo "$CHANGED_FILES"
@@ -65,6 +56,6 @@ jobs:
         working-directory: operations-center
         run: npm run test
 
-      - name: Auto-pass (no operations-center changes)
+      - name: Auto-pass
         if: steps.detect.outputs.run_tests == 'false'
-        run: echo "No changes in operations-center. Validation passed."
+        run: echo "No operations-center changes. Validation passed."
