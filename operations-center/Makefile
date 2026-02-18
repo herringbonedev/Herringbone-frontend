@@ -1,25 +1,28 @@
+COMPOSE = docker compose -f docker/docker-compose.yml
+SERVICE = operations-center
+
 .PHONY: up down rebuild logs shell test fmt lint
 
 up:
-	docker compose -f docker/docker-compose.yml up -d
+	$(COMPOSE) up -d
 
 down:
-	docker compose -f docker/docker-compose.yml down -v
+	$(COMPOSE) down -v
 
 rebuild:
-	docker compose -f docker/docker-compose.yml build --no-cache
+	$(COMPOSE) build --no-cache
 
 logs:
-	docker compose -f docker/docker-compose.yml logs -f operations-center
+	$(COMPOSE) logs -f $(SERVICE)
 
 shell:
-	docker compose -f docker/docker-compose.yml exec operations-center sh
+	$(COMPOSE) exec $(SERVICE) sh
 
 test:
-	docker compose -f docker/docker-compose.yml exec operations-center npm test || true
+	$(COMPOSE) exec $(SERVICE) npm run test
 
 fmt:
-	docker compose -f docker/docker-compose.yml exec operations-center npm run fmt || true
+	$(COMPOSE) exec $(SERVICE) npm run fmt
 
 lint:
-	docker compose -f docker/docker-compose.yml exec operations-center npm run lint || true
+	$(COMPOSE) exec $(SERVICE) npm run lint
