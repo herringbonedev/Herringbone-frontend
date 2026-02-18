@@ -2,27 +2,44 @@ name: PR Validation
 
 on:
   pull_request:
+    branches:
+      - main
     types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
 
 jobs:
-  PR Validation:
+  pr-validation:
+    name: PR Validation
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: Determine diff range
+        id: diff
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git fetch origin "${{ github.base_ref }}" --depth=1
+            echo "range=origin/${{ github.base_ref }}...HEAD" >> $GITHUB_OUTPUT
+          else
+            echo "range=HEAD~1...HEAD" >> $GITHUB_OUTPUT
+          fi
+
       - name: Detect operations-center changes
         id: detect
-        shell: bash
         run: |
-          set -e
+          CHANGED_FILES=$(git diff --name-only ${{ steps.diff.outputs.range }} || true)
 
-          git fetch origin "${{ github.base_ref }}" --depth=1
-          DIFF_RANGE="origin/${{ github.base_ref }}...HEAD"
-
-          CHANGED_FILES=$(git diff --name-only $DIFF_RANGE || true)
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
 
           if echo "$CHANGED_FILES" | grep -q "^operations-center/"; then
             echo "run_tests=true" >> $GITHUB_OUTPUT
@@ -43,11 +60,11 @@ jobs:
         working-directory: operations-center
         run: npm ci
 
-      - name: Run tests
+      - name: Run operations-center tests
         if: steps.detect.outputs.run_tests == 'true'
         working-directory: operations-center
         run: npm run test
 
-      - name: Skip notice
+      - name: Auto-pass (no operations-center changes)
         if: steps.detect.outputs.run_tests == 'false'
-        run: echo "No operations-center changes. Skipping tests."
+        run: echo "No changes in operations-center. Validation passed."
