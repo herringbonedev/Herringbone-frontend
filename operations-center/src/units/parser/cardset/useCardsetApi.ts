@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import type { Card } from "./types"
 
-const API_BASE = "http://127.0.0.1:7005"
+const API_BASE = `${(import.meta.env.VITE_HERRINGBONE_API_BASE ?? `${window.location.protocol}//${window.location.hostname}`)}:7005`
 
 export function useCardsetApi() {
 	const [cards, setCards] = useState<Card[]>([])

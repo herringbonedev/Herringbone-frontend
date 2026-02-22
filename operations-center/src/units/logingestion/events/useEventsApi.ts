@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import type { EventLog } from "./types"
 
-const API_BASE = "http://127.0.0.1:7010"
+const API_BASE = `${(import.meta.env.VITE_HERRINGBONE_API_BASE ?? `${window.location.protocol}//${window.location.hostname}`)}:7010`
 
 function safeJsonParse(text: string) {
   let t = (text ?? "").trim()

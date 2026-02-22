@@ -6,7 +6,7 @@ type TeamUser = {
   role: string
 }
 
-const AUTH_URL = import.meta.env.VITE_AUTH_URL || "http://localhost:7001"
+const AUTH_URL = import.meta.env.VITE_HERRINGBONE_API_BASE + ":7001"
 
 function roleLabel(role?: string) {
   const r = (role || "").toLowerCase()
