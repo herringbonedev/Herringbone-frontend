@@ -81,7 +81,7 @@ export default function IncidentDetailPage() {
       return
     }
 
-    const base = import.meta.env.VITE_AUTH_URL || "http://localhost:7001"
+    const base = import.meta.env.VITE_HERRINGBONE_API_BASE + ":7001"
 
     fetch(`${base}/herringbone/auth/users`, {
       headers: {

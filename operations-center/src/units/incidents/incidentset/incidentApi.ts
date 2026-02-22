@@ -1,6 +1,6 @@
 import type { IncidentApi } from "./types"
 
-const API_BASE = "http://127.0.0.1:7011/incidents/incidentset"
+const API_BASE = `${(import.meta.env.VITE_HERRINGBONE_API_BASE ?? `${window.location.protocol}//${window.location.hostname}`)}:7010`
 
 function getAuthHeaders() {
 	const token = localStorage.getItem("hb_token")
@@ -13,7 +13,7 @@ function getAuthHeaders() {
 }
 
 export async function fetchIncidents(): Promise<IncidentApi[]> {
-	const res = await fetch(`${API_BASE}/get_incidents`, {
+	const res = await fetch(`${API_BASE}/incidents/incidentset/get_incidents`, {
 		headers: getAuthHeaders(),
 	})
 
@@ -22,7 +22,7 @@ export async function fetchIncidents(): Promise<IncidentApi[]> {
 }
 
 export async function fetchIncident(id: string): Promise<IncidentApi> {
-	const res = await fetch(`${API_BASE}/get_incident/${id}`, {
+	const res = await fetch(`${API_BASE}/incidents/incidentset/get_incident/${id}`, {
 		headers: getAuthHeaders(),
 	})
 
@@ -35,7 +35,7 @@ export async function addIncidentNote(
 	author: string,
 	message: string
 ) {
-	const res = await fetch(`${API_BASE}/update_incident`, {
+	const res = await fetch(`${API_BASE}/incidents/incidentset/update_incident`, {
 		method: "POST",
 		headers: getAuthHeaders(),
 		body: JSON.stringify({
@@ -57,7 +57,7 @@ export async function updateIncident(
 	id: string,
 	updates: Record<string, any>
 ) {
-	const res = await fetch(`${API_BASE}/update_incident`, {
+	const res = await fetch(`${API_BASE}/incidents/incidentset/update_incident`, {
 		method: "POST",
 		headers: getAuthHeaders(),
 		body: JSON.stringify({ _id: id, ...updates }),

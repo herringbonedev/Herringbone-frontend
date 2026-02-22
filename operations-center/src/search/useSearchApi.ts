@@ -1,6 +1,6 @@
 import { useState } from "react"
 
-const API_BASE = "http://127.0.0.1:7014"
+const API_BASE = `${import.meta.env.VITE_HERRINGBONE_API_BASE || `${window.location.protocol}//${window.location.hostname}`}:7014`
 
 export type SearchResponse = {
   collection: string
