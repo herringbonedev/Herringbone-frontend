@@ -1,4 +1,4 @@
-const API_BASE = `${(import.meta.env.VITE_HERRINGBONE_API_BASE ?? `${window.location.protocol}//${window.location.hostname}`)}:7002`
+const API_BASE = import.meta.env.VITE_HERRINGBONE_API_BASE
 
 function normalizeMongoId<T extends Record<string, any>>(obj: T): T {
 	if (obj && typeof obj === "object" && "_id" in obj) {

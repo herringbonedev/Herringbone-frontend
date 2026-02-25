@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import type { FormEvent, CSSProperties } from "react"
 
-const AUTH_URL = import.meta.env.VITE_HERRINGBONE_API_BASE + ":7001"
+const AUTH_URL = import.meta.env.VITE_HERRINGBONE_API_BASE
 
 export default function LoginPage() {
   const navigate = useNavigate()
