@@ -6,8 +6,6 @@ type TeamUser = {
   role: string
 }
 
-const AUTH_URL = import.meta.env.VITE_HERRINGBONE_API_BASE
-
 function roleLabel(role?: string) {
   const r = (role || "").toLowerCase()
   if (r === "admin") return "Admin"
@@ -45,7 +43,7 @@ export default function TeamsPage() {
     }
 
     try {
-      const res = await fetch(`${AUTH_URL}/herringbone/auth/users`, {
+      const res = await fetch(`/herringbone/auth/users`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (!res.ok) throw new Error(await res.text())
@@ -82,7 +80,7 @@ export default function TeamsPage() {
     setError(null)
 
     try {
-      const res = await fetch(`${AUTH_URL}/herringbone/auth/users/role`, {
+      const res = await fetch(`/herringbone/auth/users/role`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -106,7 +104,7 @@ export default function TeamsPage() {
     if (!ok) return
 
     try {
-      const res = await fetch(`${AUTH_URL}/herringbone/auth/users`, {
+      const res = await fetch(`/herringbone/auth/users`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -134,7 +132,7 @@ export default function TeamsPage() {
     setError(null)
 
     try {
-      const res = await fetch(`${AUTH_URL}/herringbone/auth/register`, {
+      const res = await fetch(`/herringbone/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
