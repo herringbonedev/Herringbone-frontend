@@ -1,7 +1,5 @@
 import { useState } from "react"
 
-const API_BASE = import.meta.env.VITE_HERRINGBONE_API_BASE
-
 export type SearchResponse = {
   collection: string
   count: number
@@ -61,7 +59,7 @@ export function useSearchApi() {
       if (filterIn) params.set("filter_in", filterIn)
 
       const res = await fetch(
-        `${API_BASE}/herringbone/search/${collection}?${params.toString()}`,
+        `/herringbone/search/${collection}?${params.toString()}`,
         {
           headers: authHeaders({
             Accept: "application/json",

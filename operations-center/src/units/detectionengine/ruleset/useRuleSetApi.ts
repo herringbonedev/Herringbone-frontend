@@ -1,5 +1,3 @@
-const API_BASE = import.meta.env.VITE_HERRINGBONE_API_BASE
-
 function normalizeMongoId<T extends Record<string, any>>(obj: T): T {
 	if (obj && typeof obj === "object" && "_id" in obj) {
 		const id = (obj as any)._id
@@ -28,7 +26,7 @@ function authHeaders(): HeadersInit {
 
 export function useRuleSetApi() {
 	const getRules = async () => {
-		const res = await fetch(`${API_BASE}/detectionengine/ruleset/get_rules`, {
+		const res = await fetch(`/detectionengine/ruleset/get_rules`, {
 			headers: authHeaders(),
 		})
 
@@ -39,7 +37,7 @@ export function useRuleSetApi() {
 	}
 
 	const insertRule = async (rule: any) => {
-		const res = await fetch(`${API_BASE}/detectionengine/ruleset/insert_rule`, {
+		const res = await fetch(`/detectionengine/ruleset/insert_rule`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
@@ -58,7 +56,7 @@ export function useRuleSetApi() {
 			throw new Error("updateRule: missing or invalid _id")
 		}
 
-		const res = await fetch(`${API_BASE}/detectionengine/ruleset/update_rule`, {
+		const res = await fetch(`/detectionengine/ruleset/update_rule`, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
@@ -72,7 +70,7 @@ export function useRuleSetApi() {
 
 	const deleteRule = async (id: string) => {
 		const res = await fetch(
-			`${API_BASE}/detectionengine/ruleset/delete_rule?id=${encodeURIComponent(id)}`,
+			`/detectionengine/ruleset/delete_rule?id=${encodeURIComponent(id)}`,
 			{
 				headers: authHeaders(),
 			}

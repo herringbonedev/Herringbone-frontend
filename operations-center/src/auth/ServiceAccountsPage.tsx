@@ -16,8 +16,6 @@ type ServiceAccount = {
   created_at?: any
 }
 
-const AUTH_API_BASE = import.meta.env.VITE_HERRINGBONE_API_BASE
-
 function groupByPrefix(items: ScopeItem[]) {
   const groups: Record<string, ScopeItem[]> = {}
   for (const it of items) {
@@ -86,7 +84,7 @@ export default function ServiceAccountsPage() {
   async function loadServices() {
     try {
       setLoadingServices(true)
-      const resp = await fetch(`${AUTH_API_BASE}/herringbone/auth/services`, {
+      const resp = await fetch(`/herringbone/auth/services`, {
         headers: authHeaders(token),
       })
       if (!resp.ok) throw new Error(await resp.text())
@@ -101,7 +99,7 @@ export default function ServiceAccountsPage() {
 
   async function loadScopes() {
     try {
-      const resp = await fetch(`${AUTH_API_BASE}/herringbone/auth/scopes`, {
+      const resp = await fetch(`/herringbone/auth/scopes`, {
         headers: authHeaders(token),
       })
       if (!resp.ok) throw new Error(await resp.text())
@@ -218,14 +216,14 @@ export default function ServiceAccountsPage() {
     setLoadingCreate(true)
 
     try {
-      const r1 = await fetch(`${AUTH_API_BASE}/herringbone/auth/services/register`, {
+      const r1 = await fetch(`/herringbone/auth/services/register`, {
         method: "POST",
         headers: authHeaders(token, { "Content-Type": "application/json" }),
         body: JSON.stringify({ service_name: serviceName, scopes: selectedScopes }),
       })
       if (!r1.ok) throw new Error(await r1.text())
 
-      const r2 = await fetch(`${AUTH_API_BASE}/herringbone/auth/service-token`, {
+      const r2 = await fetch(`/herringbone/auth/service-token`, {
         method: "POST",
         headers: authHeaders(token, { "Content-Type": "application/json" }),
         body: JSON.stringify({ service: serviceName, scopes: selectedScopes }),
@@ -251,7 +249,7 @@ export default function ServiceAccountsPage() {
     setCreatedToken(null)
 
     try {
-      const resp = await fetch(`${AUTH_API_BASE}/herringbone/auth/service-token`, {
+      const resp = await fetch(`/herringbone/auth/service-token`, {
         method: "POST",
         headers: authHeaders(token, { "Content-Type": "application/json" }),
         body: JSON.stringify({ service: service.service_name, scopes: service.scopes }),
@@ -275,7 +273,7 @@ export default function ServiceAccountsPage() {
 
     try {
       const resp = await fetch(
-        `${AUTH_API_BASE}/herringbone/auth/services/${encodeURIComponent(service.service_name)}`,
+        `/herringbone/auth/services/${encodeURIComponent(service.service_name)}`,
         {
           method: "DELETE",
           headers: authHeaders(token),
@@ -308,7 +306,7 @@ export default function ServiceAccountsPage() {
 
       // Add first
       if (toAdd.length > 0) {
-        const rAdd = await fetch(`${AUTH_API_BASE}/herringbone/auth/services/scopes/add`, {
+        const rAdd = await fetch(`/herringbone/auth/services/scopes/add`, {
           method: "POST",
           headers: authHeaders(token, { "Content-Type": "application/json" }),
           body: JSON.stringify({ service_name: manageService.service_name, scopes: toAdd }),
@@ -318,7 +316,7 @@ export default function ServiceAccountsPage() {
 
       // Remove
       if (toRemove.length > 0) {
-        const rRem = await fetch(`${AUTH_API_BASE}/herringbone/auth/services/scopes/remove`, {
+        const rRem = await fetch(`/herringbone/auth/services/scopes/remove`, {
           method: "POST",
           headers: authHeaders(token, { "Content-Type": "application/json" }),
           body: JSON.stringify({ service_name: manageService.service_name, scopes: toRemove }),
@@ -331,7 +329,7 @@ export default function ServiceAccountsPage() {
       // Refresh manageService from updated list (so generate-token uses updated scopes)
       // const updated = services.find(s => s.service_name === manageService.service_name)
       // services state may be stale until loadServices resolves; do a lightweight refetch
-      const resp = await fetch(`${AUTH_API_BASE}/herringbone/auth/services`, {
+      const resp = await fetch(`/herringbone/auth/services`, {
         headers: authHeaders(token),
       })
       if (resp.ok) {
@@ -355,7 +353,7 @@ export default function ServiceAccountsPage() {
     setCreatedToken(null)
 
     try {
-      const resp = await fetch(`${AUTH_API_BASE}/herringbone/auth/service-token`, {
+      const resp = await fetch(`/herringbone/auth/service-token`, {
         method: "POST",
         headers: authHeaders(token, { "Content-Type": "application/json" }),
         body: JSON.stringify({
