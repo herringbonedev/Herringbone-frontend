@@ -16,7 +16,7 @@ type ServiceAccount = {
   created_at?: any
 }
 
-const AUTH_API_BASE = `${import.meta.env.VITE_HERRINGBONE_API_BASE || `${window.location.protocol}//${window.location.hostname}`}:7001`
+const AUTH_API_BASE = import.meta.env.VITE_HERRINGBONE_API_BASE
 
 function groupByPrefix(items: ScopeItem[]) {
   const groups: Record<string, ScopeItem[]> = {}
