@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react"
 
-const API_BASE = import.meta.env.VITE_HERRINGBONE_API_BASE
-
 function getAuthHeaders() {
 	const token = localStorage.getItem("hb_token")
 	if (!token) throw new Error("Not authenticated")
@@ -23,7 +21,7 @@ export type IncidentEvent = {
 }
 
 async function fetchEvent(id: string): Promise<IncidentEvent | null> {
-	const res = await fetch(`${API_BASE}/herringbone/logs/events/${id}`,{
+	const res = await fetch(`/herringbone/logs/events/${id}`,{
 		headers: getAuthHeaders(),
 	})
 	if (!res.ok) return null

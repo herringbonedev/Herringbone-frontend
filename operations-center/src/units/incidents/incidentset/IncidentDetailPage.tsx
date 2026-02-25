@@ -81,9 +81,7 @@ export default function IncidentDetailPage() {
       return
     }
 
-    const base = import.meta.env.VITE_HERRINGBONE_API_BASE
-
-    fetch(`${base}/herringbone/auth/users`, {
+    fetch(`/herringbone/auth/users`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

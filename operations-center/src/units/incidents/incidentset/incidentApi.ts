@@ -1,7 +1,5 @@
 import type { IncidentApi } from "./types"
 
-const API_BASE = import.meta.env.VITE_HERRINGBONE_API_BASE
-
 function getAuthHeaders() {
 	const token = localStorage.getItem("hb_token")
 	if (!token) throw new Error("Not authenticated")
@@ -13,7 +11,7 @@ function getAuthHeaders() {
 }
 
 export async function fetchIncidents(): Promise<IncidentApi[]> {
-	const res = await fetch(`${API_BASE}/incidents/incidentset/get_incidents`, {
+	const res = await fetch(`/incidents/incidentset/get_incidents`, {
 		headers: getAuthHeaders(),
 	})
 
@@ -22,7 +20,7 @@ export async function fetchIncidents(): Promise<IncidentApi[]> {
 }
 
 export async function fetchIncident(id: string): Promise<IncidentApi> {
-	const res = await fetch(`${API_BASE}/incidents/incidentset/get_incident/${id}`, {
+	const res = await fetch(`/incidents/incidentset/get_incident/${id}`, {
 		headers: getAuthHeaders(),
 	})
 
@@ -35,7 +33,7 @@ export async function addIncidentNote(
 	author: string,
 	message: string
 ) {
-	const res = await fetch(`${API_BASE}/incidents/incidentset/update_incident`, {
+	const res = await fetch(`/incidents/incidentset/update_incident`, {
 		method: "POST",
 		headers: getAuthHeaders(),
 		body: JSON.stringify({
@@ -57,7 +55,7 @@ export async function updateIncident(
 	id: string,
 	updates: Record<string, any>
 ) {
-	const res = await fetch(`${API_BASE}/incidents/incidentset/update_incident`, {
+	const res = await fetch(`/incidents/incidentset/update_incident`, {
 		method: "POST",
 		headers: getAuthHeaders(),
 		body: JSON.stringify({ _id: id, ...updates }),

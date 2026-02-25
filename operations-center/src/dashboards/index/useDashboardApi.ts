@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react"
 
-const API_BASE = import.meta.env.VITE_HERRINGBONE_API_BASE
-
 export type Summary = {
   events_24h: number
   detected: number
@@ -65,11 +63,11 @@ export function useDashboardApi() {
 
     try {
       const [s, e, d, i, t] = await Promise.all([
-        authFetch(`${API_BASE}/herringbone/logs/dashboard/summary`),
-        authFetch(`${API_BASE}/herringbone/logs/dashboard/recent-events?n=10`),
-        authFetch(`${API_BASE}/herringbone/logs/dashboard/recent-detections?n=10`),
-        authFetch(`${API_BASE}/herringbone/logs/dashboard/recent-incidents?n=10`),
-        authFetch(`${API_BASE}/herringbone/logs/dashboard/incidents-throughput?days=7`),
+        authFetch(`/herringbone/logs/dashboard/summary`),
+        authFetch(`/herringbone/logs/dashboard/recent-events?n=10`),
+        authFetch(`/herringbone/logs/dashboard/recent-detections?n=10`),
+        authFetch(`/herringbone/logs/dashboard/recent-incidents?n=10`),
+        authFetch(`/herringbone/logs/dashboard/incidents-throughput?days=7`),
       ])
 
       if (!s.ok || !e.ok || !d.ok || !i.ok || !t.ok) {

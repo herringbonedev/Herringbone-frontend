@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react"
 import type { Card } from "./types"
 
-const API_BASE = import.meta.env.VITE_HERRINGBONE_API_BASE
-
 export function useCardsetApi() {
 	const [cards, setCards] = useState<Card[]>([])
 	const [loading, setLoading] = useState(false)
@@ -26,7 +24,7 @@ export function useCardsetApi() {
 		setLoading(true)
 		setError(null)
 		try {
-			const res = await fetch(`${API_BASE}/parser/cardset/pull_all_cards`, {
+			const res = await fetch(`/parser/cardset/pull_all_cards`, {
 				headers: getAuthHeaders(),
 			})
 
@@ -58,7 +56,7 @@ export function useCardsetApi() {
 	const saveCard = async (card: Card) => {
 		const payload = sanitize(card)
 
-		await fetch(`${API_BASE}/parser/cardset/insert_card`, {
+		await fetch(`/parser/cardset/insert_card`, {
 			method: "POST",
 			headers: getAuthHeaders(),
 			body: JSON.stringify(payload),
@@ -70,7 +68,7 @@ export function useCardsetApi() {
 	const updateCard = async (card: Card) => {
 		const payload = sanitize(card)
 
-		await fetch(`${API_BASE}/parser/cardset/update_card`, {
+		await fetch(`/parser/cardset/update_card`, {
 			method: "POST",
 			headers: getAuthHeaders(),
 			body: JSON.stringify(payload),
@@ -85,7 +83,7 @@ export function useCardsetApi() {
 			selector_value: card.selector.value,
 		}
 
-		await fetch(`${API_BASE}/parser/cardset/delete_cards`, {
+		await fetch(`/parser/cardset/delete_cards`, {
 			method: "POST",
 			headers: getAuthHeaders(),
 			body: JSON.stringify(payload),
