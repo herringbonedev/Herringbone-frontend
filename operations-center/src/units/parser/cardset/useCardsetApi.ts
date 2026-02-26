@@ -25,7 +25,7 @@ export function useCardsetApi() {
 		setLoading(true)
 		setError(null)
 		try {
-			const res = await fetch(`/parser/cardset/pull_all_cards`, {
+			const res = await apiFetch(`/parser/cardset/pull_all_cards`, {
 				headers: getAuthHeaders(),
 			})
 
@@ -57,7 +57,7 @@ export function useCardsetApi() {
 	const saveCard = async (card: Card) => {
 		const payload = sanitize(card)
 
-		await fetch(`/parser/cardset/insert_card`, {
+		await apiFetch(`/parser/cardset/insert_card`, {
 			method: "POST",
 			headers: getAuthHeaders(),
 			body: JSON.stringify(payload),
@@ -69,7 +69,7 @@ export function useCardsetApi() {
 	const updateCard = async (card: Card) => {
 		const payload = sanitize(card)
 
-		await fetch(`/parser/cardset/update_card`, {
+		await apiFetch(`/parser/cardset/update_card`, {
 			method: "POST",
 			headers: getAuthHeaders(),
 			body: JSON.stringify(payload),
@@ -84,7 +84,7 @@ export function useCardsetApi() {
 			selector_value: card.selector.value,
 		}
 
-		await fetch(`/parser/cardset/delete_cards`, {
+		await apiFetch(`/parser/cardset/delete_cards`, {
 			method: "POST",
 			headers: getAuthHeaders(),
 			body: JSON.stringify(payload),
