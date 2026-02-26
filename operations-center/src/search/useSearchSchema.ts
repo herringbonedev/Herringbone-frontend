@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { apiFetch } from "../api"
 
 export type SchemaField = {
   path: string
@@ -6,8 +7,6 @@ export type SchemaField = {
   examples: any[]
   enum: string[]
 }
-
-const API_BASE = import.meta.env.VITE_HERRINGBONE_API_BASE 
 
 function authHeaders(extra?: Record<string, string>) {
   const token = localStorage.getItem("hb_token")
@@ -30,8 +29,8 @@ export function useSearchSchema(collection: string) {
       setError(null)
 
       try {
-        const res = await fetch(
-          `${API_BASE}/herringbone/search/${collection}/schema`,
+        const res = await apiFetch(
+          `/herringbone/search/${collection}/schema`,
           {
             headers: authHeaders({
               Accept: "application/json",

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { apiFetch } from "../../api"
 
 export type Summary = {
   events_24h: number
@@ -38,10 +39,10 @@ export type IncidentThroughputPoint = {
   resolved: number
 }
 
-function authFetch(url: string) {
+function authapiFetch(url: string) {
   const token = localStorage.getItem("hb_token")
 
-  return fetch(url, {
+  return apiFetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -63,11 +64,11 @@ export function useDashboardApi() {
 
     try {
       const [s, e, d, i, t] = await Promise.all([
-        authFetch(`/herringbone/logs/dashboard/summary`),
-        authFetch(`/herringbone/logs/dashboard/recent-events?n=10`),
-        authFetch(`/herringbone/logs/dashboard/recent-detections?n=10`),
-        authFetch(`/herringbone/logs/dashboard/recent-incidents?n=10`),
-        authFetch(`/herringbone/logs/dashboard/incidents-throughput?days=7`),
+        authapiFetch(`/herringbone/logs/dashboard/summary`),
+        authapiFetch(`/herringbone/logs/dashboard/recent-events?n=10`),
+        authapiFetch(`/herringbone/logs/dashboard/recent-detections?n=10`),
+        authapiFetch(`/herringbone/logs/dashboard/recent-incidents?n=10`),
+        authapiFetch(`/herringbone/logs/dashboard/incidents-throughput?days=7`),
       ])
 
       if (!s.ok || !e.ok || !d.ok || !i.ok || !t.ok) {

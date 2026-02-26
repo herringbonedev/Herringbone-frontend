@@ -3,6 +3,7 @@ import { useIncidentDetail } from "./useIncidentDetail"
 import { useIncidentEvents } from "./eventsApi"
 import { addIncidentNote, updateIncident } from "./incidentApi"
 import { useState, useEffect } from "react"
+import { apiFetch } from "../../../api"
 import "./incidents.css"
 
 type TeamUser = {
@@ -81,7 +82,7 @@ export default function IncidentDetailPage() {
       return
     }
 
-    fetch(`/herringbone/auth/users`, {
+    apiFetch(`/herringbone/auth/users`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
