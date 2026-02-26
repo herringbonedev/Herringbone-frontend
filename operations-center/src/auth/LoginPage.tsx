@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import type { FormEvent, CSSProperties } from "react"
+import { apiFetch } from "../api"
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -19,7 +20,7 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const res = await fetch(`/herringbone/auth/login`, {
+      const res = await apiFetch(`/herringbone/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

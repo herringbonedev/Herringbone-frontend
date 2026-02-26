@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { getUserFromToken } from "./jwt"
 import "./auth.css"
+import { apiFetch } from "../api"
 
 type ScopeItem = {
   scope: string

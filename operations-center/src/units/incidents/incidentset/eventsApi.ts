@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { apiFetch } from "../../../api"
 
 function getAuthHeaders() {
 	const token = localStorage.getItem("hb_token")
@@ -21,7 +22,7 @@ export type IncidentEvent = {
 }
 
 async function fetchEvent(id: string): Promise<IncidentEvent | null> {
-	const res = await fetch(`/herringbone/logs/events/${id}`,{
+	const res = await apiFetch(`/herringbone/logs/events/${id}`,{
 		headers: getAuthHeaders(),
 	})
 	if (!res.ok) return null

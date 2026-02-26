@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import type { EventLog } from "./types"
+import { apiFetch } from "../../../api"
 
 function safeJsonParse(text: string) {
   let t = (text ?? "").trim()
@@ -45,7 +46,7 @@ export function useEventsApi() {
     setError(null)
 
     try {
-      const res = await fetch(`/herringbone/logs/events`, {
+      const res = await apiFetch(`/herringbone/logs/events`, {
         headers: authHeaders(),
       })
 

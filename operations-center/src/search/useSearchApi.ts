@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { apiFetch } from "../api"
 
 export type SearchResponse = {
   collection: string
@@ -58,7 +59,7 @@ export function useSearchApi() {
       if (filterMax != null) params.set("filter_max", String(filterMax))
       if (filterIn) params.set("filter_in", filterIn)
 
-      const res = await fetch(
+      const res = await apiFetch(
         `/herringbone/search/${collection}?${params.toString()}`,
         {
           headers: authHeaders({

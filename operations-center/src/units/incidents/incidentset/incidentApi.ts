@@ -1,4 +1,5 @@
 import type { IncidentApi } from "./types"
+import { apiFetch } from "../../../api"
 
 function getAuthHeaders() {
 	const token = localStorage.getItem("hb_token")
@@ -11,7 +12,7 @@ function getAuthHeaders() {
 }
 
 export async function fetchIncidents(): Promise<IncidentApi[]> {
-	const res = await fetch(`/incidents/incidentset/get_incidents`, {
+	const res = await apiFetch(`/incidents/incidentset/get_incidents`, {
 		headers: getAuthHeaders(),
 	})
 
@@ -20,7 +21,7 @@ export async function fetchIncidents(): Promise<IncidentApi[]> {
 }
 
 export async function fetchIncident(id: string): Promise<IncidentApi> {
-	const res = await fetch(`/incidents/incidentset/get_incident/${id}`, {
+	const res = await apiFetch(`/incidents/incidentset/get_incident/${id}`, {
 		headers: getAuthHeaders(),
 	})
 
@@ -33,7 +34,7 @@ export async function addIncidentNote(
 	author: string,
 	message: string
 ) {
-	const res = await fetch(`/incidents/incidentset/update_incident`, {
+	const res = await apiFetch(`/incidents/incidentset/update_incident`, {
 		method: "POST",
 		headers: getAuthHeaders(),
 		body: JSON.stringify({
@@ -55,7 +56,7 @@ export async function updateIncident(
 	id: string,
 	updates: Record<string, any>
 ) {
-	const res = await fetch(`/incidents/incidentset/update_incident`, {
+	const res = await apiFetch(`/incidents/incidentset/update_incident`, {
 		method: "POST",
 		headers: getAuthHeaders(),
 		body: JSON.stringify({ _id: id, ...updates }),
