@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import "./auth.css"
+import { apiFetch } from "../api"
 
 type TeamUser = {
   email: string
@@ -43,7 +44,7 @@ export default function TeamsPage() {
     }
 
     try {
-      const res = await fetch(`/herringbone/auth/users`, {
+      const res = await apiFetch(`/herringbone/auth/users`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (!res.ok) throw new Error(await res.text())
@@ -80,7 +81,7 @@ export default function TeamsPage() {
     setError(null)
 
     try {
-      const res = await fetch(`/herringbone/auth/users/role`, {
+      const res = await apiFetch(`/herringbone/auth/users/role`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -104,7 +105,7 @@ export default function TeamsPage() {
     if (!ok) return
 
     try {
-      const res = await fetch(`/herringbone/auth/users`, {
+      const res = await apiFetch(`/herringbone/auth/users`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -132,7 +133,7 @@ export default function TeamsPage() {
     setError(null)
 
     try {
-      const res = await fetch(`/herringbone/auth/register`, {
+      const res = await apiFetch(`/herringbone/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
