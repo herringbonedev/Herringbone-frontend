@@ -1,3 +1,3 @@
-version: v0.1.0-alpha.1
+version: alpha-0.2.2
 services:
   operations-center: quay.io/herringbone/operations-center:sha-39e42d17@sha256:1c20df86114255c5ba365c886c6b82320054d55410f499b57eacf3682814815e
