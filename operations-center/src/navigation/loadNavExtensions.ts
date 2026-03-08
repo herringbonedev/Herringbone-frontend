@@ -1,19 +1,31 @@
 import type { NavItem } from "./types"
 
+type EnterpriseModule = {
+  enterpriseNav?: NavItem[]
+}
+
+type PluginModule = {
+  pluginNav?: NavItem[]
+}
+
 export async function loadNavExtensions(): Promise<NavItem[]> {
   let items: NavItem[] = []
 
-  try {
-    // @ts-ignore
-    const mod = await import("../enterprise/navigation")
-    items = items.concat(mod.enterpriseNav || [])
-  } catch {}
+  const enterprise = (await import("../enterprise/navigation").catch(
+    () => null
+  )) as EnterpriseModule | null
 
-  try {
-    // @ts-ignore
-    const mod = await import("../plugins/navigation")
-    items = items.concat(mod.pluginNav || [])
-  } catch {}
+  if (enterprise?.enterpriseNav) {
+    items = items.concat(enterprise.enterpriseNav)
+  }
+
+  const plugins = (await import("../plugins/navigation").catch(
+    () => null
+  )) as PluginModule | null
+
+  if (plugins?.pluginNav) {
+    items = items.concat(plugins.pluginNav)
+  }
 
   return items
 }

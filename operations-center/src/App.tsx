@@ -1,17 +1,11 @@
+import React from "react"
 import { Link, Outlet, useNavigate } from "react-router-dom"
 import { useEffect, useState } from "react"
+import type { NavItem } from "./navigation/types"
 
 type UserInfo = {
   id: string
   email: string
-}
-
-type NavItem = {
-  label?: string
-  path?: string
-  element?: React.ReactNode
-  position?: "left" | "right"
-  order?: number
 }
 
 function getUserFromToken(): UserInfo | null {
@@ -23,7 +17,6 @@ function getUserFromToken(): UserInfo | null {
     const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"))
     const data = JSON.parse(json)
 
-    // optional expiration check
     if (data.exp && Date.now() >= data.exp * 1000) {
       localStorage.removeItem("hb_token")
       return null
@@ -52,17 +45,29 @@ const coreNav: NavItem[] = [
 async function loadNavExtensions(): Promise<NavItem[]> {
   let items: NavItem[] = []
 
-  try {
-    // @ts-ignore
-    const mod = await import("./enterprise/navigation")
-    items = items.concat(mod.enterpriseNav || [])
-  } catch {}
+  type EnterpriseModule = {
+    enterpriseNav?: NavItem[]
+  }
 
-  try {
-    // @ts-ignore
-    const mod = await import("./plugins/navigation")
-    items = items.concat(mod.pluginNav || [])
-  } catch {}
+  type PluginModule = {
+    pluginNav?: NavItem[]
+  }
+
+  const enterprise = (await import("./enterprise/navigation").catch(
+    () => null
+  )) as EnterpriseModule | null
+
+  if (enterprise?.enterpriseNav) {
+    items = items.concat(enterprise.enterpriseNav)
+  }
+
+  const plugins = (await import("./plugins/navigation").catch(
+    () => null
+  )) as PluginModule | null
+
+  if (plugins?.pluginNav) {
+    items = items.concat(plugins.pluginNav)
+  }
 
   return items
 }
@@ -112,7 +117,9 @@ function App() {
           .filter((i) => i.position !== "right")
           .map((item, idx) =>
             item.element ? (
-              <span key={idx}>{item.element}</span>
+              <span key={item.label || item.path || `nav-left-${idx}`}>
+                {item.element}
+              </span>
             ) : (
               item.path && (
                 <Link key={item.path} to={item.path}>
@@ -134,7 +141,9 @@ function App() {
             .filter((i) => i.position === "right")
             .map((item, idx) =>
               item.element ? (
-                <span key={idx}>{item.element}</span>
+                <span key={item.label || item.path || `nav-right-${idx}`}>
+                  {item.element}
+                </span>
               ) : (
                 item.path && (
                   <Link key={item.path} to={item.path}>
