@@ -6,6 +6,14 @@ type UserInfo = {
   email: string
 }
 
+type NavItem = {
+  label?: string
+  path?: string
+  element?: React.ReactNode
+  position?: "left" | "right"
+  order?: number
+}
+
 function getUserFromToken(): UserInfo | null {
   const token = localStorage.getItem("hb_token")
   if (!token) return null
@@ -14,6 +22,12 @@ function getUserFromToken(): UserInfo | null {
     const [, payload] = token.split(".")
     const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"))
     const data = JSON.parse(json)
+
+    // optional expiration check
+    if (data.exp && Date.now() >= data.exp * 1000) {
+      localStorage.removeItem("hb_token")
+      return null
+    }
 
     return {
       id: data.sub,
@@ -24,12 +38,54 @@ function getUserFromToken(): UserInfo | null {
   }
 }
 
+const coreNav: NavItem[] = [
+  { label: "Home", path: "/", order: 10 },
+  { label: "Log Ingestion", path: "/logingestion", order: 20 },
+  { label: "CardSet", path: "/cardset", order: 30 },
+  { label: "RuleSet", path: "/ruleset", order: 40 },
+  { label: "Incidents", path: "/incidents", order: 50 },
+  { label: "Search", path: "/search", order: 60 },
+  { label: "Teams", path: "/teams", order: 70 },
+  { label: "Services", path: "/services", order: 80 },
+]
+
+async function loadNavExtensions(): Promise<NavItem[]> {
+  let items: NavItem[] = []
+
+  try {
+    // @ts-ignore
+    const mod = await import("./enterprise/navigation")
+    items = items.concat(mod.enterpriseNav || [])
+  } catch {}
+
+  try {
+    // @ts-ignore
+    const mod = await import("./plugins/navigation")
+    items = items.concat(mod.pluginNav || [])
+  } catch {}
+
+  return items
+}
+
 function App() {
   const navigate = useNavigate()
   const [user, setUser] = useState<UserInfo | null>(null)
+  const [navItems, setNavItems] = useState<NavItem[]>(coreNav)
 
   useEffect(() => {
     setUser(getUserFromToken())
+
+    async function loadNav() {
+      const extra = await loadNavExtensions()
+
+      const merged = [...coreNav, ...extra].sort(
+        (a, b) => (a.order || 100) - (b.order || 100)
+      )
+
+      setNavItems(merged)
+    }
+
+    loadNav()
   }, [])
 
   function logout() {
@@ -52,14 +108,19 @@ function App() {
       >
         <strong>Herringbone</strong>
 
-        <Link to="/">Home</Link>
-        <Link to="/logingestion">Log Ingestion</Link>
-        <Link to="/cardset">CardSet</Link>
-        <Link to="/ruleset">RuleSet</Link>
-        <Link to="/incidents">Incidents</Link>
-        <Link to="/search">Search</Link>
-        <Link to="/teams">Teams</Link>
-        <Link to="/services">Services</Link>
+        {navItems
+          .filter((i) => i.position !== "right")
+          .map((item, idx) =>
+            item.element ? (
+              <span key={idx}>{item.element}</span>
+            ) : (
+              item.path && (
+                <Link key={item.path} to={item.path}>
+                  {item.label}
+                </Link>
+              )
+            )
+          )}
 
         <div
           style={{
@@ -69,25 +130,36 @@ function App() {
             alignItems: "center",
           }}
         >
+          {navItems
+            .filter((i) => i.position === "right")
+            .map((item, idx) =>
+              item.element ? (
+                <span key={idx}>{item.element}</span>
+              ) : (
+                item.path && (
+                  <Link key={item.path} to={item.path}>
+                    {item.label}
+                  </Link>
+                )
+              )
+            )}
+
           {user && <Link to="/profile">{user.email}</Link>}
 
           {user && (
-            <>
-
-              <button
-                onClick={logout}
-                style={{
-                  padding: "4px 8px",
-                  borderRadius: 4,
-                  border: "1px solid var(--border)",
-                  background: "transparent",
-                  color: "inherit",
-                  cursor: "pointer",
-                }}
-              >
-                Logout
-              </button>
-            </>
+            <button
+              onClick={logout}
+              style={{
+                padding: "4px 8px",
+                borderRadius: 4,
+                border: "1px solid var(--border)",
+                background: "transparent",
+                color: "inherit",
+                cursor: "pointer",
+              }}
+            >
+              Logout
+            </button>
           )}
         </div>
       </div>

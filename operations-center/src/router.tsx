@@ -14,29 +14,49 @@ import UserProfilePage from "./auth/UserProfilePage"
 import TeamsPage from "./auth/TeamsPage"
 import ServiceAccountsPage from "./auth/ServiceAccountsPage"
 
-export const router = createBrowserRouter([
-  {
-    path: "/login",
-    element: <LoginPage />,
-  },
-  {
-    path: "/",
-    element: (
-      <RequireAuth>
-        <App />
-      </RequireAuth>
-    ),
-    children: [
-      { index: true, element: <Dashboard /> },
-      { path: "logingestion", element: <EventsPage /> },
-      { path: "cardset", element: <CardSetPage /> },
-      { path: "ruleset", element: <RuleSetPage /> },
-      { path: "incidents", element: <IncidentListPage /> },
-      { path: "incidents/:incidentId", element: <IncidentDetailPage /> },
-      { path: "search", element: <SearchPage /> },
-      { path: "profile", element: <UserProfilePage /> },
-      { path: "teams", element: <TeamsPage /> },
-      { path: "services", element: <ServiceAccountsPage /> },
-    ],
-  },
-])
+import type { RouteObject } from "react-router-dom"
+
+// core routes
+const coreRoutes: RouteObject[] = [
+  { index: true, element: <Dashboard /> },
+  { path: "logingestion", element: <EventsPage /> },
+  { path: "cardset", element: <CardSetPage /> },
+  { path: "ruleset", element: <RuleSetPage /> },
+  { path: "incidents", element: <IncidentListPage /> },
+  { path: "incidents/:incidentId", element: <IncidentDetailPage /> },
+  { path: "search", element: <SearchPage /> },
+  { path: "profile", element: <UserProfilePage /> },
+  { path: "teams", element: <TeamsPage /> },
+  { path: "services", element: <ServiceAccountsPage /> },
+]
+
+// optional enterprise routes
+async function loadEnterpriseRoutes(): Promise<RouteObject[]> {
+  try {
+    // @ts-ignore
+    const mod = await import("./enterprise/routes")
+    return mod.enterpriseRoutes || []
+  } catch {
+    return []
+  }
+}
+
+export async function createRouter() {
+  const enterpriseRoutes = await loadEnterpriseRoutes()
+
+  return createBrowserRouter([
+    {
+      path: "/login",
+      element: <LoginPage />,
+    },
+    {
+      path: "/",
+      element: (
+        <RequireAuth>
+          <App />
+        </RequireAuth>
+      ),
+      children: [...coreRoutes, ...enterpriseRoutes],
+    },
+  ])
+}
