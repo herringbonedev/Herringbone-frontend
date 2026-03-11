@@ -1,6 +1,8 @@
 import { Link, Outlet, useNavigate } from "react-router-dom"
 import { useEffect, useState } from "react"
 import type { NavItem } from "./navigation/types"
+import { coreNav } from "./navigation/coreNav"
+import { loadNavExtensions } from "./navigation/loadNavExtensions"
 
 type UserInfo = {
   id: string
@@ -28,47 +30,6 @@ function getUserFromToken(): UserInfo | null {
   } catch {
     return null
   }
-}
-
-const coreNav: NavItem[] = [
-  { label: "Home", path: "/", order: 10 },
-  { label: "Log Ingestion", path: "/logingestion", order: 20 },
-  { label: "CardSet", path: "/cardset", order: 30 },
-  { label: "RuleSet", path: "/ruleset", order: 40 },
-  { label: "Incidents", path: "/incidents", order: 50 },
-  { label: "Search", path: "/search", order: 60 },
-  { label: "Teams", path: "/teams", order: 70 },
-  { label: "Services", path: "/services", order: 80 },
-]
-
-async function loadNavExtensions(): Promise<NavItem[]> {
-  let items: NavItem[] = []
-
-  type EnterpriseModule = {
-    enterpriseNav?: NavItem[]
-  }
-
-  type PluginModule = {
-    pluginNav?: NavItem[]
-  }
-
-  const enterprise = (await import("./enterprise/navigation").catch(
-    () => null
-  )) as EnterpriseModule | null
-
-  if (enterprise?.enterpriseNav) {
-    items = items.concat(enterprise.enterpriseNav)
-  }
-
-  const plugins = (await import("./plugins/navigation").catch(
-    () => null
-  )) as PluginModule | null
-
-  if (plugins?.pluginNav) {
-    items = items.concat(plugins.pluginNav)
-  }
-
-  return items
 }
 
 function App() {

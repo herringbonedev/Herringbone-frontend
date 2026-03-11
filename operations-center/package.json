@@ -1,8 +1,29 @@
 {
-  "name": "operations-center",
-  "private": true,
-  "version": "0.0.0",
+  "name": "@herringbonedev/operations-center",
+  "version": "0.2.4-alpha.3",
+  "private": false,
   "type": "module",
+  "description": "Herringbone Operations Center UI",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/herringbonedev/Herringbone-frontend",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/herringbonedev/Herringbone-frontend.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "files": [
+    "dist",
+    "src",
+    "index.html",
+    "vite.config.ts",
+    "tsconfig.json",
+    "tsconfig.app.json",
+    "tsconfig.node.json"
+  ],
+  "main": "dist/index.js",
+  "module": "dist/index.js",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -37,5 +58,8 @@
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4",
     "vitest": "^4.0.18"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

@@ -1,30 +1,31 @@
 import type { NavItem } from "./types"
 
-type EnterpriseModule = {
+type NavModule = {
   enterpriseNav?: NavItem[]
-}
-
-type PluginModule = {
   pluginNav?: NavItem[]
 }
 
 export async function loadNavExtensions(): Promise<NavItem[]> {
   let items: NavItem[] = []
 
-  const enterprise = (await import("../enterprise/navigation").catch(
-    () => null
-  )) as EnterpriseModule | null
+  const enterpriseModules = import.meta.glob("../enterprise/*.{ts,tsx}", {
+    eager: true,
+  })
 
-  if (enterprise?.enterpriseNav) {
-    items = items.concat(enterprise.enterpriseNav)
+  for (const mod of Object.values(enterpriseModules) as NavModule[]) {
+    if (mod.enterpriseNav) {
+      items = items.concat(mod.enterpriseNav)
+    }
   }
 
-  const plugins = (await import("../plugins/navigation").catch(
-    () => null
-  )) as PluginModule | null
+  const pluginModules = import.meta.glob("../plugins/*.{ts,tsx}", {
+    eager: true,
+  })
 
-  if (plugins?.pluginNav) {
-    items = items.concat(plugins.pluginNav)
+  for (const mod of Object.values(pluginModules) as NavModule[]) {
+    if (mod.pluginNav) {
+      items = items.concat(mod.pluginNav)
+    }
   }
 
   return items

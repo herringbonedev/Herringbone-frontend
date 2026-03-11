@@ -15,8 +15,8 @@ import TeamsPage from "./auth/TeamsPage"
 import ServiceAccountsPage from "./auth/ServiceAccountsPage"
 
 import type { RouteObject } from "react-router-dom"
+import { loadRouteExtensions } from "./navigation/loadRouteExtensions"
 
-// core routes
 const coreRoutes: RouteObject[] = [
   { index: true, element: <Dashboard /> },
   { path: "logingestion", element: <EventsPage /> },
@@ -30,19 +30,8 @@ const coreRoutes: RouteObject[] = [
   { path: "services", element: <ServiceAccountsPage /> },
 ]
 
-// optional enterprise routes
-async function loadEnterpriseRoutes(): Promise<RouteObject[]> {
-  try {
-    // @ts-ignore
-    const mod = await import("./enterprise/routes")
-    return mod.enterpriseRoutes || []
-  } catch {
-    return []
-  }
-}
-
 export async function createRouter() {
-  const enterpriseRoutes = await loadEnterpriseRoutes()
+  const extraRoutes = await loadRouteExtensions()
 
   return createBrowserRouter([
     {
@@ -56,7 +45,7 @@ export async function createRouter() {
           <App />
         </RequireAuth>
       ),
-      children: [...coreRoutes, ...enterpriseRoutes],
+      children: [...coreRoutes, ...extraRoutes],
     },
   ])
 }
