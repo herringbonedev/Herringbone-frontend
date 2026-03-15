@@ -4,21 +4,45 @@ import { apiFetch } from "../api"
 
 type TeamUser = {
   email: string
-  role: string
+  scopes: string[]
 }
 
-function roleLabel(role?: string) {
-  const r = (role || "").toLowerCase()
-  if (r === "admin") return "Admin"
-  if (r === "analyst") return "Analyst"
-  return role || "Unknown"
+function normalizeScopes(value: string): string[] {
+  return Array.from(
+    new Set(
+      value
+        .split(",")
+        .map(s => s.trim())
+        .filter(Boolean)
+    )
+  )
 }
 
-function roleClass(role?: string) {
-  const r = (role || "").toLowerCase()
-  if (r === "admin") return "tm-badge admin"
-  if (r === "analyst") return "tm-badge analyst"
-  return "tm-badge"
+function scopesToText(scopes?: string[]) {
+  return (scopes || []).join(", ")
+}
+
+function userBadge(scopes?: string[]) {
+  const s = scopes || []
+
+  if (s.includes("*")) {
+    return {
+      label: "Platform Admin",
+      className: "tm-badge admin",
+    }
+  }
+
+  if (s.length > 0) {
+    return {
+      label: "Scoped User",
+      className: "tm-badge analyst",
+    }
+  }
+
+  return {
+    label: "No Scopes",
+    className: "tm-badge",
+  }
 }
 
 export default function TeamsPage() {
@@ -27,12 +51,14 @@ export default function TeamsPage() {
   const [error, setError] = useState<string | null>(null)
 
   const [query, setQuery] = useState("")
-  const [roleFilter, setRoleFilter] = useState<"all" | "admin" | "analyst" | "other">("all")
+  const [scopeFilter, setScopeFilter] = useState("")
 
-  // NEW: create user form state
   const [newEmail, setNewEmail] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [creating, setCreating] = useState(false)
+
+  const [editingScopes, setEditingScopes] = useState<Record<string, string>>({})
+  const [savingUser, setSavingUser] = useState<string | null>(null)
 
   const token = localStorage.getItem("hb_token")
 
@@ -44,12 +70,24 @@ export default function TeamsPage() {
     }
 
     try {
+      setError(null)
+
       const res = await apiFetch(`/herringbone/auth/users`, {
         headers: { Authorization: `Bearer ${token}` },
       })
+
       if (!res.ok) throw new Error(await res.text())
+
       const data = await res.json()
-      setUsers(data.users || [])
+      const nextUsers: TeamUser[] = data.users || []
+
+      setUsers(nextUsers)
+
+      const nextEditing: Record<string, string> = {}
+      for (const u of nextUsers) {
+        nextEditing[u.email] = scopesToText(u.scopes)
+      }
+      setEditingScopes(nextEditing)
     } catch (e: any) {
       setError(e.message || "Failed to load users")
     } finally {
@@ -63,66 +101,18 @@ export default function TeamsPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
+    const sf = scopeFilter.trim().toLowerCase()
+
     return users.filter(u => {
       const emailOk = !q || (u.email || "").toLowerCase().includes(q)
 
-      const r = (u.role || "").toLowerCase()
-      const roleOk =
-        roleFilter === "all" ||
-        (roleFilter === "admin" && r === "admin") ||
-        (roleFilter === "analyst" && r === "analyst") ||
-        (roleFilter === "other" && r !== "admin" && r !== "analyst")
+      const joinedScopes = (u.scopes || []).join(" ").toLowerCase()
+      const scopeOk = !sf || joinedScopes.includes(sf)
 
-      return emailOk && roleOk
+      return emailOk && scopeOk
     })
-  }, [users, query, roleFilter])
+  }, [users, query, scopeFilter])
 
-  async function changeRole(email: string, role: string) {
-    setError(null)
-
-    try {
-      const res = await apiFetch(`/herringbone/auth/users/role`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, role }),
-      })
-
-      if (!res.ok) throw new Error(await res.text())
-
-      await loadUsers()
-    } catch (e: any) {
-      setError(e.message || "Failed to update role")
-    }
-  }
-
-  async function deleteUser(email: string) {
-    setError(null)
-
-    const ok = window.confirm(`Delete user "${email}"?\n\nThis cannot be undone.`)
-    if (!ok) return
-
-    try {
-      const res = await apiFetch(`/herringbone/auth/users`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-      })
-
-      if (!res.ok) throw new Error(await res.text())
-
-      await loadUsers()
-    } catch (e: any) {
-      setError(e.message || "Failed to delete user")
-    }
-  }
-
-  // NEW: create user
   async function createUser() {
     if (!newEmail || !newPassword) {
       setError("Email and password required")
@@ -157,12 +147,62 @@ export default function TeamsPage() {
     }
   }
 
+  async function saveScopes(email: string) {
+    setSavingUser(email)
+    setError(null)
+
+    try {
+      const scopes = normalizeScopes(editingScopes[email] || "")
+
+      const res = await apiFetch(`/herringbone/auth/users/scopes`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, scopes }),
+      })
+
+      if (!res.ok) throw new Error(await res.text())
+
+      await loadUsers()
+    } catch (e: any) {
+      setError(e.message || "Failed to update scopes")
+    } finally {
+      setSavingUser(null)
+    }
+  }
+
+  async function deleteUser(email: string) {
+    setError(null)
+
+    const ok = window.confirm(`Delete user "${email}"?\n\nThis cannot be undone.`)
+    if (!ok) return
+
+    try {
+      const res = await apiFetch(`/herringbone/auth/users`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      })
+
+      if (!res.ok) throw new Error(await res.text())
+
+      await loadUsers()
+    } catch (e: any) {
+      setError(e.message || "Failed to delete user")
+    }
+  }
+
   return (
     <div className="tm-page">
       <div className="tm-header">
         <div>
           <h1 className="tm-title">Teams</h1>
-          <div className="tm-subtitle">Users and roles for this workspace.</div>
+          <div className="tm-subtitle">Users and scopes for this workspace.</div>
         </div>
 
         <div className="tm-actions">
@@ -172,7 +212,6 @@ export default function TeamsPage() {
         </div>
       </div>
 
-      {/* NEW: Create user card */}
       <div className="tm-card" style={{ marginBottom: 16 }}>
         <div className="tm-card-top">
           <strong>Create user</strong>
@@ -206,7 +245,7 @@ export default function TeamsPage() {
               onClick={createUser}
               disabled={creating}
             >
-              {creating ? "Creating…" : "Create user"}
+              {creating ? "Creating..." : "Create user"}
             </button>
           </div>
         </div>
@@ -219,29 +258,25 @@ export default function TeamsPage() {
               <label className="tm-label">Search</label>
               <input
                 className="tm-input"
-                placeholder="Search by email…"
+                placeholder="Search by email..."
                 value={query}
                 onChange={e => setQuery(e.target.value)}
               />
             </div>
 
             <div className="tm-control">
-              <label className="tm-label">Role</label>
-              <select
-                className="tm-select"
-                value={roleFilter}
-                onChange={e => setRoleFilter(e.target.value as any)}
-              >
-                <option value="all">All</option>
-                <option value="admin">Admin</option>
-                <option value="analyst">Analyst</option>
-                <option value="other">Other</option>
-              </select>
+              <label className="tm-label">Scope filter</label>
+              <input
+                className="tm-input"
+                placeholder="Filter by scope..."
+                value={scopeFilter}
+                onChange={e => setScopeFilter(e.target.value)}
+              />
             </div>
           </div>
         </div>
 
-        {loading && <div className="tm-muted">Loading…</div>}
+        {loading && <div className="tm-muted">Loading...</div>}
         {error && <div className="tm-error">{error}</div>}
 
         {!loading && !error && (
@@ -249,40 +284,57 @@ export default function TeamsPage() {
             <thead>
               <tr>
                 <th>Email</th>
-                <th>Role</th>
-                <th style={{ width: 240 }}>Actions</th>
+                <th>Access</th>
+                <th>Scopes</th>
+                <th style={{ width: 320 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((u, i) => (
-                <tr key={`${u.email}-${i}`}>
-                  <td className="tm-mono">{u.email}</td>
-                  <td>
-                    <span className={roleClass(u.role)}>{roleLabel(u.role)}</span>
-                  </td>
-                  <td style={{ display: "flex", gap: 8 }}>
-                    <select
-                      className="tm-select tm-small"
-                      value={u.role}
-                      onChange={e => changeRole(u.email, e.target.value)}
-                    >
-                      <option value="admin">Admin</option>
-                      <option value="analyst">Analyst</option>
-                    </select>
+              {filtered.map((u, i) => {
+                const badge = userBadge(u.scopes)
 
-                    <button
-                      className="tm-btn-danger"
-                      onClick={() => deleteUser(u.email)}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                return (
+                  <tr key={`${u.email}-${i}`}>
+                    <td className="tm-mono">{u.email}</td>
+                    <td>
+                      <span className={badge.className}>{badge.label}</span>
+                    </td>
+                    <td>
+                      <input
+                        className="tm-input"
+                        value={editingScopes[u.email] ?? ""}
+                        onChange={e =>
+                          setEditingScopes(prev => ({
+                            ...prev,
+                            [u.email]: e.target.value,
+                          }))
+                        }
+                        placeholder="logs:read, search:query"
+                      />
+                    </td>
+                    <td style={{ display: "flex", gap: 8 }}>
+                      <button
+                        className="tm-secondary"
+                        onClick={() => saveScopes(u.email)}
+                        disabled={savingUser === u.email}
+                      >
+                        {savingUser === u.email ? "Saving..." : "Save scopes"}
+                      </button>
+
+                      <button
+                        className="tm-btn-danger"
+                        onClick={() => deleteUser(u.email)}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
 
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="tm-empty">
+                  <td colSpan={4} className="tm-empty">
                     No users found
                   </td>
                 </tr>
