@@ -8,7 +8,7 @@ export function clearToken() {
 
 function redirectToLogin() {
   if (window.location.pathname === "/login") return
-  
+
   setTimeout(() => {
     if (window.location.pathname !== "/login") {
       window.location.replace("/login")
@@ -28,11 +28,16 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     },
   })
 
-  // Treat 401 as expired/invalid session. Optionally include 403.
-  if (res.status === 401 || res.status === 403) {
+  // Only treat 401 as expired session
+  if (res.status === 401) {
     clearToken()
     redirectToLogin()
-    throw new Error("Unauthorized")
+    throw new Error("Session expired")
+  }
+
+  // 403 = authenticated but not authorized
+  if (res.status === 403) {
+    throw new Error("Forbidden")
   }
 
   return res
