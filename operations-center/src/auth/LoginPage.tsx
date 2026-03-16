@@ -1,7 +1,8 @@
 import { useState } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
-import type { FormEvent, CSSProperties } from "react"
+import type { FormEvent } from "react"
 import { apiFetch } from "../api"
+import "../styles/ui.css"
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -20,11 +21,8 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const res = await apiFetch(`/herringbone/auth/login`, {
+      const res = await apiFetch("/herringbone/auth/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({ email, password }),
       })
 
@@ -39,7 +37,6 @@ export default function LoginPage() {
       if (!token) throw new Error("Missing token")
 
       localStorage.setItem("hb_token", token)
-
       navigate(from, { replace: true })
     } catch (err: any) {
       setError(err.message || "Login failed")
@@ -49,73 +46,42 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={styles.container}>
-      <form onSubmit={submit} style={styles.card}>
-        <h2 style={{ marginBottom: 12 }}>Herringbone Login</h2>
+    <div className="hb-page-center">
+      <div className="hb-login-container">
+        <form onSubmit={submit} className="hb-card hb-login-card">
+          <div className="hb-card-title">Sign In</div>
+          <div className="hb-subtitle">Herringbone Operations Center</div>
 
-        {error && <div style={styles.error}>{error}</div>}
+          {error && <div className="hb-alert-error">{error}</div>}
 
-        <input
-          style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          required
-        />
+          <div className="hb-form">
+            <input
+              className="hb-input"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
 
-        <input
-          style={styles.input}
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          required
-        />
+            <input
+              className="hb-input"
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
 
-        <button style={styles.button} disabled={loading}>
-          {loading ? "Logging in..." : "Login"}
-        </button>
-      </form>
+            <button
+              className="hb-button-primary"
+              disabled={loading}
+              type="submit"
+            >
+              {loading ? "Signing in..." : "Sign In"}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
-}
-
-const styles: Record<string, CSSProperties> = {
-  container: {
-    display: "flex",
-    height: "100vh",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "#0b0e14",
-  },
-  card: {
-    width: 320,
-    padding: 24,
-    background: "#111827",
-    borderRadius: 8,
-    display: "flex",
-    flexDirection: "column",
-    gap: 12,
-  },
-  input: {
-    padding: 10,
-    borderRadius: 4,
-    border: "1px solid #333",
-    background: "#0b0e14",
-    color: "#fff",
-  },
-  button: {
-    padding: 10,
-    borderRadius: 4,
-    border: "none",
-    background: "#2563eb",
-    color: "#fff",
-    cursor: "pointer",
-  },
-  error: {
-    background: "#7f1d1d",
-    padding: 8,
-    borderRadius: 4,
-    color: "#fff",
-  },
 }

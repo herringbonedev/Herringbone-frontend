@@ -1,710 +1,399 @@
-import { useEffect, useMemo, useRef, useState } from "react"
-import { getUserFromToken } from "./jwt"
-import "./auth.css"
+import { Fragment, useEffect, useMemo, useState } from "react"
 import { apiFetch } from "../api"
-
-type ScopeItem = {
-  scope: string
-  tier: "free" | "enterprise"
-}
+import { getUserFromToken } from "./jwt"
+import "../styles/ui.css"
 
 type ServiceAccount = {
   id: string
   service_name: string
-  service_id: string
   scopes: string[]
   enabled: boolean
   created_at?: any
 }
 
-function groupByPrefix(items: ScopeItem[]) {
+type ScopeItem = {
+  scope: string
+  description: string
+  tier: string
+  ui_group: string
+  order: number
+}
+
+function normalizeScopes(raw: unknown): ScopeItem[] {
+  if (!Array.isArray(raw)) return []
+
+  return raw
+    .map((s: any) => ({
+      scope: s.scope ?? "",
+      description: s.description ?? "",
+      tier: s.tier ?? "free",
+      ui_group: s.ui_group ?? "General",
+      order: s.order ?? 0,
+    }))
+    .filter((s) => s.scope)
+}
+
+function groupScopes(items: ScopeItem[]) {
   const groups: Record<string, ScopeItem[]> = {}
-  for (const it of items) {
-    const prefix = it.scope.split(":")[0] || "other"
-    if (!groups[prefix]) groups[prefix] = []
-    groups[prefix].push(it)
+
+  for (const s of items) {
+    const g = s.ui_group || "General"
+    if (!groups[g]) groups[g] = []
+    groups[g].push(s)
   }
-  for (const k of Object.keys(groups)) {
-    groups[k].sort((a, b) => a.scope.localeCompare(b.scope))
-  }
-  return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b))
+
+  return Object.entries(groups)
+    .map(([g, v]) => [g, v.sort((a, b) => a.order - b.order)] as const)
+    .sort(([a], [b]) => a.localeCompare(b))
 }
 
-function safeDateString(v: any) {
+function safeDate(v: any) {
   if (!v) return "-"
-  // If API returns a real ISO string, this works.
-  // If it returns a Mongo-ish object, this may still fail — keep it defensive.
-  try {
-    const d = new Date(v)
-    if (isNaN(d.getTime())) return String(v)
-    return d.toLocaleString()
-  } catch {
-    return String(v)
-  }
-}
-
-function authHeaders(token: string | null, extra?: Record<string, string>) {
-  if (!token) return extra || {}
-  return { Authorization: `Bearer ${token}`, ...(extra || {}) }
+  const d = new Date(v)
+  return isNaN(d.getTime()) ? String(v) : d.toLocaleString()
 }
 
 export default function ServiceAccountsPage() {
   const user = getUserFromToken()
   const token = localStorage.getItem("hb_token")
 
-  const [serviceName, setServiceName] = useState("")
-  const [allScopes, setAllScopes] = useState<ScopeItem[]>([])
-  const [selectedScopes, setSelectedScopes] = useState<string[]>([])
-
-  const [scopeOpen, setScopeOpen] = useState(false)
-  const [scopeSearch, setScopeSearch] = useState("")
-
   const [services, setServices] = useState<ServiceAccount[]>([])
-  const [loadingServices, setLoadingServices] = useState(false)
+  const [scopes, setScopes] = useState<ScopeItem[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const [createdToken, setCreatedToken] = useState<string | null>(null)
-  const [loadingCreate, setLoadingCreate] = useState(false)
+  const [expandedToken, setExpandedToken] = useState<string | null>(null)
+  const [tokenValue, setTokenValue] = useState<string | null>(null)
 
-  const [error, setError] = useState<string | null>(null)
+  const [expandedEditor, setExpandedEditor] = useState<string | null>(null)
 
-  // Manage existing service state
-  const [manageOpen, setManageOpen] = useState(false)
-  const [manageService, setManageService] = useState<ServiceAccount | null>(null)
-  const [manageSelected, setManageSelected] = useState<string[]>([])
-  const [manageSearch, setManageSearch] = useState("")
-  const [manageDropdownOpen, setManageDropdownOpen] = useState(false)
-  const [loadingManageAction, setLoadingManageAction] = useState(false)
+  const [serviceName, setServiceName] = useState("")
 
-  const dropdownRef = useRef<HTMLDivElement | null>(null)
-  const manageDropdownRef = useRef<HTMLDivElement | null>(null)
-
-  if (!user) return <div className="svc-error">Not authenticated</div>
-  if (user.role !== "admin") return <div className="svc-error">Admin access required</div>
-  if (!token) return <div className="svc-error">Missing token</div>
-
-  async function loadServices() {
-    try {
-      setLoadingServices(true)
-      const resp = await apiFetch(`/herringbone/auth/services`, {
-        headers: authHeaders(token),
-      })
-      if (!resp.ok) throw new Error(await resp.text())
-      const data = await resp.json()
-      setServices(data.services || [])
-    } catch (e: any) {
-      setError(e.message || "Failed to load services")
-    } finally {
-      setLoadingServices(false)
-    }
+  if (!user || !token) {
+    return <div className="hb-alert-error">Authentication required</div>
   }
 
-  async function loadScopes() {
-    try {
-      const resp = await apiFetch(`/herringbone/auth/scopes`, {
-        headers: authHeaders(token),
-      })
-      if (!resp.ok) throw new Error(await resp.text())
-      const data = await resp.json()
-      setAllScopes(data.scopes || [])
-    } catch (e: any) {
-      setError(e.message || "Failed to load scopes")
-    }
+  async function load() {
+    const [svcRes, scopeRes] = await Promise.all([
+      apiFetch("/herringbone/auth/services"),
+      apiFetch("/herringbone/auth/scopes"),
+    ])
+
+    const svc = await svcRes.json()
+    const scp = await scopeRes.json()
+
+    setServices(svc.services || [])
+    setScopes(normalizeScopes(scp.scopes))
+    setLoading(false)
   }
 
   useEffect(() => {
-    loadServices()
-    loadScopes()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    load()
   }, [])
-
-  // close dropdown on outside click
-  useEffect(() => {
-    function onDown(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setScopeOpen(false)
-      }
-      if (manageDropdownRef.current && !manageDropdownRef.current.contains(e.target as Node)) {
-        setManageDropdownOpen(false)
-      }
-    }
-    document.addEventListener("mousedown", onDown)
-    return () => document.removeEventListener("mousedown", onDown)
-  }, [])
-
-  function toggleScope(scope: string) {
-    setSelectedScopes(prev =>
-      prev.includes(scope) ? prev.filter(s => s !== scope) : [...prev, scope]
-    )
-  }
-
-  function removeSelected(scope: string) {
-    setSelectedScopes(prev => prev.filter(s => s !== scope))
-  }
-
-  function clearForm() {
-    setServiceName("")
-    setSelectedScopes([])
-    setScopeSearch("")
-    setCreatedToken(null)
-    setError(null)
-  }
-
-  const selectedCountLabel =
-    selectedScopes.length === 0 ? "Select scopes" : `${selectedScopes.length} selected`
-
-  const filteredScopes = useMemo(() => {
-    const q = scopeSearch.trim().toLowerCase()
-    if (!q) return allScopes
-    return allScopes.filter(s => s.scope.toLowerCase().includes(q))
-  }, [allScopes, scopeSearch])
-
-  const grouped = useMemo(() => groupByPrefix(filteredScopes), [filteredScopes])
-
-  const selectedAsItems = useMemo(() => {
-    const map = new Map(allScopes.map(s => [s.scope, s] as const))
-    return selectedScopes.map(s => map.get(s)).filter(Boolean) as ScopeItem[]
-  }, [allScopes, selectedScopes])
-
-  // Manage dropdown derived
-  const manageFilteredScopes = useMemo(() => {
-    const q = manageSearch.trim().toLowerCase()
-    if (!q) return allScopes
-    return allScopes.filter(s => s.scope.toLowerCase().includes(q))
-  }, [allScopes, manageSearch])
-
-  const manageGrouped = useMemo(
-    () => groupByPrefix(manageFilteredScopes),
-    [manageFilteredScopes]
-  )
-
-  const manageSelectedItems = useMemo(() => {
-    const map = new Map(allScopes.map(s => [s.scope, s] as const))
-    return manageSelected.map(s => map.get(s)).filter(Boolean) as ScopeItem[]
-  }, [allScopes, manageSelected])
-
-  function openManage(service: ServiceAccount) {
-    setError(null)
-    setCreatedToken(null)
-    setManageService(service)
-    setManageSelected(service.scopes ? [...service.scopes] : [])
-    setManageSearch("")
-    setManageDropdownOpen(false)
-    setManageOpen(true)
-  }
-
-  function closeManage() {
-    setManageOpen(false)
-    setManageService(null)
-    setManageSelected([])
-    setManageSearch("")
-    setManageDropdownOpen(false)
-    setLoadingManageAction(false)
-  }
-
-  function toggleManageScope(scope: string) {
-    setManageSelected(prev =>
-      prev.includes(scope) ? prev.filter(s => s !== scope) : [...prev, scope]
-    )
-  }
-
-  function removeManageSelected(scope: string) {
-    setManageSelected(prev => prev.filter(s => s !== scope))
-  }
 
   async function createService() {
-    setError(null)
-    setCreatedToken(null)
-    setLoadingCreate(true)
+    if (!serviceName) return
 
-    try {
-      const r1 = await apiFetch(`/herringbone/auth/services/register`, {
-        method: "POST",
-        headers: authHeaders(token, { "Content-Type": "application/json" }),
-        body: JSON.stringify({ service_name: serviceName, scopes: selectedScopes }),
-      })
-      if (!r1.ok) throw new Error(await r1.text())
+    const res = await apiFetch("/herringbone/auth/services/register", {
+      method: "POST",
+      body: JSON.stringify({
+        service_name: serviceName,
+        scopes: [],
+      }),
+    })
 
-      const r2 = await apiFetch(`/herringbone/auth/service-token`, {
-        method: "POST",
-        headers: authHeaders(token, { "Content-Type": "application/json" }),
-        body: JSON.stringify({ service: serviceName, scopes: selectedScopes }),
-      })
-      if (!r2.ok) throw new Error(await r2.text())
+    if (!res.ok) return alert("Create failed")
 
-      const data = await r2.json()
-      setCreatedToken(data.access_token)
-
-      setServiceName("")
-      setSelectedScopes([])
-      setScopeSearch("")
-      await loadServices()
-    } catch (e: any) {
-      setError(e.message || "Failed to create service")
-    } finally {
-      setLoadingCreate(false)
-    }
-  }
-
-  async function generateTokenForService(service: ServiceAccount) {
-    setError(null)
-    setCreatedToken(null)
-
-    try {
-      const resp = await apiFetch(`/herringbone/auth/service-token`, {
-        method: "POST",
-        headers: authHeaders(token, { "Content-Type": "application/json" }),
-        body: JSON.stringify({ service: service.service_name, scopes: service.scopes }),
-      })
-      if (!resp.ok) throw new Error(await resp.text())
-      const data = await resp.json()
-      setCreatedToken(data.access_token)
-    } catch (e: any) {
-      setError(e.message || "Failed to generate token")
-    }
+    setServiceName("")
+    load()
   }
 
   async function deleteService(service: ServiceAccount) {
-    setError(null)
-    setCreatedToken(null)
+    if (!confirm(`Delete ${service.service_name}?`)) return
 
-    const ok = window.confirm(
-      `Delete service "${service.service_name}"?\n\nThis removes the service account record. Any already-issued tokens will still validate until expiry unless you implement token revocation.`
-    )
-    if (!ok) return
+    const res = await apiFetch(`/herringbone/auth/services/${service.service_name}`, {
+      method: "DELETE",
+    })
 
-    try {
-      const resp = await apiFetch(
-        `/herringbone/auth/services/${encodeURIComponent(service.service_name)}`,
-        {
-          method: "DELETE",
-          headers: authHeaders(token),
-        }
-      )
-      if (!resp.ok) throw new Error(await resp.text())
-      await loadServices()
-      if (manageService?.service_name === service.service_name) closeManage()
-    } catch (e: any) {
-      setError(e.message || "Failed to delete service")
-    }
+    if (!res.ok) return alert("Delete failed")
+
+    load()
   }
 
-  async function applyScopeChanges() {
-    if (!manageService) return
-
-    setError(null)
-    setCreatedToken(null)
-    setLoadingManageAction(true)
-
-    try {
-      const current = new Set(manageService.scopes || [])
-      const desired = new Set(manageSelected)
-
-      const toAdd: string[] = []
-      const toRemove: string[] = []
-
-      for (const s of desired) if (!current.has(s)) toAdd.push(s)
-      for (const s of current) if (!desired.has(s)) toRemove.push(s)
-
-      // Add first
-      if (toAdd.length > 0) {
-        const rAdd = await apiFetch(`/herringbone/auth/services/scopes/add`, {
-          method: "POST",
-          headers: authHeaders(token, { "Content-Type": "application/json" }),
-          body: JSON.stringify({ service_name: manageService.service_name, scopes: toAdd }),
-        })
-        if (!rAdd.ok) throw new Error(await rAdd.text())
-      }
-
-      // Remove
-      if (toRemove.length > 0) {
-        const rRem = await apiFetch(`/herringbone/auth/services/scopes/remove`, {
-          method: "POST",
-          headers: authHeaders(token, { "Content-Type": "application/json" }),
-          body: JSON.stringify({ service_name: manageService.service_name, scopes: toRemove }),
-        })
-        if (!rRem.ok) throw new Error(await rRem.text())
-      }
-
-      await loadServices()
-
-      // Refresh manageService from updated list (so generate-token uses updated scopes)
-      // const updated = services.find(s => s.service_name === manageService.service_name)
-      // services state may be stale until loadServices resolves; do a lightweight refetch
-      const resp = await apiFetch(`/herringbone/auth/services`, {
-        headers: authHeaders(token),
-      })
-      if (resp.ok) {
-        const data = await resp.json()
-        const list = (data.services || []) as ServiceAccount[]
-        setServices(list)
-        const u = list.find(s => s.service_name === manageService.service_name) || null
-        setManageService(u)
-        if (u) setManageSelected(u.scopes ? [...u.scopes] : [])
-      }
-    } catch (e: any) {
-      setError(e.message || "Failed to update scopes")
-    } finally {
-      setLoadingManageAction(false)
+  async function generateToken(service: ServiceAccount) {
+    if (expandedToken === service.id) {
+      setExpandedToken(null)
+      setTokenValue(null)
+      return
     }
-  }
 
-  async function generateTokenFromManage() {
-    if (!manageService) return
-    setError(null)
-    setCreatedToken(null)
+    const res = await apiFetch("/herringbone/auth/service-token", {
+      method: "POST",
+      body: JSON.stringify({
+        service: service.service_name,
+        scopes: service.scopes,
+      }),
+    })
 
-    try {
-      const resp = await apiFetch(`/herringbone/auth/service-token`, {
-        method: "POST",
-        headers: authHeaders(token, { "Content-Type": "application/json" }),
-        body: JSON.stringify({
-          service: manageService.service_name,
-          scopes: manageSelected,
-        }),
-      })
-      if (!resp.ok) throw new Error(await resp.text())
-      const data = await resp.json()
-      setCreatedToken(data.access_token)
-    } catch (e: any) {
-      setError(e.message || "Failed to generate token")
-    }
+    if (!res.ok) return alert("Token generation failed")
+
+    const data = await res.json()
+
+    setExpandedToken(service.id)
+    setTokenValue(data.access_token)
+    setExpandedEditor(null)
   }
 
   return (
-    <div className="svc-page">
-      <div className="svc-header">
-        <div>
-          <h1 className="svc-title">Service Accounts</h1>
-          <div className="svc-subtitle">
-            Register service identities and generate scoped tokens.
-          </div>
+    <div className="hb-page" style={{ width: "100%", maxWidth: "none" }}>
+      <div className="hb-header">
+        <h1 className="hb-title">Service Accounts</h1>
+        <div className="hb-subtitle">
+          Internal identities used by Herringbone services
         </div>
+      </div>
 
-        <div className="svc-actions">
-          <button className="svc-secondary" onClick={loadServices} disabled={loadingServices}>
-            Refresh
+      <div className="hb-card" style={{ marginBottom: 20 }}>
+        <div className="hb-card-title">Create Service Account</div>
+
+        <div style={{ display: "flex", gap: 12 }}>
+          <input
+            className="hb-input"
+            placeholder="parser-extractor"
+            value={serviceName}
+            onChange={(e) => setServiceName(e.target.value)}
+          />
+
+          <button className="hb-button-primary" onClick={createService}>
+            Create
           </button>
         </div>
       </div>
 
-      <div className="svc-card">
-        <div className="svc-card-title">Create service</div>
+      <div className="hb-card">
+        <div className="hb-card-title">Services</div>
 
-        <div className="svc-fields">
-          <div className="svc-field">
-            <label className="svc-label">Service name</label>
-            <input
-              className="svc-input"
-              value={serviceName}
-              onChange={e => setServiceName(e.target.value)}
-              placeholder="e.g. parser-extractor"
-            />
-          </div>
-
-          <div className="svc-field svc-scope-select" ref={dropdownRef}>
-            <label className="svc-label">Scopes</label>
-
-            <button
-              type="button"
-              className="svc-scope-button"
-              onClick={() => setScopeOpen(v => !v)}
-            >
-              <span>{selectedCountLabel}</span>
-              <span className="svc-caret" aria-hidden="true">
-                ▾
-              </span>
-            </button>
-
-            {selectedAsItems.length > 0 && (
-              <div className="svc-chips">
-                {selectedAsItems
-                  .slice()
-                  .sort((a, b) => a.scope.localeCompare(b.scope))
-                  .map(s => (
-                    <button
-                      type="button"
-                      key={s.scope}
-                      className="svc-chip"
-                      onClick={() => removeSelected(s.scope)}
-                      title="Remove"
-                    >
-                      <span className="svc-chip-text">{s.scope}</span>
-                      <span className={`svc-chip-tier ${s.tier}`}>{s.tier}</span>
-                      <span className="svc-chip-x">×</span>
-                    </button>
-                  ))}
-              </div>
-            )}
-
-            {scopeOpen && (
-              <div className="svc-scope-dropdown" role="listbox">
-                <div className="svc-scope-top">
-                  <input
-                    className="svc-scope-search"
-                    placeholder="Search scopes..."
-                    value={scopeSearch}
-                    onChange={e => setScopeSearch(e.target.value)}
-                    autoFocus
-                  />
-                </div>
-
-                <div className="svc-scope-list">
-                  {grouped.map(([group, items]) => (
-                    <div key={group} className="svc-scope-group">
-                      <div className="svc-scope-group-title">{group}</div>
-
-                      {items.map(it => (
-                        <label key={it.scope} className="svc-scope-item">
-                          <input
-                            type="checkbox"
-                            checked={selectedScopes.includes(it.scope)}
-                            onChange={() => toggleScope(it.scope)}
-                          />
-                          <span className="svc-scope-text">{it.scope}</span>
-                          <span className={`svc-tier-badge ${it.tier}`}>{it.tier}</span>
-                        </label>
-                      ))}
-                    </div>
-                  ))}
-
-                  {filteredScopes.length === 0 && (
-                    <div className="svc-empty">No matching scopes</div>
-                  )}
-                </div>
-
-                <div className="svc-scope-footer">
-                  <button
-                    type="button"
-                    className="svc-link"
-                    onClick={() => setSelectedScopes([])}
-                  >
-                    Clear selected
-                  </button>
-                  <button type="button" className="svc-link" onClick={() => setScopeOpen(false)}>
-                    Done
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="svc-actions">
-          <button
-            className="svc-primary"
-            onClick={createService}
-            disabled={loadingCreate || !serviceName}
-          >
-            {loadingCreate ? "Creating..." : "Create service"}
-          </button>
-
-          <button type="button" className="svc-secondary" onClick={clearForm}>
-            Clear
-          </button>
-        </div>
-
-        {error && <div className="svc-error svc-error-card">{error}</div>}
-
-        {createdToken && (
-          <div className="svc-token-box">
-            <div className="svc-token-title">Service token</div>
-            <div className="svc-token-subtitle">Copy now. This won’t be shown again.</div>
-
-            <pre className="svc-token-pre">{createdToken}</pre>
-
-            <div className="svc-actions">
-              <button className="svc-secondary" onClick={() => navigator.clipboard.writeText(createdToken)}>
-                Copy token
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Manage panel */}
-      {manageOpen && manageService && (
-        <div className="svc-card" style={{ marginTop: 16 }}>
-          <div className="svc-card-title">Manage service: <span className="svc-mono">{manageService.service_name}</span></div>
-
-          <div className="svc-fields">
-            <div className="svc-field">
-              <label className="svc-label">Current scopes</label>
-              <div className="svc-muted svc-mono" style={{ lineHeight: 1.6 }}>
-                {(manageService.scopes || []).join(", ") || "-"}
-              </div>
-            </div>
-
-            <div className="svc-field svc-scope-select" ref={manageDropdownRef}>
-              <label className="svc-label">Edit scopes</label>
-
-              <button
-                type="button"
-                className="svc-scope-button"
-                onClick={() => setManageDropdownOpen(v => !v)}
-              >
-                <span>
-                  {manageSelected.length === 0 ? "Select scopes" : `${manageSelected.length} selected`}
-                </span>
-                <span className="svc-caret" aria-hidden="true">
-                  ▾
-                </span>
-              </button>
-
-              {manageSelectedItems.length > 0 && (
-                <div className="svc-chips">
-                  {manageSelectedItems
-                    .slice()
-                    .sort((a, b) => a.scope.localeCompare(b.scope))
-                    .map(s => (
-                      <button
-                        type="button"
-                        key={s.scope}
-                        className="svc-chip"
-                        onClick={() => removeManageSelected(s.scope)}
-                        title="Remove"
-                      >
-                        <span className="svc-chip-text">{s.scope}</span>
-                        <span className={`svc-chip-tier ${s.tier}`}>{s.tier}</span>
-                        <span className="svc-chip-x">×</span>
-                      </button>
-                    ))}
-                </div>
-              )}
-
-              {manageDropdownOpen && (
-                <div className="svc-scope-dropdown" role="listbox">
-                  <div className="svc-scope-top">
-                    <input
-                      className="svc-scope-search"
-                      placeholder="Search scopes..."
-                      value={manageSearch}
-                      onChange={e => setManageSearch(e.target.value)}
-                      autoFocus
-                    />
-                  </div>
-
-                  <div className="svc-scope-list">
-                    {manageGrouped.map(([group, items]) => (
-                      <div key={group} className="svc-scope-group">
-                        <div className="svc-scope-group-title">{group}</div>
-
-                        {items.map(it => (
-                          <label key={it.scope} className="svc-scope-item">
-                            <input
-                              type="checkbox"
-                              checked={manageSelected.includes(it.scope)}
-                              onChange={() => toggleManageScope(it.scope)}
-                            />
-                            <span className="svc-scope-text">{it.scope}</span>
-                            <span className={`svc-tier-badge ${it.tier}`}>{it.tier}</span>
-                          </label>
-                        ))}
-                      </div>
-                    ))}
-
-                    {manageFilteredScopes.length === 0 && (
-                      <div className="svc-empty">No matching scopes</div>
-                    )}
-                  </div>
-
-                  <div className="svc-scope-footer">
-                    <button
-                      type="button"
-                      className="svc-link"
-                      onClick={() => setManageSelected([])}
-                    >
-                      Clear selected
-                    </button>
-                    <button type="button" className="svc-link" onClick={() => setManageDropdownOpen(false)}>
-                      Done
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="svc-actions">
-            <button
-              className="svc-primary"
-              onClick={applyScopeChanges}
-              disabled={loadingManageAction}
-            >
-              {loadingManageAction ? "Saving..." : "Save scopes"}
-            </button>
-
-            <button
-              className="svc-secondary"
-              onClick={generateTokenFromManage}
-              disabled={loadingManageAction}
-            >
-              Generate token (selected scopes)
-            </button>
-
-            <button className="svc-secondary" onClick={closeManage} disabled={loadingManageAction}>
-              Close
-            </button>
-
-            <button
-              className="svc-btn-small"
-              onClick={() => deleteService(manageService)}
-              disabled={loadingManageAction}
-              style={{ marginLeft: "auto" }}
-            >
-              Delete service
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="svc-section">
-        <div className="svc-section-title">Registered services</div>
-
-        {loadingServices ? (
-          <div className="svc-muted">Loading services...</div>
+        {loading ? (
+          <div className="hb-empty">Loading...</div>
         ) : (
-          <table className="svc-table">
-            <thead>
-              <tr>
-                <th>Service</th>
-                <th>Scopes</th>
-                <th>Enabled</th>
-                <th>Created</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {services.map(s => (
-                <tr key={s.id}>
-                  <td className="svc-mono">{s.service_name}</td>
-                  <td className="svc-mono">{(s.scopes || []).join(", ") || "-"}</td>
-                  <td>{s.enabled ? "Yes" : "No"}</td>
-                  <td>{safeDateString(s.created_at)}</td>
-                  <td style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <button className="svc-btn-small" onClick={() => generateTokenForService(s)}>
-                      Generate token
-                    </button>
-                    <button className="svc-btn-small" onClick={() => openManage(s)}>
-                      Manage
-                    </button>
-                    <button className="svc-btn-small" onClick={() => deleteService(s)}>
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-
-              {services.length === 0 && (
+          <div className="hb-table-wrapper">
+            <table className="hb-table">
+              <thead>
                 <tr>
-                  <td colSpan={5} className="svc-empty">
-                    No services registered
-                  </td>
+                  <th>Service</th>
+                  <th>Scopes</th>
+                  <th>Enabled</th>
+                  <th>Created</th>
+                  <th style={{ width: 240 }}>Actions</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+
+              <tbody>
+                {services.map((svc) => (
+                  <Fragment key={svc.id}>
+                    <tr>
+                      <td className="hb-mono">{svc.service_name}</td>
+
+                      <td>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          {svc.scopes.map((s) => (
+                            <span key={s} className="hb-scope-chip">
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+
+                      <td>{svc.enabled ? "Yes" : "No"}</td>
+                      <td>{safeDate(svc.created_at)}</td>
+
+                      <td>
+                        <div style={{ display: "flex", gap: 10 }}>
+                          <button
+                            className="hb-button"
+                            onClick={() => generateToken(svc)}
+                          >
+                            Token
+                          </button>
+
+                          <button
+                            className="hb-button"
+                            onClick={() =>
+                              setExpandedEditor(
+                                expandedEditor === svc.id ? null : svc.id
+                              )
+                            }
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            className="hb-button-danger"
+                            onClick={() => deleteService(svc)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    {expandedToken === svc.id && tokenValue && (
+                      <tr>
+                        <td colSpan={5}>
+                          <div
+                            style={{
+                              background: "#020617",
+                              border: "1px solid #1f2937",
+                              padding: 16,
+                              borderRadius: 8,
+                            }}
+                          >
+                            <pre
+                              style={{
+                                whiteSpace: "pre-wrap",
+                                wordBreak: "break-all",
+                                color: "#93c5fd",
+                                margin: 0,
+                              }}
+                            >
+{tokenValue}
+                            </pre>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+
+                    {expandedEditor === svc.id && (
+                      <ServiceEditorRow
+                        service={svc}
+                        scopes={scopes}
+                        onCancel={() => setExpandedEditor(null)}
+                        onSaved={() => {
+                          setExpandedEditor(null)
+                          load()
+                        }}
+                      />
+                    )}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
+  )
+}
+
+function ServiceEditorRow({
+  service,
+  scopes,
+  onCancel,
+  onSaved,
+}: {
+  service: ServiceAccount
+  scopes: ScopeItem[]
+  onCancel: () => void
+  onSaved: () => void
+}) {
+  const [selected, setSelected] = useState<string[]>(service.scopes)
+  const grouped = useMemo(() => groupScopes(scopes), [scopes])
+
+  function toggle(scope: string) {
+    setSelected((s) =>
+      s.includes(scope) ? s.filter((x) => x !== scope) : [...s, scope]
+    )
+  }
+
+  async function save() {
+    const res = await apiFetch("/herringbone/auth/services/scopes/set", {
+      method: "POST",
+      body: JSON.stringify({
+        service_name: service.service_name,
+        scopes: selected,
+      }),
+    })
+
+    if (!res.ok) return alert("Failed to update scopes")
+
+    onSaved()
+  }
+
+  return (
+    <tr>
+      <td colSpan={5}>
+        <div
+          style={{
+            background: "#020617",
+            border: "1px solid #1f2937",
+            padding: 16,
+            borderRadius: 8,
+          }}
+        >
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontWeight: 600 }}>
+              Edit scopes for <span className="hb-mono">{service.service_name}</span>
+            </div>
+            <div className="hb-subtitle">
+              Select permissions for this service
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gap: 18 }}>
+            {grouped.map(([group, items]) => (
+              <div key={group}>
+                <div className="hb-subtitle" style={{ marginBottom: 8 }}>
+                  {group}
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))",
+                    gap: 8,
+                  }}
+                >
+                  {items.map((item) => {
+                    const active = selected.includes(item.scope)
+
+                    return (
+                      <button
+                        key={item.scope}
+                        type="button"
+                        onClick={() => toggle(item.scope)}
+                        style={{
+                          textAlign: "left",
+                          padding: "10px 12px",
+                          borderRadius: 8,
+                          background: active ? "#1e3a8a" : "#0f172a",
+                          border: active
+                            ? "1px solid #2563eb"
+                            : "1px solid #1e293b",
+                        }}
+                      >
+                        <div className="hb-mono">{item.scope}</div>
+
+                        <div style={{ fontSize: 12, opacity: 0.75 }}>
+                          {item.description}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 20, display: "flex", gap: 10 }}>
+            <button className="hb-button-primary" onClick={save}>
+              Save
+            </button>
+
+            <button className="hb-button-secondary" onClick={onCancel}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      </td>
+    </tr>
   )
 }

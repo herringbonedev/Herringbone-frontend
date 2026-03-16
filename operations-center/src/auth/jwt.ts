@@ -1,7 +1,7 @@
 export type UserInfo = {
   id: string
-  email: string
-  role: string
+  email?: string
+  scopes: string[]
 }
 
 export function getUserFromToken(): UserInfo | null {
@@ -16,7 +16,7 @@ export function getUserFromToken(): UserInfo | null {
     return {
       id: data.sub,
       email: data.email,
-      role: data.role,
+      scopes: data.scopes || [],
     }
   } catch {
     return null
