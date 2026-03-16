@@ -1,72 +1,242 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { getUserFromToken } from "./jwt"
+import "../styles/ui.css"
+
+function decodeToken(token: string | null) {
+  if (!token) return null
+  try {
+    const payload = token.split(".")[1]
+    return JSON.parse(atob(payload))
+  } catch {
+    return null
+  }
+}
+
+function formatTime(ts?: number) {
+  if (!ts) return "-"
+  const d = new Date(ts * 1000)
+  if (isNaN(d.getTime())) return "-"
+  return d.toLocaleString()
+}
+
+function copy(text?: string) {
+  if (!text) return
+  navigator.clipboard.writeText(text)
+}
 
 export default function UserProfilePage() {
+
   const [showToken, setShowToken] = useState(false)
 
   const user = getUserFromToken()
   const token = localStorage.getItem("hb_token")
 
+  const payload = useMemo(() => decodeToken(token), [token])
+
+  function logout() {
+    localStorage.removeItem("hb_token")
+    window.location.href = "/login"
+  }
+
   return (
-    <div style={{ padding: 24 }}>
-      <h2>User Profile</h2>
+    <div className="hb-page">
 
-      {!user && (
-        <pre style={{ color: "red" }}>
-          Not authenticated
-        </pre>
-      )}
+      <div className="hb-header">
+        <h1 className="hb-title">User Profile</h1>
+        <div className="hb-subtitle">
+          Account identity and session information
+        </div>
+      </div>
 
-      {user && (
-        <>
-          <pre
-            style={{
-              marginTop: 12,
-              padding: 12,
-              background: "#0b0e14",
-              border: "1px solid #333",
-              borderRadius: 6,
-              color: "#e5e7eb",
-              overflow: "auto",
-            }}
-          >
-{JSON.stringify(user, null, 2)}
-          </pre>
+      <div className="hb-card">
 
-          <div style={{ marginTop: 16 }}>
-            <button
-              onClick={() => setShowToken(v => !v)}
-              style={{
-                padding: "6px 10px",
-                borderRadius: 4,
-                border: "1px solid #333",
-                background: "transparent",
-                color: "inherit",
-                cursor: "pointer",
-              }}
-            >
-              {showToken ? "Hide token" : "Show token"}
-            </button>
+        {!user && (
+          <div className="hb-alert-error">
+            Not authenticated
           </div>
+        )}
 
-          {showToken && token && (
-            <pre
+        {user && (
+          <>
+
+            {/* Identity Header */}
+
+            <div
               style={{
-                marginTop: 12,
-                padding: 12,
-                background: "#020617",
-                border: "1px solid #333",
-                borderRadius: 6,
-                color: "#93c5fd",
-                overflow: "auto",
-                wordBreak: "break-all",
+                display: "flex",
+                alignItems: "center",
+                gap: 16,
+                marginBottom: 24
               }}
             >
+
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: "50%",
+                  background: "#1e293b",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 600,
+                  fontSize: 18
+                }}
+              >
+                {user.email?.[0]?.toUpperCase()}
+              </div>
+
+              <div>
+                <div style={{ fontWeight: 600 }}>
+                  {user.email}
+                </div>
+
+                <div className="hb-subtitle">
+                  User ID {user.id}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Identity Info */}
+
+            <div className="hb-profile-grid">
+
+              <div className="hb-profile-row">
+                <div className="hb-profile-label">Email</div>
+                <div className="hb-profile-value hb-mono">
+                  {user.email}
+
+                  <button
+                    className="hb-button-secondary"
+                    style={{ marginLeft: 10 }}
+                    onClick={() => copy(user.email)}
+                  >
+                    Copy
+                  </button>
+
+                </div>
+              </div>
+
+              <div className="hb-profile-row">
+                <div className="hb-profile-label">User ID</div>
+                <div className="hb-profile-value hb-mono">
+                  {user.id}
+
+                  <button
+                    className="hb-button-secondary"
+                    style={{ marginLeft: 10 }}
+                    onClick={() => copy(user.id)}
+                  >
+                    Copy
+                  </button>
+
+                </div>
+              </div>
+
+              {payload?.context_id && (
+                <div className="hb-profile-row">
+                  <div className="hb-profile-label">Context</div>
+                  <div className="hb-profile-value">
+                    {payload.context_id}
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            <div className="hb-section-divider" />
+
+            {/* Session Info */}
+
+            {payload && (
+
+              <div className="hb-profile-grid">
+
+                <div className="hb-profile-row">
+                  <div className="hb-profile-label">Issuer</div>
+                  <div className="hb-profile-value">
+                    {payload.iss || "-"}
+                  </div>
+                </div>
+
+                <div className="hb-profile-row">
+                  <div className="hb-profile-label">Issued</div>
+                  <div className="hb-profile-value">
+                    {formatTime(payload.iat)}
+                  </div>
+                </div>
+
+                <div className="hb-profile-row">
+                  <div className="hb-profile-label">Expires</div>
+                  <div className="hb-profile-value">
+                    {formatTime(payload.exp)}
+                  </div>
+                </div>
+
+              </div>
+
+            )}
+
+            <div className="hb-section-divider" />
+
+            {/* Actions */}
+
+            <div className="hb-actions">
+
+              <button
+                className="hb-button-secondary"
+                onClick={() => setShowToken(v => !v)}
+              >
+                {showToken ? "Hide Token" : "Show Token"}
+              </button>
+
+              <button
+                className="hb-button-danger"
+                onClick={logout}
+              >
+                Logout
+              </button>
+
+            </div>
+
+            {/* Token */}
+
+            {showToken && token && (
+
+              <div>
+
+                <div
+                  style={{
+                    marginTop: 12,
+                    marginBottom: 6,
+                    fontSize: 12,
+                    color: "#f59e0b"
+                  }}
+                >
+                  Warning: This token grants API access. Do not share it.
+                </div>
+
+                <pre className="hb-code-block">
 {token}
-            </pre>
-          )}
-        </>
-      )}
+                </pre>
+
+                <button
+                  className="hb-button-secondary"
+                  onClick={() => copy(token)}
+                >
+                  Copy Token
+                </button>
+
+              </div>
+
+            )}
+
+          </>
+        )}
+
+      </div>
+
     </div>
   )
 }
