@@ -28,5 +28,11 @@ export function useRuleSetApi() {
 		if (!res.ok) throw new Error(await res.text())
 	}
 
-	return { getRules, insertRule, updateRule, deleteRule }
+	const importRules = async (rules: any[]) => {
+		for (const rule of rules) {
+			await insertRule(rule)
+		}
+	}
+
+	return { getRules, insertRule, updateRule, deleteRule, importRules }
 }

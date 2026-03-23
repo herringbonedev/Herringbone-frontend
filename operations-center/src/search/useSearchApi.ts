@@ -15,14 +15,6 @@ async function safeReadJson(res: Response) {
   return JSON.parse(trimmed)
 }
 
-function authHeaders(extra?: Record<string, string>) {
-  const token = localStorage.getItem("hb_token")
-  return {
-    Authorization: `Bearer ${token}`,
-    ...(extra || {}),
-  }
-}
-
 export function useSearchApi() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -74,12 +66,13 @@ export function useSearchApi() {
         if (res.status === 401) {
           throw new Error("Unauthorized – please log in again")
         }
-        throw new Error(data?.detail || `HTTP ${res.status}`)
+        throw new Error((data as any)?.detail || `HTTP ${res.status}`)
       }
 
       return data as SearchResponse
-    } catch (err: any) {
-      setError(err.message || "Search failed")
+    } catch (err) {
+      const e = err as Error
+      setError(e.message || "Search failed")
       throw err
     } finally {
       setLoading(false)

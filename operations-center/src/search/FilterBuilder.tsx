@@ -1,4 +1,3 @@
-
 import type { SchemaField } from "./useSearchSchema"
 
 export type FilterRow = {
@@ -41,7 +40,7 @@ export function FilterBuilder({ fields, value, onChange }: Props) {
 
         const isNumber = field?.types.includes("number")
         const isEnum =
-          field?.types.includes("string") && Array.isArray(field.enum)
+          field?.types.includes("string") && Array.isArray(field?.enum)
 
         const canShowValue = !!row.field && (isNumber || isEnum)
 
@@ -141,7 +140,7 @@ export function FilterBuilder({ fields, value, onChange }: Props) {
                 }
               >
                 <option value="">Value…</option>
-                {field!.enum.map(v => (
+                {(field?.enum ?? []).map((v: string) => (
                   <option key={v} value={v}>
                     {v}
                   </option>

@@ -35,8 +35,9 @@ export default function RuleSetPage() {
 			setSelected(null)
 			setDraft(null)
 			load()
-		} catch (e: any) {
-			alert(e.message || "Save failed")
+		} catch (e) {
+			const err = e as Error
+			alert(err.message || "Save failed")
 		}
 	}
 
@@ -56,8 +57,9 @@ export default function RuleSetPage() {
 			}
 
 			load()
-		} catch (e: any) {
-			alert(e.message || "Delete failed")
+		} catch (e) {
+			const err = e as Error
+			alert(err.message || "Delete failed")
 		}
 	}
 
@@ -68,7 +70,13 @@ export default function RuleSetPage() {
 		try {
 			const text = await file.text()
 			const parsed = JSON.parse(text)
-			await api.importRules(parsed)
+
+			if (Array.isArray(parsed) && api.importRules) {
+				await api.importRules(parsed)
+			} else {
+				throw new Error("Invalid rule pack")
+			}
+
 			await load()
 			e.target.value = ""
 			setSelected(null)
