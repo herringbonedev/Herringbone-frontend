@@ -43,7 +43,7 @@ function redirectToLogin() {
   }, 0)
 }
 
-async function requestContextToken(context: string, loginToken: string): Promise<string> {
+async function requestContextToken(context: string, loginToken: string): Promise<string | null> {
   const res = await fetch("/herringbone/auth/context-token", {
     method: "POST",
     headers: {
@@ -51,46 +51,56 @@ async function requestContextToken(context: string, loginToken: string): Promise
       "X-Context-Id": context,
     },
   })
+
   if (res.status === 401) {
     throw new Error("Session expired")
   }
+
   if (res.status === 403 || res.status === 404) {
-    localStorage.removeItem(CTX_TOKEN_KEY)
-    throw new Error("Forbidden")
+    return null
   }
+
   if (!res.ok) {
-    throw new Error("Failed to obtain context token")
+    return null
   }
+
   const data = await res.json()
   const token = data.access_token || data.token
-  if (!token) {
-    throw new Error("Missing context token")
-  }
+
+  if (!token) return null
+
   localStorage.setItem(CTX_TOKEN_KEY, token)
   return token
 }
 
 async function ensureContextToken(forceRefresh = false): Promise<string | null> {
   const context = getContext()
-  if (!context) return null
   const loginToken = getToken()
+
   if (!loginToken) return null
+  if (!context) return loginToken
+
   if (forceRefresh) {
     localStorage.removeItem(CTX_TOKEN_KEY)
   } else {
     const existing = getContextToken()
     if (existing) return existing
   }
+
   if (contextTokenPromise) {
     return contextTokenPromise
   }
+
   contextTokenPromise = (async () => {
     try {
-      return await requestContextToken(context, loginToken)
+      const ctxToken = await requestContextToken(context, loginToken)
+      if (!ctxToken) return loginToken
+      return ctxToken
     } finally {
       contextTokenPromise = null
     }
   })()
+
   return contextTokenPromise
 }
 
@@ -127,7 +137,7 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     ...options,
     headers: buildHeaders(path, options, token),
   })
-  if (res.status === 401 && context && !baseTokenMode) {
+  if (res.status === 401 && !baseTokenMode) {
     try {
       const retryToken = await ensureContextToken(true)
       if (retryToken) {
@@ -147,7 +157,7 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     throw new Error("Session expired")
   }
   if (res.status === 403) {
-    throw new Error("Forbidden")
+    return res
   }
   return res
 }
