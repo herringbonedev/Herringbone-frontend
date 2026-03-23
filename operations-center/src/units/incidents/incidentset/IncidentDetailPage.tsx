@@ -3,7 +3,7 @@ import { useIncidentDetail } from "./useIncidentDetail"
 import { useIncidentEvents } from "./eventsApi"
 import { addIncidentNote, updateIncident } from "./incidentApi"
 import { useState, useEffect } from "react"
-import { apiFetch } from "../../../api"
+import { apiFetch, getActiveToken } from "../../../api"
 import "./incidents.css"
 
 type TeamUser = {
@@ -16,7 +16,7 @@ function fmt(ts: string) {
 }
 
 function getCurrentUserEmail(): string {
-  const token = localStorage.getItem("hb_token")
+  const token = getActiveToken()
   if (!token) return "unknown"
 
   try {
@@ -54,9 +54,7 @@ export default function IncidentDetailPage() {
   const [note, setNote] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [updating, setUpdating] = useState(false)
-
   const [owner, setOwner] = useState("")
-
   const [users, setUsers] = useState<TeamUser[]>([])
   const [usersLoading, setUsersLoading] = useState(true)
 
@@ -76,20 +74,13 @@ export default function IncidentDetailPage() {
   }, [incident?.owner])
 
   useEffect(() => {
-    const token = localStorage.getItem("hb_token")
-    if (!token) {
-      setUsersLoading(false)
-      return
-    }
-
-    apiFetch(`/herringbone/auth/users`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then(res => res.json())
-      .then(data => {
-        setUsers(data.users || [])
+    apiFetch("/herringbone/auth/users")
+      .then(async (res) => {
+        if (!res.ok) return { users: [] }
+        return res.json()
+      })
+      .then((data) => {
+        setUsers(Array.isArray(data.users) ? data.users : [])
       })
       .catch(() => {})
       .finally(() => setUsersLoading(false))
@@ -116,7 +107,7 @@ export default function IncidentDetailPage() {
     setSubmitting(true)
     try {
       const author = getCurrentUserEmail()
-	  await addIncidentNote(i._id, author, note.trim())
+      await addIncidentNote(i._id, author, note.trim())
       setNote("")
       await reload()
     } finally {
@@ -134,7 +125,7 @@ export default function IncidentDetailPage() {
             className="incident-pill priority"
             value={i.priority ?? "low"}
             disabled={updating}
-            onChange={e => updateField("priority", e.target.value)}
+            onChange={(e) => updateField("priority", e.target.value)}
           >
             <option value="low">Low</option>
             <option value="medium">Medium</option>
@@ -146,7 +137,7 @@ export default function IncidentDetailPage() {
             className="incident-pill status"
             value={i.status ?? "open"}
             disabled={updating}
-            onChange={e => updateField("status", e.target.value)}
+            onChange={(e) => updateField("status", e.target.value)}
           >
             <option value="open">Open</option>
             <option value="investigating">Investigating</option>
@@ -157,7 +148,7 @@ export default function IncidentDetailPage() {
             className="incident-pill owner"
             value={owner}
             disabled={updating || usersLoading}
-            onChange={e => {
+            onChange={(e) => {
               const val = e.target.value
               setOwner(val)
               updateField("owner", val || null)
@@ -165,7 +156,7 @@ export default function IncidentDetailPage() {
           >
             <option value="">Unassigned</option>
 
-            {users.map(u => (
+            {users.map((u) => (
               <option key={u.email} value={u.email}>
                 {u.email} ({u.role})
               </option>
@@ -183,7 +174,7 @@ export default function IncidentDetailPage() {
           )}
 
           <div className="indicator-table">
-            {indicators.map(ind => (
+            {indicators.map((ind) => (
               <div key={ind.key} className="indicator-row">
                 <div className="indicator-key">{ind.key}</div>
                 <div className="indicator-values">
@@ -204,7 +195,7 @@ export default function IncidentDetailPage() {
           )}
 
           <div className="mono-list">
-            {relatedEvents.map(ev => (
+            {relatedEvents.map((ev) => (
               <div key={ev._id} className="event-row">
                 <span className="event-id">{ev._id}</span>
                 {ev.state?.severity !== null &&
@@ -221,31 +212,31 @@ export default function IncidentDetailPage() {
         <div className="incident-panel">
           <div className="section-title">Notes</div>
 
-          {i.notes.length === 0 && (
-            <div className="empty">No notes yet</div>
-          )}
-
           <div className="note-list">
-            {i.notes.map((n, idx) => (
+            {(i.notes ?? []).length === 0 && (
+              <div className="empty">No notes yet</div>
+            )}
+
+            {(i.notes ?? []).map((n: any, idx: number) => (
               <div key={idx} className="note-item">
                 <div className="note-meta">
                   <span>{n.author}</span>
                   <span>{fmt(n.timestamp)}</span>
                 </div>
-                <div className="note-body">{n.message}</div>
+                <div className="note-body">{n.note}</div>
               </div>
             ))}
           </div>
 
-          <div className="note-input">
+          <div className="note-editor">
             <textarea
               value={note}
-              onChange={e => setNote(e.target.value)}
-              rows={2}
-              placeholder="Add analyst note…"
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Add investigation notes"
             />
-            <button onClick={submitNote} disabled={submitting}>
-              {submitting ? "Adding…" : "Add"}
+
+            <button disabled={submitting} onClick={submitNote}>
+              {submitting ? "Saving..." : "Add Note"}
             </button>
           </div>
         </div>

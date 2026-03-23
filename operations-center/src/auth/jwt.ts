@@ -1,3 +1,5 @@
+import { getActiveToken, getToken } from "../api"
+
 export type UserInfo = {
   id: string
   email?: string
@@ -35,7 +37,7 @@ export function isJwtExpired(token: string | null): boolean {
 }
 
 export function getUserFromToken(): UserInfo | null {
-  const data = parseJwt(localStorage.getItem("hb_token"))
+  const data = parseJwt(getActiveToken() || getToken())
   if (!data?.sub) return null
 
   return {
