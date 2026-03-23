@@ -3,34 +3,8 @@ import { useEffect, useState } from "react"
 import type { NavItem } from "./navigation/types"
 import { coreNav } from "./navigation/coreNav"
 import { loadNavExtensions } from "./navigation/loadNavExtensions"
-
-type UserInfo = {
-  id: string
-  email: string
-}
-
-function getUserFromToken(): UserInfo | null {
-  const token = localStorage.getItem("hb_token")
-  if (!token) return null
-
-  try {
-    const [, payload] = token.split(".")
-    const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"))
-    const data = JSON.parse(json)
-
-    if (data.exp && Date.now() >= data.exp * 1000) {
-      localStorage.removeItem("hb_token")
-      return null
-    }
-
-    return {
-      id: data.sub,
-      email: data.email,
-    }
-  } catch {
-    return null
-  }
-}
+import { clearToken } from "./api"
+import { getUserFromToken, type UserInfo } from "./auth/jwt"
 
 function App() {
   const navigate = useNavigate()
@@ -38,7 +12,11 @@ function App() {
   const [navItems, setNavItems] = useState<NavItem[]>(coreNav)
 
   useEffect(() => {
-    setUser(getUserFromToken())
+    function refreshUser() {
+      setUser(getUserFromToken())
+    }
+
+    refreshUser()
 
     async function loadNav() {
       const extra = await loadNavExtensions()
@@ -51,10 +29,17 @@ function App() {
     }
 
     loadNav()
+    window.addEventListener("storage", refreshUser)
+    window.addEventListener("hb-context-changed", refreshUser)
+
+    return () => {
+      window.removeEventListener("storage", refreshUser)
+      window.removeEventListener("hb-context-changed", refreshUser)
+    }
   }, [])
 
   function logout() {
-    localStorage.removeItem("hb_token")
+    clearToken()
     setUser(null)
     navigate("/login", { replace: true })
   }

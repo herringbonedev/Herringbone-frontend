@@ -40,13 +40,7 @@ export type IncidentThroughputPoint = {
 }
 
 function authapiFetch(url: string) {
-  const token = localStorage.getItem("hb_token")
-
-  return apiFetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
+  return apiFetch(url)
 }
 
 export function useDashboardApi() {

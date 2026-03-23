@@ -7,30 +7,12 @@ export function useCardsetApi() {
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 
-	const getAuthHeaders = () => {
-	const token = localStorage.getItem("hb_token")
-
-	if (!token) {
-		console.error("No auth token in localStorage")
-		throw new Error("Not authenticated")
-	}
-
-		return {
-			"Content-Type": "application/json",
-			"Authorization": `Bearer ${token}`,
-		}
-	}
-
 	const loadCards = async () => {
 		setLoading(true)
 		setError(null)
 		try {
-			const res = await apiFetch(`/parser/cardset/pull_all_cards`, {
-				headers: getAuthHeaders(),
-			})
-
+			const res = await apiFetch(`/parser/cardset/pull_all_cards`)
 			if (!res.ok) throw new Error(`HTTP ${res.status}`)
-
 			const data = await res.json()
 			if (data?.ok && Array.isArray(data.cards)) {
 				setCards(data.cards)
@@ -55,41 +37,29 @@ export function useCardsetApi() {
 	}
 
 	const saveCard = async (card: Card) => {
-		const payload = sanitize(card)
-
 		await apiFetch(`/parser/cardset/insert_card`, {
 			method: "POST",
-			headers: getAuthHeaders(),
-			body: JSON.stringify(payload),
+			body: JSON.stringify(sanitize(card)),
 		})
-
 		await loadCards()
 	}
 
 	const updateCard = async (card: Card) => {
-		const payload = sanitize(card)
-
 		await apiFetch(`/parser/cardset/update_card`, {
 			method: "POST",
-			headers: getAuthHeaders(),
-			body: JSON.stringify(payload),
+			body: JSON.stringify(sanitize(card)),
 		})
-
 		await loadCards()
 	}
 
 	const deleteCard = async (card: Card) => {
-		const payload = {
-			selector_type: card.selector.type,
-			selector_value: card.selector.value,
-		}
-
 		await apiFetch(`/parser/cardset/delete_cards`, {
 			method: "POST",
-			headers: getAuthHeaders(),
-			body: JSON.stringify(payload),
+			body: JSON.stringify({
+				selector_type: card.selector.type,
+				selector_value: card.selector.value,
+			}),
 		})
-
 		await loadCards()
 	}
 

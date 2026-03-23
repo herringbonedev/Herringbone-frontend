@@ -27,7 +27,17 @@ export function safeDateString(v: any) {
   }
 }
 
+const CTX_KEY = "hb_context_id"
+
 export function authHeaders(token: string | null, extra?: Record<string, string>) {
-  if (!token) return extra || {}
-  return { Authorization: `Bearer ${token}`, ...(extra || {}) }
+  const ctx = localStorage.getItem(CTX_KEY)
+
+  const headers: Record<string, string> = {
+    ...(extra || {})
+  }
+
+  if (token) headers["Authorization"] = `Bearer ${token}`
+  if (ctx) headers["X-Herringbone-Context"] = ctx
+
+  return headers
 }

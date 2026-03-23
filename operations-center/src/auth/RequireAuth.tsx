@@ -1,26 +1,18 @@
 import { Navigate, useLocation } from "react-router-dom"
 import type { ReactNode } from "react"
+import { clearToken, getToken } from "../api"
+import { isJwtExpired } from "./jwt"
 
 type Props = {
   children: ReactNode
 }
 
-function isTokenExpired(token: string): boolean {
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]))
-    return Date.now() >= payload.exp * 1000
-  } catch {
-    return true
-  }
-}
-
 export default function RequireAuth({ children }: Props) {
   const location = useLocation()
+  const token = getToken()
 
-  const token = localStorage.getItem("hb_token")
-
-  if (!token || isTokenExpired(token)) {
-    localStorage.removeItem("hb_token")
+  if (!token || isJwtExpired(token)) {
+    clearToken()
     return <Navigate to="/login" replace state={{ from: location }} />
   }
 
