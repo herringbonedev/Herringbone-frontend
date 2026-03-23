@@ -2,9 +2,13 @@ import { Fragment, useEffect, useMemo, useState } from "react"
 import { apiFetch } from "../api"
 import "../styles/ui.css"
 
+const CTX_KEY = "hb_context_id"
+
 type TeamUser = {
   email: string
-  scopes: string[]
+  scopes: string[]          // effective scopes (always safe)
+  global_scopes?: string[]  // optional
+  org_scopes?: string[]     // optional
 }
 
 type ScopeItem = {
@@ -93,7 +97,9 @@ export default function TeamsPage() {
       <div className="hb-header">
         <div>
           <h1 className="hb-title">Team</h1>
-          <div className="hb-subtitle">Users and permissions for this workspace</div>
+          <div className="hb-subtitle">
+            Users and permissions for this workspace
+          </div>
         </div>
       </div>
 
@@ -204,7 +210,9 @@ function UsersSection({
                   user={user}
                   expanded={expandedUser === user.email}
                   onEdit={() =>
-                    setExpandedUser((v) => (v === user.email ? null : user.email))
+                    setExpandedUser((v) =>
+                      v === user.email ? null : user.email
+                    )
                   }
                   onDeleted={() => {
                     if (expandedUser === user.email) setExpandedUser(null)
@@ -299,7 +307,15 @@ function UserEditorRow({
   onCancel: () => void
   onSaved: () => void
 }) {
-  const [selectedScopes, setSelectedScopes] = useState<string[]>(user.scopes)
+  const contextId = localStorage.getItem(CTX_KEY)
+
+  const initialScopes =
+    contextId && user.org_scopes
+      ? user.org_scopes
+      : user.global_scopes || user.scopes
+
+  const [selectedScopes, setSelectedScopes] =
+    useState<string[]>(initialScopes)
 
   const grouped = useMemo(() => groupScopes(scopes), [scopes])
 
@@ -310,11 +326,14 @@ function UserEditorRow({
   }
 
   async function save() {
+    const contextId = localStorage.getItem(CTX_KEY)
+
     const res = await apiFetch("/herringbone/auth/users/scopes", {
       method: "POST",
       body: JSON.stringify({
         email: user.email,
         scopes: selectedScopes,
+        context_id: contextId || null,
       }),
     })
 
@@ -340,8 +359,15 @@ function UserEditorRow({
         >
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontWeight: 600 }}>
-              Edit scopes for <span className="hb-mono">{user.email}</span>
+              Edit scopes for{" "}
+              <span className="hb-mono">{user.email}</span>
             </div>
+
+            {contextId && (
+              <div className="hb-subtitle">
+                Organization-scoped permissions
+              </div>
+            )}
           </div>
 
           {grouped.map(([group, items]) => (
@@ -353,7 +379,8 @@ function UserEditorRow({
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+                  gridTemplateColumns:
+                    "repeat(auto-fill, minmax(260px, 1fr))",
                   gap: 8,
                 }}
               >
@@ -383,7 +410,9 @@ function UserEditorRow({
                           marginBottom: 4,
                         }}
                       >
-                        <span className="hb-mono">{item.scope}</span>
+                        <span className="hb-mono">
+                          {item.scope}
+                        </span>
 
                         {item.tier === "enterprise" && (
                           <span
@@ -414,7 +443,10 @@ function UserEditorRow({
               Save
             </button>
 
-            <button className="hb-button-secondary" onClick={onCancel}>
+            <button
+              className="hb-button-secondary"
+              onClick={onCancel}
+            >
               Cancel
             </button>
           </div>

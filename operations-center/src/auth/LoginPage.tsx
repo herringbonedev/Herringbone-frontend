@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import type { FormEvent } from "react"
-import { apiFetch } from "../api"
+import { apiFetch, clearContextState } from "../api"
 import "../styles/ui.css"
 
 export default function LoginPage() {
@@ -21,6 +21,8 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
+      clearContextState()
+
       const res = await apiFetch("/herringbone/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
@@ -32,11 +34,11 @@ export default function LoginPage() {
       }
 
       const data = await res.json()
-
       const token = data.access_token
       if (!token) throw new Error("Missing token")
 
       localStorage.setItem("hb_token", token)
+      window.dispatchEvent(new Event("hb-context-changed"))
       navigate(from, { replace: true })
     } catch (err: any) {
       setError(err.message || "Login failed")

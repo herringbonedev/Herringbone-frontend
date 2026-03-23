@@ -62,9 +62,9 @@ export function useSearchApi() {
       const res = await apiFetch(
         `/herringbone/search/${collection}?${params.toString()}`,
         {
-          headers: authHeaders({
+          headers: {
             Accept: "application/json",
-          }),
+          },
         }
       )
 

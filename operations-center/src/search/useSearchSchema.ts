@@ -1,23 +1,8 @@
 import { useEffect, useState } from "react"
 import { apiFetch } from "../api"
 
-export type SchemaField = {
-  path: string
-  types: string[]
-  examples: any[]
-  enum: string[]
-}
-
-function authHeaders(extra?: Record<string, string>) {
-  const token = localStorage.getItem("hb_token")
-  return {
-    Authorization: `Bearer ${token}`,
-    ...(extra || {}),
-  }
-}
-
 export function useSearchSchema(collection: string) {
-  const [fields, setFields] = useState<SchemaField[]>([])
+  const [fields, setFields] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -29,25 +14,9 @@ export function useSearchSchema(collection: string) {
       setError(null)
 
       try {
-        const res = await apiFetch(
-          `/herringbone/search/${collection}/schema`,
-          {
-            headers: authHeaders({
-              Accept: "application/json",
-            }),
-          }
-        )
-
-        const text = await res.text()
-        const data = text.trim() ? JSON.parse(text) : null
-
-        if (!res.ok) {
-          if (res.status === 401) {
-            throw new Error("Unauthorized – please log in again")
-          }
-          throw new Error(data?.detail || `HTTP ${res.status}`)
-        }
-
+        const res = await apiFetch(`/herringbone/search/${collection}/schema`)
+        const data = await res.json()
+        if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`)
         if (!cancelled) setFields(data.fields || [])
       } catch (e: any) {
         if (!cancelled) setError(e.message || "Schema load failed")
@@ -57,9 +26,7 @@ export function useSearchSchema(collection: string) {
     }
 
     load()
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [collection])
 
   return { fields, loading, error }
