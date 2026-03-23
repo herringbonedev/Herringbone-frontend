@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react"
 import { apiFetch } from "../api"
 
+export type SchemaField = {
+  path: string
+  types: string[]
+  enum?: string[]
+}
+
 export function useSearchSchema(collection: string) {
-  const [fields, setFields] = useState<any[]>([])
+  const [fields, setFields] = useState<SchemaField[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -17,9 +23,21 @@ export function useSearchSchema(collection: string) {
         const res = await apiFetch(`/herringbone/search/${collection}/schema`)
         const data = await res.json()
         if (!res.ok) throw new Error(data?.detail || `HTTP ${res.status}`)
-        if (!cancelled) setFields(data.fields || [])
-      } catch (e: any) {
-        if (!cancelled) setError(e.message || "Schema load failed")
+
+        const normalized: SchemaField[] = (data.fields || []).map((f: any) => ({
+          path: f.path || f.name || "",
+          types: Array.isArray(f.types)
+            ? f.types
+            : f.type
+              ? [f.type]
+              : [],
+          enum: Array.isArray(f.enum) ? f.enum : undefined,
+        }))
+
+        if (!cancelled) setFields(normalized)
+      } catch (e) {
+        const err = e as Error
+        if (!cancelled) setError(err.message || "Schema load failed")
       } finally {
         if (!cancelled) setLoading(false)
       }
