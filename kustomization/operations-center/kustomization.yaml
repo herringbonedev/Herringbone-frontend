@@ -1,7 +1,7 @@
 images:
   - name: quay.io/herringbone/operations-center
-    newTag: sha-df59a3d9
-    digest: "sha256:9f95a13bb3d87533ae4ff931a0d3c85e238fed0d3b1fbd5c7d65ba95e986dbc0"
+    newTag: sha-75579238
+    digest: "sha256:00e12c006d054fa86f017bc5544999ef766f4f7eb1c8ee1a60dcf7887ee9cede"
 resources:
   - deployment.yaml
   - service.yaml
