@@ -49,6 +49,14 @@ function useBaseToken(path: string): boolean {
   )
 }
 
+function redirectToLogin() {
+  console.warn("[HB API] redirectToLogin")
+
+  if (window.location.pathname === "/login") return
+  setTimeout(() => {
+    window.location.replace("/login")
+  }, 0)
+}
 
 async function requestContextToken(context: string, loginToken: string): Promise<string | null> {
   log("requestContextToken", context)
@@ -165,18 +173,10 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     }
   }
 
-  if (res.status === 401 && !baseTokenMode) {
-    console.warn("[HB API] retrying with fresh context token")
-
-    const retryToken = await ensureContextToken(true)
-
-    if (retryToken) {
-      res = await fetch(path, {
-        ...options,
-        body,
-        headers: buildHeaders(path, retryToken, !!body),
-      })
-    }
+  if (res.status === 401) {
+    clearToken()
+    redirectToLogin()
+    throw new Error("Session expired")
   }
 
   if (res.status === 403) {

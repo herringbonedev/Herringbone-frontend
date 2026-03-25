@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react"
-import { clearToken, getActiveToken } from "../api"
 import { getUserFromToken } from "./jwt"
 import "../styles/ui.css"
 
@@ -26,18 +25,22 @@ function copy(text?: string) {
 }
 
 export default function UserProfilePage() {
+
   const [showToken, setShowToken] = useState(false)
+
   const user = getUserFromToken()
-  const token = getActiveToken()
+  const token = localStorage.getItem("hb_token")
+
   const payload = useMemo(() => decodeToken(token), [token])
 
   function logout() {
-    clearToken()
+    localStorage.removeItem("hb_token")
     window.location.href = "/login"
   }
 
   return (
     <div className="hb-page">
+
       <div className="hb-header">
         <h1 className="hb-title">User Profile</h1>
         <div className="hb-subtitle">
@@ -46,6 +49,7 @@ export default function UserProfilePage() {
       </div>
 
       <div className="hb-card">
+
         {!user && (
           <div className="hb-alert-error">
             Not authenticated
@@ -54,14 +58,18 @@ export default function UserProfilePage() {
 
         {user && (
           <>
+
+            {/* Identity Header */}
+
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: 16,
-                marginBottom: 24,
+                marginBottom: 24
               }}
             >
+
               <div
                 style={{
                   width: 48,
@@ -72,7 +80,7 @@ export default function UserProfilePage() {
                   alignItems: "center",
                   justifyContent: "center",
                   fontWeight: 600,
-                  fontSize: 18,
+                  fontSize: 18
                 }}
               >
                 {user.email?.[0]?.toUpperCase()}
@@ -87,9 +95,13 @@ export default function UserProfilePage() {
                   User ID {user.id}
                 </div>
               </div>
+
             </div>
 
+            {/* Identity Info */}
+
             <div className="hb-profile-grid">
+
               <div className="hb-profile-row">
                 <div className="hb-profile-label">Email</div>
                 <div className="hb-profile-value hb-mono">
@@ -102,6 +114,7 @@ export default function UserProfilePage() {
                   >
                     Copy
                   </button>
+
                 </div>
               </div>
 
@@ -117,6 +130,7 @@ export default function UserProfilePage() {
                   >
                     Copy
                   </button>
+
                 </div>
               </div>
 
@@ -124,45 +138,55 @@ export default function UserProfilePage() {
                 <div className="hb-profile-row">
                   <div className="hb-profile-label">Context</div>
                   <div className="hb-profile-value">
-                    {String(payload.context_id)}
+                    {payload.context_id}
                   </div>
                 </div>
               )}
+
             </div>
 
             <div className="hb-section-divider" />
 
+            {/* Session Info */}
+
             {payload && (
+
               <div className="hb-profile-grid">
+
                 <div className="hb-profile-row">
                   <div className="hb-profile-label">Issuer</div>
                   <div className="hb-profile-value">
-                    {typeof payload.iss === "string" ? payload.iss : "-"}
+                    {payload.iss || "-"}
                   </div>
                 </div>
 
                 <div className="hb-profile-row">
                   <div className="hb-profile-label">Issued</div>
                   <div className="hb-profile-value">
-                    {formatTime(typeof payload.iat === "number" ? payload.iat : undefined)}
+                    {formatTime(payload.iat)}
                   </div>
                 </div>
 
                 <div className="hb-profile-row">
                   <div className="hb-profile-label">Expires</div>
                   <div className="hb-profile-value">
-                    {formatTime(typeof payload.exp === "number" ? payload.exp : undefined)}
+                    {formatTime(payload.exp)}
                   </div>
                 </div>
+
               </div>
+
             )}
 
             <div className="hb-section-divider" />
 
+            {/* Actions */}
+
             <div className="hb-actions">
+
               <button
                 className="hb-button-secondary"
-                onClick={() => setShowToken((v) => !v)}
+                onClick={() => setShowToken(v => !v)}
               >
                 {showToken ? "Hide Token" : "Show Token"}
               </button>
@@ -173,16 +197,21 @@ export default function UserProfilePage() {
               >
                 Logout
               </button>
+
             </div>
 
+            {/* Token */}
+
             {showToken && token && (
+
               <div>
+
                 <div
                   style={{
                     marginTop: 12,
                     marginBottom: 6,
                     fontSize: 12,
-                    color: "#f59e0b",
+                    color: "#f59e0b"
                   }}
                 >
                   Warning: This token grants API access. Do not share it.
@@ -198,11 +227,16 @@ export default function UserProfilePage() {
                 >
                   Copy Token
                 </button>
+
               </div>
+
             )}
+
           </>
         )}
+
       </div>
+
     </div>
   )
 }

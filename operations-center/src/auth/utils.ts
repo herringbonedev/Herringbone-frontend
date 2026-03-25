@@ -1,5 +1,3 @@
-import { getActiveToken, getContextId } from "../api"
-
 export type ScopeItem = {
   scope: string
   tier: "free" | "enterprise"
@@ -29,16 +27,17 @@ export function safeDateString(v: any) {
   }
 }
 
-export function authHeaders(token?: string | null, extra?: Record<string, string>) {
+const CTX_KEY = "hb_context_id"
+
+export function authHeaders(token: string | null, extra?: Record<string, string>) {
+  const ctx = localStorage.getItem(CTX_KEY)
+
   const headers: Record<string, string> = {
-    ...(extra || {}),
+    ...(extra || {})
   }
 
-  const authToken = token === undefined ? getActiveToken() : token
-  const ctx = getContextId()
-
-  if (authToken) headers.Authorization = `Bearer ${authToken}`
-  if (ctx) headers["X-Context-Id"] = ctx
+  if (token) headers["Authorization"] = `Bearer ${token}`
+  if (ctx) headers["X-Herringbone-Context"] = ctx
 
   return headers
 }
