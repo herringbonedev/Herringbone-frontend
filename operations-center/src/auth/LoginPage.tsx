@@ -48,7 +48,7 @@ export default function LoginPage() {
       <div className="hb-login-container">
         <form onSubmit={submit} className="hb-card hb-login-card">
           <div className="hb-card-title">Sign In</div>
-          <div className="hb-subtitle">Herringbone Operations Center</div>
+          <div className="hb-subtitle">rev1: Herringbone Operations Center</div>
           {error && <div className="hb-alert-error">{error}</div>}
           <div className="hb-form">
             <input className="hb-input" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />

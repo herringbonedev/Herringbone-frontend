@@ -1,4 +1,9 @@
+<<<<<<< HEAD
 const TOKEN_KEY = "hb_token"
+=======
+import { pushNotification } from "./notifications"
+
+>>>>>>> c46d298 (update)
 const CTX_KEY = "hb_context_id"
 const CTX_TOKEN_KEY = "hb_context_token"
 
@@ -53,6 +58,10 @@ function tokenContextId(token: string | null): string | null {
 function clearInflightContextRequest() {
   contextTokenPromise = null
   contextTokenPromiseContext = null
+}
+
+function log(...args: any[]) {
+  console.log("[HB API]", ...args)
 }
 
 export function getToken(): string | null {
@@ -113,6 +122,7 @@ export function getActiveToken(): string | null {
 }
 
 export function clearToken() {
+<<<<<<< HEAD
   removeStorage(TOKEN_KEY)
   removeStorage(CTX_TOKEN_KEY)
   removeStorage(CTX_KEY)
@@ -125,37 +135,61 @@ export function clearContextState() {
   removeStorage(CTX_KEY)
   clearInflightContextRequest()
   dispatchContextChanged()
+=======
+  console.error("[HB API] CLEAR TOKEN CALLED")
+  console.trace()
+
+  localStorage.removeItem("hb_token")
+  localStorage.removeItem(CTX_TOKEN_KEY)
+  localStorage.removeItem(CTX_KEY)
+  contextTokenPromise = null
+  window.dispatchEvent(new Event("hb-context-changed"))
+}
+
+export function clearContextState() {
+  console.warn("[HB API] clearContextState")
+
+  localStorage.removeItem(CTX_TOKEN_KEY)
+  localStorage.removeItem(CTX_KEY)
+  contextTokenPromise = null
+  window.dispatchEvent(new Event("hb-context-changed"))
+}
+
+function getContext(): string | null {
+  return localStorage.getItem(CTX_KEY)
+>>>>>>> c46d298 (update)
 }
 
 function useBaseToken(path: string): boolean {
-  return path === "/herringbone/auth/login" || path === "/herringbone/auth/context-token" || path === "/herringbone/auth/enterprise/me"
-}
-
-function redirectToLogin() {
-  if (window.location.pathname === "/login") return
-  setTimeout(() => {
-    if (window.location.pathname !== "/login") {
-      window.location.replace("/login")
-    }
-  }, 0)
+  return (
+    path === "/herringbone/auth/login" ||
+    path === "/herringbone/auth/context-token" ||
+    path === "/herringbone/auth/enterprise/me"
+  )
 }
 
 async function requestContextToken(context: string, loginToken: string): Promise<string | null> {
+  log("requestContextToken", context)
+
   const res = await fetch("/herringbone/auth/context-token", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${loginToken}`,
-      "X-Context-Id": context,
+      "X-Herringbone-Context": context,
+      "Content-Type": "application/json",
     },
+    body: JSON.stringify({ context_id: context }),
   })
 
-  if (res.status === 401) {
-    throw new Error("Session expired")
-  }
+  log("context-token status", res.status)
 
+<<<<<<< HEAD
   if (!res.ok) {
     return null
   }
+=======
+  if (!res.ok) return null
+>>>>>>> c46d298 (update)
 
   const data = await res.json()
   const token = data.access_token || data.token
@@ -178,6 +212,7 @@ async function ensureContextToken(forceRefresh = false): Promise<string | null> 
     const existing = getContextToken()
     if (existing) return existing
   } else {
+<<<<<<< HEAD
     removeStorage(CTX_TOKEN_KEY)
   }
 
@@ -197,12 +232,29 @@ async function ensureContextToken(forceRefresh = false): Promise<string | null> 
       clearInflightContextRequest()
     }
   })()
+=======
+    localStorage.removeItem(CTX_TOKEN_KEY)
+  }
+
+  if (contextTokenPromise) return contextTokenPromise
+
+  contextTokenPromise = requestContextToken(context, loginToken)
+    .catch(() => null)
+    .finally(() => {
+      contextTokenPromise = null
+    })
+>>>>>>> c46d298 (update)
 
   return contextTokenPromise
 }
 
+<<<<<<< HEAD
 function buildHeaders(path: string, options: RequestInit, token: string | null) {
   const headers = new Headers(options.headers || undefined)
+=======
+function buildHeaders(path: string, token: string | null, hasBody: boolean) {
+  const headers: Record<string, string> = {}
+>>>>>>> c46d298 (update)
 
   if (token) {
     headers.set("Authorization", `Bearer ${token}`)
@@ -210,6 +262,7 @@ function buildHeaders(path: string, options: RequestInit, token: string | null) 
     headers.delete("Authorization")
   }
 
+<<<<<<< HEAD
   const context = getContextId()
   if (context && !useBaseToken(path)) {
     headers.set("X-Context-Id", context)
@@ -221,14 +274,37 @@ function buildHeaders(path: string, options: RequestInit, token: string | null) 
     headers.set("Content-Type", "application/json")
   }
 
+=======
+  if (hasBody) {
+    headers["Content-Type"] = "application/json"
+  }
+
+  if (!useBaseToken(path)) {
+    const ctx = getContext()
+    if (ctx) {
+      headers["X-Herringbone-Context"] = ctx
+    }
+  }
+
+>>>>>>> c46d298 (update)
   return headers
 }
 
 export async function apiFetch(path: string, options: RequestInit = {}) {
+<<<<<<< HEAD
   const context = getContextId()
   const baseTokenMode = useBaseToken(path)
 
   let token: string | null
+=======
+  log("apiFetch", path)
+
+  const context = getContext()
+  const baseTokenMode = useBaseToken(path)
+
+  let token: string | null = null
+
+>>>>>>> c46d298 (update)
   if (baseTokenMode) {
     token = getToken()
   } else if (context) {
@@ -244,11 +320,22 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     token = getToken()
   }
 
+<<<<<<< HEAD
+=======
+  // 🔥 CRITICAL FIX: ALWAYS serialize body correctly
+  let body = options.body
+  if (body && typeof body !== "string") {
+    body = JSON.stringify(body)
+  }
+
+>>>>>>> c46d298 (update)
   let res = await fetch(path, {
     ...options,
-    headers: buildHeaders(path, options, token),
+    body,
+    headers: buildHeaders(path, token, !!body),
   })
 
+<<<<<<< HEAD
   if (res.status === 401 && !baseTokenMode && context) {
     try {
       const retryToken = await ensureContextToken(true)
@@ -270,5 +357,51 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     throw new Error("Session expired")
   }
 
+=======
+  log("response", path, res.status)
+
+  if (res.status === 401 && !baseTokenMode) {
+    const retryToken = await ensureContextToken(true)
+
+    if (retryToken) {
+      res = await fetch(path, {
+        ...options,
+        body,
+        headers: buildHeaders(path, retryToken, !!body),
+      })
+    }
+  }
+
+  if (res.status === 401 && !baseTokenMode) {
+    console.warn("[HB API] retrying with fresh context token")
+
+    const retryToken = await ensureContextToken(true)
+
+    if (retryToken) {
+      res = await fetch(path, {
+        ...options,
+        body,
+        headers: buildHeaders(path, retryToken, !!body),
+      })
+    }
+  }
+
+  if (res.status === 403) {
+    let message = "Insufficient permissions"
+
+    try {
+      const data = await res.clone().json()
+      if (data?.detail) message = data.detail
+    } catch {}
+
+    pushNotification({
+      type: "error",
+      message,
+    })
+
+    return res
+  }
+
+>>>>>>> c46d298 (update)
   return res
 }
