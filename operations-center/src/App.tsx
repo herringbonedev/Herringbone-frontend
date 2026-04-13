@@ -10,10 +10,18 @@ function App() {
   const navigate = useNavigate()
   const [user, setUser] = useState<UserInfo | null>(null)
   const [navItems, setNavItems] = useState<NavItem[]>(coreNav)
+  const [contextVersion, setContextVersion] = useState(0)
 
   useEffect(() => {
     function refreshUser() {
       setUser(getUserFromToken())
+    }
+
+    function handleContextChange() {
+      console.log("[HB] context changed → reloading app")
+
+      refreshUser()
+      setContextVersion((v) => v + 1)
     }
 
     refreshUser()
@@ -29,12 +37,13 @@ function App() {
     }
 
     loadNav()
+
     window.addEventListener("storage", refreshUser)
-    window.addEventListener("hb-context-changed", refreshUser)
+    window.addEventListener("hb-context-changed", handleContextChange)
 
     return () => {
       window.removeEventListener("storage", refreshUser)
-      window.removeEventListener("hb-context-changed", refreshUser)
+      window.removeEventListener("hb-context-changed", handleContextChange)
     }
   }, [])
 
@@ -45,7 +54,7 @@ function App() {
   }
 
   return (
-    <div>
+    <div key={contextVersion}>
       <div
         style={{
           display: "flex",

@@ -9,6 +9,15 @@ function log(...args: any[]) {
   console.log("[HB API]", ...args)
 }
 
+function decode(token: string | null): any | null {
+  if (!token) return null
+  try {
+    return JSON.parse(atob(token.split(".")[1]))
+  } catch {
+    return null
+  }
+}
+
 export function getToken(): string | null {
   return localStorage.getItem("hb_token")
 }
@@ -91,10 +100,23 @@ async function ensureContextToken(forceRefresh = false): Promise<string | null> 
   if (!loginToken) return null
   if (!context) return loginToken
 
-  if (!forceRefresh) {
-    const existing = getContextToken()
-    if (existing) return existing
-  } else {
+  const existing = getContextToken()
+
+  if (!forceRefresh && existing) {
+    const decoded = decode(existing)
+    if (decoded?.context_id === context) {
+      return existing
+    }
+
+    console.warn("[HB API] context mismatch → dropping stale token", {
+      token_context: decoded?.context_id,
+      current_context: context,
+    })
+
+    localStorage.removeItem(CTX_TOKEN_KEY)
+  }
+
+  if (forceRefresh) {
     localStorage.removeItem(CTX_TOKEN_KEY)
   }
 
@@ -142,12 +164,22 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     token = getToken()
   } else if (context) {
     token = await ensureContextToken()
-    if (!token) token = getToken()
+
+    if (!token) {
+      console.warn("[HB API] no context token → forcing refresh")
+
+      await ensureContextToken(true)
+      token = getContextToken()
+
+      if (!token) {
+        console.error("[HB API] failed to obtain context token → blocking request")
+        throw new Error("Context not ready")
+      }
+    }
   } else {
     token = getToken()
   }
 
-  // 🔥 CRITICAL FIX: ALWAYS serialize body correctly
   let body = options.body
   if (body && typeof body !== "string") {
     body = JSON.stringify(body)
@@ -162,6 +194,8 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
   log("response", path, res.status)
 
   if (res.status === 401 && !baseTokenMode) {
+    console.warn("[HB API] retrying with fresh context token")
+
     const retryToken = await ensureContextToken(true)
 
     if (retryToken) {
@@ -174,9 +208,20 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
   }
 
   if (res.status === 401) {
-    clearToken()
-    redirectToLogin()
-    throw new Error("Session expired")
+    if (baseTokenMode) {
+      console.error("[HB API] BASE TOKEN INVALID → logging out")
+
+      clearToken()
+      redirectToLogin()
+      throw new Error("Session expired")
+    }
+
+    console.warn("[HB API] 401 on non-base request → not logging out", {
+      path,
+      context,
+    })
+
+    return res
   }
 
   if (res.status === 403) {
@@ -197,3 +242,8 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
 
   return res
 }
+
+window.addEventListener("hb-context-changed", () => {
+  console.log("[HB API] context changed → clearing token cache")
+  contextTokenPromise = null
+})
