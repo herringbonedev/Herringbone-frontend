@@ -74,7 +74,6 @@ async function requestContextToken(context: string, loginToken: string): Promise
     method: "POST",
     headers: {
       Authorization: `Bearer ${loginToken}`,
-      "X-Herringbone-Context": context,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ context_id: context }),
@@ -88,6 +87,16 @@ async function requestContextToken(context: string, loginToken: string): Promise
   const token = data.access_token || data.token
 
   if (!token) return null
+
+  const decoded = decode(token)
+
+  if (decoded?.context_id !== context) {
+    console.error("[HB API] received context token for wrong context", {
+      expected_context: context,
+      token_context: decoded?.context_id,
+    })
+    return null
+  }
 
   localStorage.setItem(CTX_TOKEN_KEY, token)
   return token
@@ -104,6 +113,7 @@ async function ensureContextToken(forceRefresh = false): Promise<string | null> 
 
   if (!forceRefresh && existing) {
     const decoded = decode(existing)
+
     if (decoded?.context_id === context) {
       return existing
     }
@@ -131,23 +141,44 @@ async function ensureContextToken(forceRefresh = false): Promise<string | null> 
   return contextTokenPromise
 }
 
-function buildHeaders(path: string, token: string | null, hasBody: boolean) {
-  const headers: Record<string, string> = {}
+function hasJsonBody(body: BodyInit | null | undefined): boolean {
+  if (!body) return false
+  if (typeof body === "string") return true
+  if (body instanceof FormData) return false
+  if (body instanceof URLSearchParams) return false
+  if (body instanceof Blob) return false
+  if (body instanceof ArrayBuffer) return false
+  return true
+}
+
+function normalizeBody(body: BodyInit | null | undefined): BodyInit | null | undefined {
+  if (!body) return body
+  if (typeof body === "string") return body
+  if (body instanceof FormData) return body
+  if (body instanceof URLSearchParams) return body
+  if (body instanceof Blob) return body
+  if (body instanceof ArrayBuffer) return body
+  return JSON.stringify(body)
+}
+
+function buildHeaders(
+  path: string,
+  token: string | null,
+  body: BodyInit | null | undefined,
+  existingHeaders?: HeadersInit,
+) {
+  const headers = new Headers(existingHeaders || {})
 
   if (token) {
-    headers.Authorization = `Bearer ${token}`
+    headers.set("Authorization", `Bearer ${token}`)
   }
 
-  if (hasBody) {
-    headers["Content-Type"] = "application/json"
+  if (hasJsonBody(body) && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json")
   }
 
-  if (!useBaseToken(path)) {
-    const ctx = getContext()
-    if (ctx) {
-      headers["X-Herringbone-Context"] = ctx
-    }
-  }
+  headers.delete("X-Herringbone-Context")
+  headers.delete("X-Herringbone-Org")
 
   return headers
 }
@@ -168,8 +199,7 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     if (!token) {
       console.warn("[HB API] no context token → forcing refresh")
 
-      await ensureContextToken(true)
-      token = getContextToken()
+      token = await ensureContextToken(true)
 
       if (!token) {
         console.error("[HB API] failed to obtain context token → blocking request")
@@ -180,15 +210,12 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     token = getToken()
   }
 
-  let body = options.body
-  if (body && typeof body !== "string") {
-    body = JSON.stringify(body)
-  }
+  const body = normalizeBody(options.body)
 
   let res = await fetch(path, {
     ...options,
     body,
-    headers: buildHeaders(path, token, !!body),
+    headers: buildHeaders(path, token, body, options.headers),
   })
 
   log("response", path, res.status)
@@ -202,7 +229,7 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
       res = await fetch(path, {
         ...options,
         body,
-        headers: buildHeaders(path, retryToken, !!body),
+        headers: buildHeaders(path, retryToken, body, options.headers),
       })
     }
   }
