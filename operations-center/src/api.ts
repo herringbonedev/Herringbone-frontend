@@ -6,7 +6,7 @@ const CTX_TOKEN_KEY = "hb_context_token"
 let contextTokenPromise: Promise<string | null> | null = null
 
 function log(...args: any[]) {
-  console.log("[HB API]", ...args)
+  console.log("Herringbone:", ...args)
 }
 
 function decode(token: string | null): any | null {
@@ -27,7 +27,7 @@ export function getContextToken(): string | null {
 }
 
 export function clearToken() {
-  console.error("[HB API] CLEAR TOKEN CALLED")
+  console.error("Herringbone: CLEAR TOKEN CALLED")
   console.trace()
 
   localStorage.removeItem("hb_token")
@@ -38,7 +38,7 @@ export function clearToken() {
 }
 
 export function clearContextState() {
-  console.warn("[HB API] clearContextState")
+  console.warn("Herringbone: clearContextState")
 
   localStorage.removeItem(CTX_TOKEN_KEY)
   localStorage.removeItem(CTX_KEY)
@@ -59,7 +59,7 @@ function useBaseToken(path: string): boolean {
 }
 
 function redirectToLogin() {
-  console.warn("[HB API] redirectToLogin")
+  console.warn("Herringbone: redirectToLogin")
 
   if (window.location.pathname === "/login") return
   setTimeout(() => {
@@ -91,7 +91,7 @@ async function requestContextToken(context: string, loginToken: string): Promise
   const decoded = decode(token)
 
   if (decoded?.context_id !== context) {
-    console.error("[HB API] received context token for wrong context", {
+    console.error("Herringbone: received context token for wrong context", {
       expected_context: context,
       token_context: decoded?.context_id,
     })
@@ -118,7 +118,7 @@ async function ensureContextToken(forceRefresh = false): Promise<string | null> 
       return existing
     }
 
-    console.warn("[HB API] context mismatch → dropping stale token", {
+    console.warn("Herringbone: context mismatch → dropping stale token", {
       token_context: decoded?.context_id,
       current_context: context,
     })
@@ -162,7 +162,6 @@ function normalizeBody(body: BodyInit | null | undefined): BodyInit | null | und
 }
 
 function buildHeaders(
-  path: string,
   token: string | null,
   body: BodyInit | null | undefined,
   existingHeaders?: HeadersInit,
@@ -197,12 +196,12 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     token = await ensureContextToken()
 
     if (!token) {
-      console.warn("[HB API] no context token → forcing refresh")
+      console.warn("Herringbone: no context token → forcing refresh")
 
       token = await ensureContextToken(true)
 
       if (!token) {
-        console.error("[HB API] failed to obtain context token → blocking request")
+        console.error("Herringbone: failed to obtain context token → blocking request")
         throw new Error("Context not ready")
       }
     }
@@ -215,13 +214,13 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
   let res = await fetch(path, {
     ...options,
     body,
-    headers: buildHeaders(path, token, body, options.headers),
+    headers: buildHeaders(token, body, options.headers),
   })
 
   log("response", path, res.status)
 
   if (res.status === 401 && !baseTokenMode) {
-    console.warn("[HB API] retrying with fresh context token")
+    console.warn("Herringbone: retrying with fresh context token")
 
     const retryToken = await ensureContextToken(true)
 
@@ -229,21 +228,21 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
       res = await fetch(path, {
         ...options,
         body,
-        headers: buildHeaders(path, retryToken, body, options.headers),
+        headers: buildHeaders(retryToken, body, options.headers),
       })
     }
   }
 
   if (res.status === 401) {
     if (baseTokenMode) {
-      console.error("[HB API] BASE TOKEN INVALID → logging out")
+      console.error("Herringbone: BASE TOKEN INVALID → logging out")
 
       clearToken()
       redirectToLogin()
       throw new Error("Session expired")
     }
 
-    console.warn("[HB API] 401 on non-base request → not logging out", {
+    console.warn("Herringbone: 401 on non-base request → not logging out", {
       path,
       context,
     })
@@ -271,6 +270,6 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
 }
 
 window.addEventListener("hb-context-changed", () => {
-  console.log("[HB API] context changed → clearing token cache")
+  console.log("Herringbone: context changed → clearing token cache")
   contextTokenPromise = null
 })
