@@ -1,25 +1,33 @@
 name: Update Candidate Manifests
-description: Update kustomization.yaml and platform/release.yaml with candidate image and package metadata.
+description: Update kustomization.yaml and platform/release.yaml for a candidate release.
 
 inputs:
   service_name:
     required: true
+
   image_repo:
     required: true
+
   image_tag:
     required: true
+
   image_digest:
     required: true
+
   kustomization_path:
     required: true
+
   package_name:
     required: false
-    default: ''
+    default: ""
+
   package_version:
     required: false
-    default: ''
+    default: ""
+
   candidate_channel:
-    required: true
+    required: false
+    default: alpha
 
 outputs:
   changed:
@@ -32,6 +40,7 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
+
         export IMAGE="${{ inputs.image_repo }}"
         export TAG="${{ inputs.image_tag }}"
         export DIGEST="${{ inputs.image_digest }}"
@@ -41,16 +50,32 @@ runs:
           exit 1
         fi
 
-        yq eval -i '(.images[] | select(.name == env(IMAGE))).newTag = env(TAG)' "${{ inputs.kustomization_path }}"
-        yq eval -i '(.images[] | select(.name == env(IMAGE))).digest = env(DIGEST)' "${{ inputs.kustomization_path }}"
+        yq eval -i '
+          (.images[] | select(.name == env(IMAGE))).newTag = env(TAG)
+        ' "${{ inputs.kustomization_path }}"
+
+        yq eval -i '
+          (.images[] | select(.name == env(IMAGE))).digest = env(DIGEST)
+        ' "${{ inputs.kustomization_path }}"
 
     - name: Update platform release manifest
       shell: bash
       run: |
         set -euo pipefail
+
         mkdir -p platform
+
         if [ ! -f platform/release.yaml ]; then
-          echo "services: {}" > platform/release.yaml
+          cat > platform/release.yaml <<'EOF'
+        services: {}
+        EOF
+        fi
+
+        if ! yq eval '.' platform/release.yaml >/dev/null 2>&1; then
+          echo "platform/release.yaml is invalid YAML. Recreating it."
+          cat > platform/release.yaml <<'EOF'
+        services: {}
+        EOF
         fi
 
         export SERVICE="${{ inputs.service_name }}"
@@ -64,25 +89,24 @@ runs:
         export CHANNEL="${{ inputs.candidate_channel }}"
         export SOURCE_SHA="${GITHUB_SHA}"
 
-        yq eval -i '
-          .services[env(SERVICE)] = {
-            "image": env(FULL_IMAGE),
-            "image_repo": env(IMAGE_REPO),
-            "image_tag": env(IMAGE_TAG),
-            "image_digest": env(IMAGE_DIGEST),
-            "package": env(PACKAGE),
-            "package_name": env(PACKAGE_NAME),
-            "package_version": env(PACKAGE_VERSION),
-            "channel": env(CHANNEL),
-            "source_sha": env(SOURCE_SHA)
-          }
-        ' platform/release.yaml
+        yq eval -i '.services = (.services // {})' platform/release.yaml
+
+        yq eval -i '.services[strenv(SERVICE)].image = strenv(FULL_IMAGE)' platform/release.yaml
+        yq eval -i '.services[strenv(SERVICE)].image_repo = strenv(IMAGE_REPO)' platform/release.yaml
+        yq eval -i '.services[strenv(SERVICE)].image_tag = strenv(IMAGE_TAG)' platform/release.yaml
+        yq eval -i '.services[strenv(SERVICE)].image_digest = strenv(IMAGE_DIGEST)' platform/release.yaml
+        yq eval -i '.services[strenv(SERVICE)].package = strenv(PACKAGE)' platform/release.yaml
+        yq eval -i '.services[strenv(SERVICE)].package_name = strenv(PACKAGE_NAME)' platform/release.yaml
+        yq eval -i '.services[strenv(SERVICE)].package_version = strenv(PACKAGE_VERSION)' platform/release.yaml
+        yq eval -i '.services[strenv(SERVICE)].channel = strenv(CHANNEL)' platform/release.yaml
+        yq eval -i '.services[strenv(SERVICE)].source_sha = strenv(SOURCE_SHA)' platform/release.yaml
 
     - name: Detect manifest changes
       id: diff
       shell: bash
       run: |
         set -euo pipefail
+
         if git diff --quiet -- "${{ inputs.kustomization_path }}" platform/release.yaml; then
           echo "changed=false" >> "$GITHUB_OUTPUT"
         else
