@@ -1,5 +1,5 @@
 name: Update Candidate Manifests
-description: Update kustomization.yaml and platform/release.yaml for a candidate release.
+description: Update kustomization.yaml for a candidate release.
 
 inputs:
   service_name:
@@ -58,56 +58,13 @@ runs:
           (.images[] | select(.name == env(IMAGE))).digest = env(DIGEST)
         ' "${{ inputs.kustomization_path }}"
 
-    - name: Update platform release manifest
-      shell: bash
-      run: |
-        set -euo pipefail
-
-        mkdir -p platform
-
-        if [ ! -f platform/release.yaml ]; then
-          cat > platform/release.yaml <<'EOF'
-        services: {}
-        EOF
-        fi
-
-        if ! yq eval '.' platform/release.yaml >/dev/null 2>&1; then
-          echo "platform/release.yaml is invalid YAML. Recreating it."
-          cat > platform/release.yaml <<'EOF'
-        services: {}
-        EOF
-        fi
-
-        export SERVICE="${{ inputs.service_name }}"
-        export IMAGE_REPO="${{ inputs.image_repo }}"
-        export IMAGE_TAG="${{ inputs.image_tag }}"
-        export IMAGE_DIGEST="${{ inputs.image_digest }}"
-        export FULL_IMAGE="${IMAGE_REPO}:${IMAGE_TAG}@${IMAGE_DIGEST}"
-        export PACKAGE_NAME="${{ inputs.package_name }}"
-        export PACKAGE_VERSION="${{ inputs.package_version }}"
-        export PACKAGE="${PACKAGE_NAME}@${PACKAGE_VERSION}"
-        export CHANNEL="${{ inputs.candidate_channel }}"
-        export SOURCE_SHA="${GITHUB_SHA}"
-
-        yq eval -i '.services = (.services // {})' platform/release.yaml
-
-        yq eval -i '.services[strenv(SERVICE)].image = strenv(FULL_IMAGE)' platform/release.yaml
-        yq eval -i '.services[strenv(SERVICE)].image_repo = strenv(IMAGE_REPO)' platform/release.yaml
-        yq eval -i '.services[strenv(SERVICE)].image_tag = strenv(IMAGE_TAG)' platform/release.yaml
-        yq eval -i '.services[strenv(SERVICE)].image_digest = strenv(IMAGE_DIGEST)' platform/release.yaml
-        yq eval -i '.services[strenv(SERVICE)].package = strenv(PACKAGE)' platform/release.yaml
-        yq eval -i '.services[strenv(SERVICE)].package_name = strenv(PACKAGE_NAME)' platform/release.yaml
-        yq eval -i '.services[strenv(SERVICE)].package_version = strenv(PACKAGE_VERSION)' platform/release.yaml
-        yq eval -i '.services[strenv(SERVICE)].channel = strenv(CHANNEL)' platform/release.yaml
-        yq eval -i '.services[strenv(SERVICE)].source_sha = strenv(SOURCE_SHA)' platform/release.yaml
-
     - name: Detect manifest changes
       id: diff
       shell: bash
       run: |
         set -euo pipefail
 
-        if git diff --quiet -- "${{ inputs.kustomization_path }}" platform/release.yaml; then
+        if git diff --quiet -- "${{ inputs.kustomization_path }}"; then
           echo "changed=false" >> "$GITHUB_OUTPUT"
         else
           echo "changed=true" >> "$GITHUB_OUTPUT"
