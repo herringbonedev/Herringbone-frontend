@@ -4,14 +4,8 @@ on:
   workflow_dispatch:
 
   push:
-    branches: [ main ]
-    paths:
-      - 'operations-center/**'
-      - 'kustomization/operations-center/**'
-      - 'platform/**'
-      - '.github/workflows/operations-center.yml'
-      - '.github/workflows/candidate-release.yml'
-      - '.github/actions/**'
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -37,10 +31,10 @@ jobs:
 
       publish_npm_package: true
       package_path: operations-center
-      package_name: '@herringbonedev/operations-center'
-      package_scope: '@herringbonedev'
-      package_registry: 'https://npm.pkg.github.com'
-      node_version: '22'
+      package_name: "@herringbonedev/operations-center"
+      package_scope: "@herringbonedev"
+      package_registry: "https://npm.pkg.github.com"
+      node_version: "22"
 
-      candidate_base_version: '0.4.0'
+      candidate_base_version: "0.4.0"
       candidate_channel: alpha
