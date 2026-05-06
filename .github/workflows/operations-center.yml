@@ -1,21 +1,30 @@
-name: Build, Push & Sign Operations Center UI
+name: Operations Center Candidate Release
 
 on:
   push:
     branches: [ main ]
     paths:
       - 'operations-center/**'
+      - 'kustomization/operations-center/**'
+      - 'platform/**'
       - '.github/workflows/operations-center.yml'
+      - '.github/workflows/candidate-release.yml'
+      - '.github/actions/**'
 
 permissions:
   contents: write
-  id-token: write
   pull-requests: write
+  packages: write
   checks: write
+  id-token: write
+
+concurrency:
+  group: operations-center-candidate-main
+  cancel-in-progress: true
 
 jobs:
-  build-ui:
-    uses: ./.github/workflows/build-test-push-sign.yml
+  candidate-release:
+    uses: ./.github/workflows/candidate-release.yml
     secrets: inherit
     with:
       service_name: operations-center
@@ -23,3 +32,13 @@ jobs:
       dockerfile: operations-center/docker/Dockerfile
       kustomization_path: kustomization/operations-center/kustomization.yaml
       image_repo: quay.io/herringbone/operations-center
+
+      publish_npm_package: true
+      package_path: operations-center
+      package_name: '@herringbonedev/operations-center'
+      package_scope: '@herringbonedev'
+      package_registry: 'https://npm.pkg.github.com'
+      node_version: '22'
+
+      candidate_base_version: '0.4.0'
+      candidate_channel: alpha

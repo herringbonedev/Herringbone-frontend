@@ -1,0 +1,9 @@
+name: Docker Cleanup
+description: Remove unused Docker images and build cache.
+
+runs:
+  using: composite
+  steps:
+    - name: Cleanup Docker
+      shell: bash
+      run: docker system prune -af || true

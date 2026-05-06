@@ -1,0 +1,90 @@
+name: Update Candidate Manifests
+description: Update kustomization.yaml and platform/release.yaml with candidate image and package metadata.
+
+inputs:
+  service_name:
+    required: true
+  image_repo:
+    required: true
+  image_tag:
+    required: true
+  image_digest:
+    required: true
+  kustomization_path:
+    required: true
+  package_name:
+    required: false
+    default: ''
+  package_version:
+    required: false
+    default: ''
+  candidate_channel:
+    required: true
+
+outputs:
+  changed:
+    value: ${{ steps.diff.outputs.changed }}
+
+runs:
+  using: composite
+  steps:
+    - name: Update kustomization image
+      shell: bash
+      run: |
+        set -euo pipefail
+        export IMAGE="${{ inputs.image_repo }}"
+        export TAG="${{ inputs.image_tag }}"
+        export DIGEST="${{ inputs.image_digest }}"
+
+        if [ ! -f "${{ inputs.kustomization_path }}" ]; then
+          echo "Missing kustomization file: ${{ inputs.kustomization_path }}"
+          exit 1
+        fi
+
+        yq eval -i '(.images[] | select(.name == env(IMAGE))).newTag = env(TAG)' "${{ inputs.kustomization_path }}"
+        yq eval -i '(.images[] | select(.name == env(IMAGE))).digest = env(DIGEST)' "${{ inputs.kustomization_path }}"
+
+    - name: Update platform release manifest
+      shell: bash
+      run: |
+        set -euo pipefail
+        mkdir -p platform
+        if [ ! -f platform/release.yaml ]; then
+          echo "services: {}" > platform/release.yaml
+        fi
+
+        export SERVICE="${{ inputs.service_name }}"
+        export IMAGE_REPO="${{ inputs.image_repo }}"
+        export IMAGE_TAG="${{ inputs.image_tag }}"
+        export IMAGE_DIGEST="${{ inputs.image_digest }}"
+        export FULL_IMAGE="${IMAGE_REPO}:${IMAGE_TAG}@${IMAGE_DIGEST}"
+        export PACKAGE_NAME="${{ inputs.package_name }}"
+        export PACKAGE_VERSION="${{ inputs.package_version }}"
+        export PACKAGE="${PACKAGE_NAME}@${PACKAGE_VERSION}"
+        export CHANNEL="${{ inputs.candidate_channel }}"
+        export SOURCE_SHA="${GITHUB_SHA}"
+
+        yq eval -i '
+          .services[env(SERVICE)] = {
+            "image": env(FULL_IMAGE),
+            "image_repo": env(IMAGE_REPO),
+            "image_tag": env(IMAGE_TAG),
+            "image_digest": env(IMAGE_DIGEST),
+            "package": env(PACKAGE),
+            "package_name": env(PACKAGE_NAME),
+            "package_version": env(PACKAGE_VERSION),
+            "channel": env(CHANNEL),
+            "source_sha": env(SOURCE_SHA)
+          }
+        ' platform/release.yaml
+
+    - name: Detect manifest changes
+      id: diff
+      shell: bash
+      run: |
+        set -euo pipefail
+        if git diff --quiet -- "${{ inputs.kustomization_path }}" platform/release.yaml; then
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+        fi

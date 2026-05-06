@@ -1,0 +1,111 @@
+name: Create Candidate PR
+description: Commit candidate release metadata and open or update a pull request.
+
+inputs:
+  token:
+    required: true
+  service_name:
+    required: true
+  short_sha:
+    required: true
+  image_repo:
+    required: true
+  image_tag:
+    required: true
+  image_digest:
+    required: true
+  kustomization_path:
+    required: true
+  package_path:
+    required: false
+    default: ''
+  package_name:
+    required: false
+    default: ''
+  package_version:
+    required: false
+    default: ''
+  candidate_channel:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Create or update PR
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+      run: |
+        set -euo pipefail
+
+        BRANCH="candidate/${{ inputs.service_name }}-${{ inputs.short_sha }}"
+        BASE_BRANCH="${GITHUB_REF_NAME:-main}"
+        TITLE="chore(${{ inputs.service_name }}): candidate release ${{ inputs.short_sha }}"
+
+        git checkout -B "$BRANCH"
+
+        git add "${{ inputs.kustomization_path }}" platform/release.yaml
+
+        if [ -n "${{ inputs.package_path }}" ]; then
+          git add "${{ inputs.package_path }}/package.json" || true
+          git add "${{ inputs.package_path }}/package-lock.json" || true
+        fi
+
+        if git diff --cached --quiet; then
+          echo "No candidate release changes to commit"
+          exit 0
+        fi
+
+        git commit -s -m "$TITLE"
+        git push origin "$BRANCH" --force
+
+        BODY_FILE="$(mktemp)"
+        cat > "$BODY_FILE" <<EOF
+        Candidate release for ${{ inputs.service_name }}.
+
+        Image:
+          ${{ inputs.image_repo }}:${{ inputs.image_tag }}@${{ inputs.image_digest }}
+
+        Package:
+          ${{ inputs.package_name }}@${{ inputs.package_version }}
+
+        Candidate channel:
+          ${{ inputs.candidate_channel }}
+
+        Source SHA:
+          ${GITHUB_SHA}
+
+        Updated:
+          - ${{ inputs.kustomization_path }}
+          - platform/release.yaml
+        EOF
+
+        if [ -n "${{ inputs.package_path }}" ]; then
+          cat >> "$BODY_FILE" <<EOF
+          - ${{ inputs.package_path }}/package.json
+          - ${{ inputs.package_path }}/package-lock.json
+        EOF
+        fi
+
+        EXISTING_PR="$(gh pr list \
+          --head "$BRANCH" \
+          --base "$BASE_BRANCH" \
+          --state open \
+          --json number \
+          --jq '.[0].number // empty')"
+
+        if [ -n "$EXISTING_PR" ]; then
+          gh pr edit "$EXISTING_PR" \
+            --title "$TITLE" \
+            --body-file "$BODY_FILE" \
+            --add-label automation \
+            --add-label candidate-release
+        else
+          gh pr create \
+            --base "$BASE_BRANCH" \
+            --head "$BRANCH" \
+            --title "$TITLE" \
+            --body-file "$BODY_FILE" \
+            --label automation \
+            --label candidate-release
+        fi

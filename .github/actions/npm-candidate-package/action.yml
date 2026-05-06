@@ -1,0 +1,136 @@
+name: NPM Candidate Package
+description: Build and publish a candidate npm package to GitHub Packages.
+
+inputs:
+  package_path:
+    required: true
+  package_name:
+    required: true
+  package_scope:
+    required: true
+  package_registry:
+    required: true
+  package_version:
+    required: true
+  node_version:
+    required: true
+  npm_token:
+    required: true
+
+outputs:
+  changed:
+    value: ${{ steps.diff.outputs.changed }}
+  published:
+    value: ${{ steps.publish.outputs.published }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node_version }}
+        registry-url: ${{ inputs.package_registry }}
+        scope: ${{ inputs.package_scope }}
+
+    - name: Validate package
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [ ! -f "${{ inputs.package_path }}/package.json" ]; then
+          echo "Missing package.json at ${{ inputs.package_path }}/package.json"
+          exit 1
+        fi
+
+    - name: Normalize package metadata
+      shell: bash
+      working-directory: ${{ inputs.package_path }}
+      env:
+        PACKAGE_NAME: ${{ inputs.package_name }}
+        PACKAGE_VERSION: ${{ inputs.package_version }}
+        PACKAGE_REGISTRY: ${{ inputs.package_registry }}
+      run: |
+        set -euo pipefail
+        node <<'NODE'
+        const fs = require("fs");
+
+        const packageFile = "package.json";
+        const lockFile = "package-lock.json";
+        const packageName = process.env.PACKAGE_NAME;
+        const packageVersion = process.env.PACKAGE_VERSION;
+        const packageRegistry = process.env.PACKAGE_REGISTRY;
+
+        const pkg = JSON.parse(fs.readFileSync(packageFile, "utf8"));
+        pkg.name = packageName;
+        pkg.version = packageVersion;
+        pkg.private = false;
+        pkg.publishConfig = pkg.publishConfig || {};
+        pkg.publishConfig.registry = packageRegistry;
+        fs.writeFileSync(packageFile, JSON.stringify(pkg, null, 2) + "\n");
+
+        if (fs.existsSync(lockFile)) {
+          const lock = JSON.parse(fs.readFileSync(lockFile, "utf8"));
+          lock.name = packageName;
+          lock.version = packageVersion;
+          if (lock.packages && lock.packages[""]) {
+            lock.packages[""].name = packageName;
+            lock.packages[""].version = packageVersion;
+          }
+          fs.writeFileSync(lockFile, JSON.stringify(lock, null, 2) + "\n");
+        }
+        NODE
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ inputs.package_path }}
+      run: |
+        set -euo pipefail
+        npm ci
+
+    - name: Build package
+      shell: bash
+      working-directory: ${{ inputs.package_path }}
+      run: |
+        set -euo pipefail
+        npm run build
+
+    - name: Check whether package version already exists
+      id: exists
+      shell: bash
+      working-directory: ${{ inputs.package_path }}
+      env:
+        NODE_AUTH_TOKEN: ${{ inputs.npm_token }}
+      run: |
+        set -euo pipefail
+        if npm view "${{ inputs.package_name }}@${{ inputs.package_version }}" version --registry "${{ inputs.package_registry }}" >/dev/null 2>&1; then
+          echo "exists=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "exists=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Publish package
+      id: publish
+      shell: bash
+      working-directory: ${{ inputs.package_path }}
+      env:
+        NODE_AUTH_TOKEN: ${{ inputs.npm_token }}
+      run: |
+        set -euo pipefail
+        if [ "${{ steps.exists.outputs.exists }}" = "true" ]; then
+          echo "Package already exists: ${{ inputs.package_name }}@${{ inputs.package_version }}"
+          echo "published=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        npm publish --tag alpha --access restricted
+        echo "published=true" >> "$GITHUB_OUTPUT"
+
+    - name: Detect package metadata changes
+      id: diff
+      shell: bash
+      run: |
+        set -euo pipefail
+        if git diff --quiet -- "${{ inputs.package_path }}/package.json" "${{ inputs.package_path }}/package-lock.json"; then
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+        fi

@@ -1,0 +1,57 @@
+name: Docker Build, Push, and Sign
+description: Build, push, resolve digest, and sign a Docker image.
+
+inputs:
+  image_repo:
+    required: true
+  tag:
+    required: true
+  dockerfile:
+    required: true
+  service_path:
+    required: true
+
+outputs:
+  digest:
+    value: ${{ steps.digest.outputs.digest }}
+  image:
+    value: ${{ inputs.image_repo }}:${{ inputs.tag }}
+
+runs:
+  using: composite
+  steps:
+    - name: Build image
+      shell: bash
+      run: |
+        set -euo pipefail
+        docker build \
+          -t "${{ inputs.image_repo }}:${{ inputs.tag }}" \
+          -f "${{ inputs.dockerfile }}" \
+          "${{ inputs.service_path }}"
+
+    - name: Push image
+      shell: bash
+      run: |
+        set -euo pipefail
+        docker push "${{ inputs.image_repo }}:${{ inputs.tag }}"
+
+    - name: Resolve image digest
+      id: digest
+      shell: bash
+      run: |
+        set -euo pipefail
+        DIGEST="$(skopeo inspect docker://${{ inputs.image_repo }}:${{ inputs.tag }} | jq -r '.Digest')"
+        if [ -z "$DIGEST" ] || [ "$DIGEST" = "null" ]; then
+          echo "Failed to resolve image digest"
+          exit 1
+        fi
+        echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+
+    - name: Install cosign
+      uses: sigstore/cosign-installer@v3
+
+    - name: Sign image
+      shell: bash
+      run: |
+        set -euo pipefail
+        cosign sign --yes "${{ inputs.image_repo }}:${{ inputs.tag }}"

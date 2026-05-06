@@ -1,0 +1,36 @@
+name: Candidate Metadata
+description: Generate candidate release metadata from the current commit SHA.
+
+inputs:
+  candidate_base_version:
+    required: true
+  candidate_channel:
+    required: true
+
+outputs:
+  short_sha:
+    value: ${{ steps.meta.outputs.short_sha }}
+  image_tag:
+    value: ${{ steps.meta.outputs.image_tag }}
+  package_version:
+    value: ${{ steps.meta.outputs.package_version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Compute metadata
+      id: meta
+      shell: bash
+      run: |
+        set -euo pipefail
+        SHORT_SHA="${GITHUB_SHA::8}"
+        IMAGE_TAG="${SHORT_SHA}"
+        PACKAGE_VERSION="${{ inputs.candidate_base_version }}-${{ inputs.candidate_channel }}.${SHORT_SHA}"
+
+        echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+        echo "image_tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+        echo "package_version=${PACKAGE_VERSION}" >> "$GITHUB_OUTPUT"
+
+        echo "Short SHA: ${SHORT_SHA}"
+        echo "Image tag: ${IMAGE_TAG}"
+        echo "Package version: ${PACKAGE_VERSION}"
