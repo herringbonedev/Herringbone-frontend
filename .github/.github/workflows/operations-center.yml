@@ -34,11 +34,13 @@ jobs:
       dockerfile: operations-center/docker/Dockerfile
       kustomization_path: kustomization/operations-center/kustomization.yaml
       image_repo: quay.io/herringbone/operations-center
+
       publish_npm_package: true
       package_path: operations-center
       package_name: '@herringbonedev/operations-center'
       package_scope: '@herringbonedev'
       package_registry: 'https://npm.pkg.github.com'
       node_version: '22'
+
       candidate_base_version: '0.4.0'
       candidate_channel: alpha
