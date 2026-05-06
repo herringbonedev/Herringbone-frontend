@@ -100,7 +100,7 @@ jobs:
           package_registry: ${{ inputs.package_registry }}
           package_version: ${{ steps.meta.outputs.package_version }}
           node_version: ${{ inputs.node_version }}
-          npm_token: ${{ secrets.HERRINGBONE_ACTIONS_BOT }}
+          npm_token: ${{ github.token }}
 
       - name: Build, push, and sign image
         id: image
