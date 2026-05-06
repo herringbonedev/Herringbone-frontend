@@ -4,8 +4,14 @@ on:
   workflow_dispatch:
 
   push:
-    branches:
-      - main
+    branches: [ main ]
+    paths:
+      - 'operations-center/**'
+      - 'kustomization/operations-center/**'
+      - 'platform/**'
+      - '.github/workflows/operations-center.yml'
+      - '.github/workflows/candidate-release.yml'
+      - '.github/actions/**'
 
 permissions:
   contents: write
@@ -20,6 +26,10 @@ concurrency:
 
 jobs:
   candidate-release:
+    if: >
+      github.actor != 'dependabot[bot]' &&
+      github.actor != 'herringbone-actions-bot' &&
+      !contains(github.event.head_commit.message, 'candidate release')
     uses: ./.github/workflows/candidate-release.yml
     secrets: inherit
     with:
