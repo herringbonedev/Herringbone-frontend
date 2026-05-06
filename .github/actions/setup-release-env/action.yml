@@ -1,9 +1,7 @@
 name: Setup Release Environment
-description: Checkout source, configure Docker Buildx, install yq, and log in to the container registry.
+description: Configure git, Docker Buildx, yq, and container registry login after checkout.
 
 inputs:
-  checkout_token:
-    required: true
   docker_username:
     required: true
   docker_password:
@@ -18,12 +16,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        token: ${{ inputs.checkout_token }}
-
     - name: Configure git
       shell: bash
       run: |

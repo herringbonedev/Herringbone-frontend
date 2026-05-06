@@ -70,10 +70,15 @@ jobs:
     if: github.actor != 'dependabot[bot]'
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.HERRINGBONE_ACTIONS_BOT }}
+
       - name: Setup release environment
         uses: ./.github/actions/setup-release-env
         with:
-          checkout_token: ${{ secrets.HERRINGBONE_ACTIONS_BOT }}
           docker_username: ${{ secrets.DOCKER_USERNAME }}
           docker_password: ${{ secrets.DOCKER_PASSWORD }}
 
