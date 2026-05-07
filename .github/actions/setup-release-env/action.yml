@@ -1,5 +1,5 @@
 name: Setup Release Environment
-description: Configure git, Docker Buildx, yq, and container registry login after checkout.
+description: Configure git, Docker Buildx, yq, and registry login.
 
 inputs:
   docker_username:
@@ -30,7 +30,8 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        sudo wget -qO /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/${{ inputs.yq_version }}/yq_linux_amd64"
+        sudo wget -qO /usr/local/bin/yq \
+          "https://github.com/mikefarah/yq/releases/download/${{ inputs.yq_version }}/yq_linux_amd64"
         sudo chmod +x /usr/local/bin/yq
         yq --version
 

@@ -42,7 +42,7 @@ runs:
         set -euo pipefail
         DIGEST="$(skopeo inspect docker://${{ inputs.image_repo }}:${{ inputs.tag }} | jq -r '.Digest')"
         if [ -z "$DIGEST" ] || [ "$DIGEST" = "null" ]; then
-          echo "Failed to resolve image digest"
+          echo "Failed to resolve digest"
           exit 1
         fi
         echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"

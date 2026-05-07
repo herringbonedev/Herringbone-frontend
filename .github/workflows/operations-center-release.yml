@@ -1,0 +1,45 @@
+name: Operations Center Full Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_version:
+        required: true
+        type: string
+      npm_tag:
+        description: npm dist-tag to publish
+        required: false
+        default: latest
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  packages: write
+  checks: write
+  id-token: write
+
+concurrency:
+  group: operations-center-full-release-${{ inputs.release_version }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    uses: ./.github/workflows/release.yml
+    secrets: inherit
+    with:
+      service_name: operations-center
+      service_path: operations-center
+      dockerfile: operations-center/docker/Dockerfile
+      kustomization_path: kustomization/operations-center/kustomization.yaml
+      image_repo: quay.io/herringbone/operations-center
+
+      publish_npm_package: true
+      package_path: operations-center
+      package_name: "@herringbonedev/operations-center"
+      package_scope: "@herringbonedev"
+      package_registry: "https://npm.pkg.github.com"
+      node_version: "22"
+
+      release_version: ${{ inputs.release_version }}
+      npm_tag: ${{ inputs.npm_tag }}

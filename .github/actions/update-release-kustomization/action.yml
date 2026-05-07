@@ -1,33 +1,15 @@
-name: Update Candidate Manifests
-description: Update kustomization.yaml for a candidate release.
+name: Update Release Kustomization
+description: Update kustomization.yaml with release image tag and digest.
 
 inputs:
-  service_name:
-    required: true
-
   image_repo:
     required: true
-
   image_tag:
     required: true
-
   image_digest:
     required: true
-
   kustomization_path:
     required: true
-
-  package_name:
-    required: false
-    default: ""
-
-  package_version:
-    required: false
-    default: ""
-
-  candidate_channel:
-    required: false
-    default: alpha
 
 outputs:
   changed:
@@ -40,7 +22,6 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-
         export IMAGE="${{ inputs.image_repo }}"
         export TAG="${{ inputs.image_tag }}"
         export DIGEST="${{ inputs.image_digest }}"
@@ -50,20 +31,14 @@ runs:
           exit 1
         fi
 
-        yq eval -i '
-          (.images[] | select(.name == env(IMAGE))).newTag = env(TAG)
-        ' "${{ inputs.kustomization_path }}"
+        yq eval -i '(.images[] | select(.name == env(IMAGE))).newTag = env(TAG)' "${{ inputs.kustomization_path }}"
+        yq eval -i '(.images[] | select(.name == env(IMAGE))).digest = env(DIGEST)' "${{ inputs.kustomization_path }}"
 
-        yq eval -i '
-          (.images[] | select(.name == env(IMAGE))).digest = env(DIGEST)
-        ' "${{ inputs.kustomization_path }}"
-
-    - name: Detect manifest changes
+    - name: Detect kustomization changes
       id: diff
       shell: bash
       run: |
         set -euo pipefail
-
         if git diff --quiet -- "${{ inputs.kustomization_path }}"; then
           echo "changed=false" >> "$GITHUB_OUTPUT"
         else

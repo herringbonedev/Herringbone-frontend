@@ -1,12 +1,12 @@
-name: Create Candidate PR
-description: Commit candidate release metadata and open or update a pull request.
+name: Create Release PR
+description: Commit release updates and open a release PR.
 
 inputs:
   token:
     required: true
   service_name:
     required: true
-  short_sha:
+  release_version:
     required: true
   image_repo:
     required: true
@@ -18,32 +18,28 @@ inputs:
     required: true
   package_path:
     required: false
-    default: ''
+    default: ""
   package_name:
     required: false
-    default: ''
+    default: ""
   package_version:
     required: false
-    default: ''
-  candidate_channel:
-    required: true
+    default: ""
 
 runs:
   using: composite
   steps:
-    - name: Create or update PR
+    - name: Create release pull request
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.token }}
       run: |
         set -euo pipefail
 
-        BRANCH="candidate/${{ inputs.service_name }}-${{ inputs.short_sha }}"
-        BASE_BRANCH="${GITHUB_REF_NAME:-main}"
-        TITLE="chore(${{ inputs.service_name }}): candidate release ${{ inputs.short_sha }}"
+        BRANCH="release/${{ inputs.service_name }}-${{ inputs.release_version }}"
+        BASE_BRANCH="${GITHUB_REF_NAME}"
 
         git checkout -B "$BRANCH"
-
         git add "${{ inputs.kustomization_path }}"
 
         if [ -n "${{ inputs.package_path }}" ]; then
@@ -52,16 +48,19 @@ runs:
         fi
 
         if git diff --cached --quiet; then
-          echo "No candidate release changes to commit"
+          echo "No release changes to commit"
           exit 0
         fi
 
-        git commit -s -m "$TITLE"
+        git commit -s -m "chore(${{ inputs.service_name }}): release ${{ inputs.release_version }}"
         git push origin "$BRANCH" --force
 
         BODY_FILE="$(mktemp)"
-        cat > "$BODY_FILE" <<EOF
-        Candidate release for ${{ inputs.service_name }}.
+        cat > "$BODY_FILE" <<EOF_BODY
+        Full release for ${{ inputs.service_name }}.
+
+        Version:
+          ${{ inputs.release_version }}
 
         Image:
           ${{ inputs.image_repo }}:${{ inputs.image_tag }}@${{ inputs.image_digest }}
@@ -69,21 +68,18 @@ runs:
         Package:
           ${{ inputs.package_name }}@${{ inputs.package_version }}
 
-        Candidate channel:
-          ${{ inputs.candidate_channel }}
-
-        Source SHA:
+        Source:
           ${GITHUB_SHA}
 
         Updated:
           - ${{ inputs.kustomization_path }}
-        EOF
+        EOF_BODY
 
         if [ -n "${{ inputs.package_path }}" ]; then
-          cat >> "$BODY_FILE" <<EOF
+          cat >> "$BODY_FILE" <<EOF_BODY
           - ${{ inputs.package_path }}/package.json
           - ${{ inputs.package_path }}/package-lock.json
-        EOF
+        EOF_BODY
         fi
 
         EXISTING_PR="$(gh pr list \
@@ -95,16 +91,16 @@ runs:
 
         if [ -n "$EXISTING_PR" ]; then
           gh pr edit "$EXISTING_PR" \
-            --title "$TITLE" \
+            --title "chore(${{ inputs.service_name }}): release ${{ inputs.release_version }}" \
             --body-file "$BODY_FILE" \
-            --add-label automation \
-            --add-label candidate-release
+            --add-label release \
+            --add-label automation
         else
           gh pr create \
             --base "$BASE_BRANCH" \
             --head "$BRANCH" \
-            --title "$TITLE" \
+            --title "chore(${{ inputs.service_name }}): release ${{ inputs.release_version }}" \
             --body-file "$BODY_FILE" \
-            --label automation \
-            --label candidate-release
+            --label release \
+            --label automation
         fi

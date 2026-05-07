@@ -1,5 +1,5 @@
 name: Docker Cleanup
-description: Remove unused Docker images and build cache.
+description: Remove local Docker build cache and unused images.
 
 runs:
   using: composite

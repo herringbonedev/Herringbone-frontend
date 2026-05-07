@@ -1,0 +1,135 @@
+name: Reusable Full Release
+
+on:
+  workflow_call:
+    inputs:
+      service_name:
+        required: true
+        type: string
+      service_path:
+        required: true
+        type: string
+      dockerfile:
+        required: true
+        type: string
+      image_repo:
+        required: true
+        type: string
+      kustomization_path:
+        required: true
+        type: string
+
+      publish_npm_package:
+        required: false
+        type: boolean
+        default: false
+      package_path:
+        required: false
+        type: string
+        default: ""
+      package_name:
+        required: false
+        type: string
+        default: ""
+      package_scope:
+        required: false
+        type: string
+        default: ""
+      package_registry:
+        required: false
+        type: string
+        default: "https://npm.pkg.github.com"
+      node_version:
+        required: false
+        type: string
+        default: "22"
+
+      release_version:
+        required: true
+        type: string
+      npm_tag:
+        required: false
+        type: string
+        default: latest
+
+permissions:
+  contents: write
+  pull-requests: write
+  packages: write
+  checks: write
+  id-token: write
+
+jobs:
+  full-release:
+    runs-on: ubuntu-latest
+    if: github.actor != 'dependabot[bot]'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.HERRINGBONE_ACTIONS_BOT }}
+
+      - name: Setup release environment
+        uses: ./.github/actions/setup-release-env
+        with:
+          docker_username: ${{ secrets.DOCKER_USERNAME }}
+          docker_password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Compute release metadata
+        id: meta
+        uses: ./.github/actions/release-metadata
+        with:
+          release_version: ${{ inputs.release_version }}
+
+      - name: Build and publish release npm package
+        id: npm
+        if: inputs.publish_npm_package == true
+        uses: ./.github/actions/npm-release-package
+        with:
+          package_path: ${{ inputs.package_path }}
+          package_name: ${{ inputs.package_name }}
+          package_scope: ${{ inputs.package_scope }}
+          package_registry: ${{ inputs.package_registry }}
+          package_version: ${{ steps.meta.outputs.release_version }}
+          node_version: ${{ inputs.node_version }}
+          npm_tag: ${{ inputs.npm_tag }}
+          npm_token: ${{ github.token }}
+
+      - name: Build, push, and sign image
+        id: image
+        uses: ./.github/actions/docker-build-push-sign
+        with:
+          image_repo: ${{ inputs.image_repo }}
+          tag: ${{ steps.meta.outputs.image_tag }}
+          dockerfile: ${{ inputs.dockerfile }}
+          service_path: ${{ inputs.service_path }}
+
+      - name: Update release kustomization
+        id: manifests
+        uses: ./.github/actions/update-release-kustomization
+        with:
+          image_repo: ${{ inputs.image_repo }}
+          image_tag: ${{ steps.meta.outputs.image_tag }}
+          image_digest: ${{ steps.image.outputs.digest }}
+          kustomization_path: ${{ inputs.kustomization_path }}
+
+      - name: Create release PR
+        if: steps.manifests.outputs.changed == 'true' || steps.npm.outputs.changed == 'true'
+        uses: ./.github/actions/create-release-pr
+        with:
+          token: ${{ secrets.HERRINGBONE_ACTIONS_BOT }}
+          service_name: ${{ inputs.service_name }}
+          release_version: ${{ steps.meta.outputs.release_version }}
+          image_repo: ${{ inputs.image_repo }}
+          image_tag: ${{ steps.meta.outputs.image_tag }}
+          image_digest: ${{ steps.image.outputs.digest }}
+          kustomization_path: ${{ inputs.kustomization_path }}
+          package_path: ${{ inputs.package_path }}
+          package_name: ${{ inputs.package_name }}
+          package_version: ${{ steps.meta.outputs.release_version }}
+
+      - name: Cleanup
+        if: always()
+        uses: ./.github/actions/docker-cleanup

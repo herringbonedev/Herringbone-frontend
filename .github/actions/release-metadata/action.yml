@@ -1,0 +1,34 @@
+name: Release Metadata
+description: Validate SemVer and generate release image metadata.
+
+inputs:
+  release_version:
+    required: true
+
+outputs:
+  release_version:
+    value: ${{ steps.meta.outputs.release_version }}
+  image_tag:
+    value: ${{ steps.meta.outputs.image_tag }}
+
+runs:
+  using: composite
+  steps:
+    - name: Compute metadata
+      id: meta
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        VERSION="${{ inputs.release_version }}"
+
+        if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "release_version must be stable SemVer like 0.4.0"
+          exit 1
+        fi
+
+        echo "release_version=${VERSION}" >> "$GITHUB_OUTPUT"
+        echo "image_tag=${VERSION}" >> "$GITHUB_OUTPUT"
+
+        echo "Release version: ${VERSION}"
+        echo "Image tag: ${VERSION}"
