@@ -1,4 +1,4 @@
-name: Reusable Full Release
+name: Full Release
 
 on:
   workflow_call:
