@@ -96,15 +96,11 @@ runs:
         if [ -n "$EXISTING_PR" ]; then
           gh pr edit "$EXISTING_PR" \
             --title "$TITLE" \
-            --body-file "$BODY_FILE" \
-            --add-label automation \
-            --add-label candidate-release
+            --body-file "$BODY_FILE"
         else
           gh pr create \
             --base "$BASE_BRANCH" \
             --head "$BRANCH" \
             --title "$TITLE" \
-            --body-file "$BODY_FILE" \
-            --label automation \
-            --label candidate-release
+            --body-file "$BODY_FILE"
         fi
