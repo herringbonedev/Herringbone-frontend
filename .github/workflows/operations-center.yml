@@ -7,10 +7,12 @@ on:
     branches: [ main ]
     paths:
       - 'operations-center/**'
-      - 'kustomization/operations-center/**'
       - '.github/workflows/operations-center.yml'
-      - '.github/workflows/candidate-release.yml'
-      - '.github/actions/**'
+      
+      # Ignore candidate-release generated files
+      - '!operations-center/package.json'
+      - '!operations-center/package-lock.json'
+      - '!kustomization/operations-center/kustomization.yaml'
 
 permissions:
   contents: write
