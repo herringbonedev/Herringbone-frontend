@@ -44,7 +44,7 @@ on:
         type: string
         default: "22"
 
-      release_version:
+      candidate_tag:
         required: true
         type: string
       npm_tag:
@@ -65,11 +65,12 @@ jobs:
     if: github.actor != 'dependabot[bot]'
 
     steps:
-      - name: Checkout
+      - name: Checkout candidate ref
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.HERRINGBONE_ACTIONS_BOT }}
+          ref: ${{ inputs.candidate_tag }}
 
       - name: Setup release environment
         uses: ./.github/actions/setup-release-env
@@ -81,7 +82,7 @@ jobs:
         id: meta
         uses: ./.github/actions/release-metadata
         with:
-          release_version: ${{ inputs.release_version }}
+          candidate_tag: ${{ inputs.candidate_tag }}
 
       - name: Build and publish release npm package
         id: npm
@@ -105,6 +106,19 @@ jobs:
           tag: ${{ steps.meta.outputs.image_tag }}
           dockerfile: ${{ inputs.dockerfile }}
           service_path: ${{ inputs.service_path }}
+
+      - name: Create release tag
+        id: release_tag
+        uses: ./.github/actions/create-release-tag
+        with:
+          tag_name: ${{ steps.meta.outputs.release_version }}
+          source_tag: ${{ steps.meta.outputs.candidate_tag }}
+          service_name: ${{ inputs.service_name }}
+          package_name: ${{ inputs.package_name }}
+          package_version: ${{ steps.meta.outputs.release_version }}
+          image_repo: ${{ inputs.image_repo }}
+          image_tag: ${{ steps.meta.outputs.image_tag }}
+          image_digest: ${{ steps.image.outputs.digest }}
 
       - name: Update release kustomization
         id: manifests

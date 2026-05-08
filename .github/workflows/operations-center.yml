@@ -8,11 +8,8 @@ on:
     paths:
       - 'operations-center/**'
       - '.github/workflows/operations-center.yml'
-      
-      # Ignore candidate-release generated files
       - '!operations-center/package.json'
       - '!operations-center/package-lock.json'
-      - '!kustomization/operations-center/kustomization.yaml'
 
 permissions:
   contents: write
@@ -27,6 +24,10 @@ concurrency:
 
 jobs:
   candidate-release:
+    if: >
+      github.actor != 'dependabot[bot]' &&
+      github.actor != 'herringbone-actions-bot' &&
+      !contains(github.event.head_commit.message, 'candidate release')
     uses: ./.github/workflows/candidate-release.yml
     secrets: inherit
     with:

@@ -89,6 +89,16 @@ jobs:
           candidate_base_version: ${{ inputs.candidate_base_version }}
           candidate_channel: ${{ inputs.candidate_channel }}
 
+      - name: Validate candidate version
+        uses: ./.github/actions/validate-candidate-version
+        with:
+          release_version: ${{ steps.meta.outputs.release_version }}
+          candidate_version: ${{ steps.meta.outputs.package_version }}
+          package_name: ${{ inputs.package_name }}
+          package_scope: ${{ inputs.package_scope }}
+          package_registry: ${{ inputs.package_registry }}
+          npm_token: ${{ github.token }}
+
       - name: Build and publish candidate npm package
         id: npm
         if: inputs.publish_npm_package == true
@@ -110,6 +120,18 @@ jobs:
           tag: ${{ steps.meta.outputs.short_sha }}
           dockerfile: ${{ inputs.dockerfile }}
           service_path: ${{ inputs.service_path }}
+
+      - name: Create candidate tag
+        id: candidate_tag
+        uses: ./.github/actions/create-candidate-tag
+        with:
+          tag_name: ${{ steps.meta.outputs.candidate_tag }}
+          service_name: ${{ inputs.service_name }}
+          package_name: ${{ inputs.package_name }}
+          package_version: ${{ steps.meta.outputs.package_version }}
+          image_repo: ${{ inputs.image_repo }}
+          image_tag: ${{ steps.meta.outputs.short_sha }}
+          image_digest: ${{ steps.image.outputs.digest }}
 
       - name: Update candidate manifests
         id: manifests
@@ -139,6 +161,7 @@ jobs:
           package_name: ${{ inputs.package_name }}
           package_version: ${{ steps.meta.outputs.package_version }}
           candidate_channel: ${{ inputs.candidate_channel }}
+          candidate_tag: ${{ steps.meta.outputs.candidate_tag }}
 
       - name: Cleanup
         if: always()

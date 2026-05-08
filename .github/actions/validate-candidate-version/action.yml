@@ -1,0 +1,83 @@
+name: Validate Candidate Version
+description: Fail if the derived full release version already exists as a git tag or npm package.
+
+inputs:
+  release_version:
+    required: true
+  candidate_version:
+    required: true
+  package_name:
+    required: false
+    default: ""
+  package_scope:
+    required: false
+    default: ""
+  package_registry:
+    required: false
+    default: "https://npm.pkg.github.com"
+  npm_token:
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Check release git tag does not exist
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        RELEASE_VERSION="${{ inputs.release_version }}"
+        CANDIDATE_VERSION="${{ inputs.candidate_version }}"
+
+        git fetch --tags --force origin >/dev/null 2>&1 || true
+
+        if git rev-parse -q --verify "refs/tags/${RELEASE_VERSION}" >/dev/null; then
+          echo "Refusing to create candidate ${CANDIDATE_VERSION}. Release tag ${RELEASE_VERSION} already exists."
+          exit 1
+        fi
+
+        if git rev-parse -q --verify "refs/tags/v${RELEASE_VERSION}" >/dev/null; then
+          echo "Refusing to create candidate ${CANDIDATE_VERSION}. Release tag v${RELEASE_VERSION} already exists."
+          exit 1
+        fi
+
+    - name: Check release npm package does not exist
+      if: inputs.package_name != ''
+      shell: bash
+      env:
+        NODE_AUTH_TOKEN: ${{ inputs.npm_token }}
+      run: |
+        set -euo pipefail
+
+        RELEASE_VERSION="${{ inputs.release_version }}"
+        CANDIDATE_VERSION="${{ inputs.candidate_version }}"
+        PACKAGE_NAME="${{ inputs.package_name }}"
+        PACKAGE_SCOPE="${{ inputs.package_scope }}"
+        PACKAGE_REGISTRY="${{ inputs.package_registry }}"
+
+        if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+          echo "npm_token is required when package_name is set."
+          exit 1
+        fi
+
+        REGISTRY_HOST="${PACKAGE_REGISTRY}"
+        REGISTRY_HOST="${REGISTRY_HOST#https://}"
+        REGISTRY_HOST="${REGISTRY_HOST#http://}"
+        REGISTRY_HOST="${REGISTRY_HOST%/}"
+
+        NPMRC="$(mktemp)"
+        {
+          if [ -n "$PACKAGE_SCOPE" ]; then
+            echo "${PACKAGE_SCOPE}:registry=${PACKAGE_REGISTRY}"
+          fi
+          echo "//${REGISTRY_HOST}/:_authToken=${NODE_AUTH_TOKEN}"
+          echo "always-auth=true"
+        } > "$NPMRC"
+
+        if NPM_CONFIG_USERCONFIG="$NPMRC" npm view "${PACKAGE_NAME}@${RELEASE_VERSION}" version --registry "$PACKAGE_REGISTRY" >/dev/null 2>&1; then
+          echo "Refusing to create candidate ${CANDIDATE_VERSION}. Package ${PACKAGE_NAME}@${RELEASE_VERSION} already exists."
+          exit 1
+        fi
+
+        rm -f "$NPMRC"

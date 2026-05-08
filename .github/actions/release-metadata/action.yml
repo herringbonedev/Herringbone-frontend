@@ -1,11 +1,15 @@
 name: Release Metadata
-description: Validate SemVer and generate release image metadata.
+description: Derive a full release version from a SHA candidate tag.
 
 inputs:
-  release_version:
+  candidate_tag:
     required: true
 
 outputs:
+  candidate_tag:
+    value: ${{ steps.meta.outputs.candidate_tag }}
+  candidate_version:
+    value: ${{ steps.meta.outputs.candidate_version }}
   release_version:
     value: ${{ steps.meta.outputs.release_version }}
   image_tag:
@@ -14,21 +18,34 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Compute metadata
+    - name: Compute release metadata
       id: meta
       shell: bash
       run: |
         set -euo pipefail
 
-        VERSION="${{ inputs.release_version }}"
+        RAW_TAG="${{ inputs.candidate_tag }}"
+        CANDIDATE_TAG="${RAW_TAG#refs/tags/}"
+        CANDIDATE_VERSION="${CANDIDATE_TAG#v}"
 
-        if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-          echo "release_version must be stable SemVer like 0.4.0"
+        if [[ ! "$CANDIDATE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?\.[0-9a-fA-F]{7,40}$ ]]; then
+          echo "candidate_tag must end with a short SHA candidate version, for example 0.4.0-alpha.fe4fe3a"
           exit 1
         fi
 
-        echo "release_version=${VERSION}" >> "$GITHUB_OUTPUT"
-        echo "image_tag=${VERSION}" >> "$GITHUB_OUTPUT"
+        RELEASE_VERSION="${CANDIDATE_VERSION%.*}"
 
-        echo "Release version: ${VERSION}"
-        echo "Image tag: ${VERSION}"
+        if [[ ! "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+          echo "Derived release version is not valid SemVer: ${RELEASE_VERSION}"
+          exit 1
+        fi
+
+        echo "candidate_tag=${CANDIDATE_TAG}" >> "$GITHUB_OUTPUT"
+        echo "candidate_version=${CANDIDATE_VERSION}" >> "$GITHUB_OUTPUT"
+        echo "release_version=${RELEASE_VERSION}" >> "$GITHUB_OUTPUT"
+        echo "image_tag=${RELEASE_VERSION}" >> "$GITHUB_OUTPUT"
+
+        echo "Candidate tag: ${CANDIDATE_TAG}"
+        echo "Candidate version: ${CANDIDATE_VERSION}"
+        echo "Release version: ${RELEASE_VERSION}"
+        echo "Image tag: ${RELEASE_VERSION}"

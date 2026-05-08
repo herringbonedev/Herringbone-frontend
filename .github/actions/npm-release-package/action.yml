@@ -130,9 +130,8 @@ runs:
       run: |
         set -euo pipefail
         if [ "${{ steps.exists.outputs.exists }}" = "true" ]; then
-          echo "Package already exists: ${{ inputs.package_name }}@${{ inputs.package_version }}"
-          echo "published=false" >> "$GITHUB_OUTPUT"
-          exit 0
+          echo "Refusing to publish. Package already exists: ${{ inputs.package_name }}@${{ inputs.package_version }}"
+          exit 1
         fi
         npm publish --tag "${{ inputs.npm_tag }}" --access restricted
         echo "published=true" >> "$GITHUB_OUTPUT"

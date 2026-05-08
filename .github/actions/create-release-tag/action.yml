@@ -1,0 +1,61 @@
+name: Create Release Tag
+description: Create and push the full release git tag.
+
+inputs:
+  tag_name:
+    required: true
+  source_tag:
+    required: true
+  service_name:
+    required: true
+  package_name:
+    required: false
+    default: ""
+  package_version:
+    required: false
+    default: ""
+  image_repo:
+    required: true
+  image_tag:
+    required: true
+  image_digest:
+    required: true
+
+outputs:
+  tag_name:
+    value: ${{ inputs.tag_name }}
+
+runs:
+  using: composite
+  steps:
+    - name: Create and push release tag
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        TAG_NAME="${{ inputs.tag_name }}"
+        SOURCE_TAG="${{ inputs.source_tag }}"
+        SERVICE_NAME="${{ inputs.service_name }}"
+        PACKAGE_NAME="${{ inputs.package_name }}"
+        PACKAGE_VERSION="${{ inputs.package_version }}"
+        IMAGE="${{ inputs.image_repo }}:${{ inputs.image_tag }}@${{ inputs.image_digest }}"
+
+        git fetch --tags --force origin >/dev/null 2>&1 || true
+
+        if git rev-parse -q --verify "refs/tags/${TAG_NAME}" >/dev/null; then
+          echo "Release tag already exists: ${TAG_NAME}"
+          exit 1
+        fi
+
+        MESSAGE_FILE="$(mktemp)"
+        printf '%s\n\nPackage: %s@%s\nImage: %s\nCandidate tag: %s\nSource: %s\n' \
+          "Full release for ${SERVICE_NAME}" \
+          "$PACKAGE_NAME" \
+          "$PACKAGE_VERSION" \
+          "$IMAGE" \
+          "$SOURCE_TAG" \
+          "$GITHUB_SHA" > "$MESSAGE_FILE"
+
+        git tag -a "$TAG_NAME" -F "$MESSAGE_FILE" "$GITHUB_SHA"
+        git push origin "refs/tags/${TAG_NAME}"
+        rm -f "$MESSAGE_FILE"

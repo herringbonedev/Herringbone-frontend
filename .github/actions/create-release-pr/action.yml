@@ -92,11 +92,15 @@ runs:
         if [ -n "$EXISTING_PR" ]; then
           gh pr edit "$EXISTING_PR" \
             --title "chore(${{ inputs.service_name }}): release ${{ inputs.release_version }}" \
-            --body-file "$BODY_FILE"
+            --body-file "$BODY_FILE" \
+            --add-label release \
+            --add-label automation
         else
           gh pr create \
             --base "$BASE_BRANCH" \
             --head "$BRANCH" \
             --title "chore(${{ inputs.service_name }}): release ${{ inputs.release_version }}" \
-            --body-file "$BODY_FILE"
+            --body-file "$BODY_FILE" \
+            --label release \
+            --label automation
         fi

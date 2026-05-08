@@ -3,7 +3,8 @@ name: Operations Center Full Release
 on:
   workflow_dispatch:
     inputs:
-      release_version:
+      candidate_tag:
+        description: Candidate tag to promote, for example 0.4.0-alpha.fe4fe3a
         required: true
         type: string
       npm_tag:
@@ -20,7 +21,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: operations-center-full-release-${{ inputs.release_version }}
+  group: operations-center-full-release-${{ inputs.candidate_tag }}
   cancel-in-progress: false
 
 jobs:
@@ -41,5 +42,5 @@ jobs:
       package_registry: "https://npm.pkg.github.com"
       node_version: "22"
 
-      release_version: ${{ inputs.release_version }}
+      candidate_tag: ${{ inputs.candidate_tag }}
       npm_tag: ${{ inputs.npm_tag }}
