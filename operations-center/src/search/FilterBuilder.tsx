@@ -1,8 +1,10 @@
 import type { SchemaField } from "./useSearchSchema"
 
+export type FilterKind = "range" | "in" | "eq" | "contains" | "prefix"
+
 export type FilterRow = {
   field?: string
-  kind?: "range" | "in"
+  kind?: FilterKind
   min?: number | null
   max?: number | null
   values?: string | null
@@ -13,6 +15,43 @@ type Props = {
   fields: SchemaField[]
   value: FilterRow[]
   onChange: (rows: FilterRow[]) => void
+}
+
+function hasType(field: SchemaField | undefined, type: string) {
+  return !!field?.types?.includes(type)
+}
+
+function kindOptions(field: SchemaField | undefined): { value: FilterKind; label: string }[] {
+  if (!field) return []
+
+  if (hasType(field, "number")) {
+    return [
+      { value: "range", label: "between" },
+      { value: "eq", label: "equals" },
+      { value: "in", label: "in" },
+    ]
+  }
+
+  if (hasType(field, "date")) {
+    return [
+      { value: "eq", label: "equals" },
+      { value: "in", label: "in" },
+    ]
+  }
+
+  if (hasType(field, "boolean")) {
+    return [
+      { value: "eq", label: "equals" },
+      { value: "in", label: "in" },
+    ]
+  }
+
+  return [
+    { value: "contains", label: "contains" },
+    { value: "prefix", label: "starts with" },
+    { value: "eq", label: "equals" },
+    { value: "in", label: "in" },
+  ]
 }
 
 export function FilterBuilder({ fields, value, onChange }: Props) {
@@ -37,19 +76,18 @@ export function FilterBuilder({ fields, value, onChange }: Props) {
     <div className="filter-builder">
       {rows.map((row, i) => {
         const field = fields.find(f => f.path === row.field)
-
-        const isNumber = field?.types.includes("number")
-        const isEnum =
-          field?.types.includes("string") && Array.isArray(field?.enum)
-
-        const canShowValue = !!row.field && (isNumber || isEnum)
+        const options = kindOptions(field)
+        const kind = row.kind || options[0]?.value
+        const enumValues = Array.isArray(field?.enum) ? field.enum : []
+        const showRange = kind === "range" && hasType(field, "number")
+        const showValue = !!row.field && !!kind && !showRange
 
         return (
           <div
             key={i}
             style={{
               display: "grid",
-              gridTemplateColumns: "120px 1fr 1fr auto auto",
+              gridTemplateColumns: "120px minmax(220px, 1.4fr) minmax(130px, 0.8fr) minmax(220px, 1.2fr) auto auto",
               gap: 8,
               alignItems: "center",
               marginBottom: 8,
@@ -93,13 +131,26 @@ export function FilterBuilder({ fields, value, onChange }: Props) {
               ))}
             </select>
 
-            {!canShowValue && (
-              <select className="search-select" value="" disabled>
-                <option value="">Value…</option>
-              </select>
-            )}
+            <select
+              className="search-select"
+              value={kind || ""}
+              disabled={!row.field}
+              onChange={e =>
+                updateRow(i, {
+                  kind: e.target.value as FilterKind,
+                  min: null,
+                  max: null,
+                  values: null,
+                })
+              }
+            >
+              <option value="">Operator…</option>
+              {options.map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
 
-            {canShowValue && isNumber && (
+            {showRange && (
               <div style={{ display: "flex", gap: 6 }}>
                 <input
                   className="search-input"
@@ -128,23 +179,39 @@ export function FilterBuilder({ fields, value, onChange }: Props) {
               </div>
             )}
 
-            {canShowValue && isEnum && (
+            {showValue && enumValues.length > 0 && kind !== "contains" && kind !== "prefix" ? (
               <select
                 className="search-select"
                 value={row.values || ""}
                 onChange={e =>
                   updateRow(i, {
-                    kind: "in",
+                    kind,
                     values: e.target.value || null,
                   })
                 }
               >
                 <option value="">Value…</option>
-                {(field?.enum ?? []).map((v: string) => (
-                  <option key={v} value={v}>
-                    {v}
+                {enumValues.map((v: any) => (
+                  <option key={String(v)} value={String(v)}>
+                    {String(v)}
                   </option>
                 ))}
+              </select>
+            ) : showValue ? (
+              <input
+                className="search-input"
+                placeholder={kind === "in" ? "a,b,c" : "value"}
+                value={row.values || ""}
+                onChange={e =>
+                  updateRow(i, {
+                    kind,
+                    values: e.target.value || null,
+                  })
+                }
+              />
+            ) : (
+              <select className="search-select" value="" disabled>
+                <option value="">Value…</option>
               </select>
             )}
 

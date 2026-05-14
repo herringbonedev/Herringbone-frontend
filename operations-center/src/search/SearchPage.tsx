@@ -54,6 +54,25 @@ function computeRange(range: string) {
   return { from: from.toISOString(), to: now.toISOString() }
 }
 
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+function parseList(value: string) {
+  return value
+    .split(",")
+    .map(v => v.trim())
+    .filter(Boolean)
+}
+
+function parseScalar(value: string) {
+  const trimmed = value.trim()
+  if (trimmed === "true") return true
+  if (trimmed === "false") return false
+  if (trimmed !== "" && /^-?\d+(\.\d+)?$/.test(trimmed)) return Number(trimmed)
+  return trimmed
+}
+
 function rowToCondition(row: FilterRow) {
   if (!row.field || !row.kind) return null
 
@@ -65,10 +84,25 @@ function rowToCondition(row: FilterRow) {
     return { [row.field]: r }
   }
 
+  const v = row.values
+  if (!v) return null
+
   if (row.kind === "in") {
-    const v = row.values
-    if (!v) return null
-    return { [row.field]: { "$in": [v] } }
+    const values = parseList(v).map(parseScalar)
+    if (!values.length) return null
+    return { [row.field]: { "$in": values } }
+  }
+
+  if (row.kind === "eq") {
+    return { [row.field]: parseScalar(v) }
+  }
+
+  if (row.kind === "contains") {
+    return { [row.field]: { "$regex": escapeRegex(v), "$options": "i" } }
+  }
+
+  if (row.kind === "prefix") {
+    return { [row.field]: { "$regex": `^${escapeRegex(v)}`, "$options": "i" } }
   }
 
   return null
