@@ -4,9 +4,13 @@ export type MongoId =
 			$oid: string
 	  }
 
+export type SelectorType = "raw" | "source_address" | "raw_regex"
+
 export type Selector = {
-	type: "raw" | "source_address"
+	type: SelectorType
 	value: string
+	not?: Selector | Selector[]
+	and_not?: Selector | Selector[]
 }
 
 export type KV = {

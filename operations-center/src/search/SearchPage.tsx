@@ -1,14 +1,33 @@
-import { useState, useEffect } from "react"
-import React from "react"
+import React, { useState, useEffect } from "react"
 import { useSearchApi } from "./useSearchApi"
 import { useSearchSchema } from "./useSearchSchema"
-import { FilterBuilder, type FilterRow } from "./FilterBuilder"
+import { FilterBuilder, type FilterGroup, type FilterRow, type LogicJoin } from "./FilterBuilder"
+import { RelatedCollectionBuilder, type RelatedCollectionRule } from "./RelatedCollectionBuilder"
 import "./search.css"
 
+const MESSAGE_FIELDS = new Set(["raw", "message", "MESSAGE", "description"])
+
+function isEmptyValue(val: any) {
+  if (val == null) return true
+  if (typeof val === "string" && val.trim() === "") return true
+  if (Array.isArray(val) && val.length === 0) return true
+  if (typeof val === "object" && !Array.isArray(val) && Object.keys(val).length === 0) return true
+  return false
+}
+
 function preview(val: any, max = 120) {
-  if (val == null) return ""
+  if (isEmptyValue(val)) return ""
   const s = typeof val === "string" ? val : JSON.stringify(val)
   return s.length > max ? s.slice(0, max) + "…" : s
+}
+
+function cellText(val: any, max = 120) {
+  const p = preview(val, max)
+  return p || "—"
+}
+
+function cellClass(val: any) {
+  return isEmptyValue(val) ? "cell-empty" : ""
 }
 
 function shortId(id: string) {
@@ -16,25 +35,37 @@ function shortId(id: string) {
 }
 
 function extractMessage(row: any): string {
-  return row.raw || row.message || row.description || row?.parsed?.command || row?.parsed?.message || ""
+  return row.raw || row.message || row.MESSAGE || row.description || row?.parsed?.command || row?.parsed?.message || ""
 }
 
 function buildColumns(rows: any[]) {
   if (!rows.length) return []
-  const priority = ["severity", "priority", "event_time", "ingested_at", "created_at"]
-  const fields = new Set<string>()
+  const priority = ["severity", "priority", "event_id", "event_time", "ingested_at", "created_at", "source", "host"]
+  const fields = new Map<string, number>()
 
   rows.forEach(r => {
     Object.keys(r).forEach(k => {
+      if (k === "_id") return
+      if (MESSAGE_FIELDS.has(k)) return
+
       const v = r[k]
-      if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") fields.add(k)
+      if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
+        if (!isEmptyValue(v)) fields.set(k, (fields.get(k) || 0) + 1)
+      }
     })
   })
 
   const ordered: string[] = []
-  for (const p of priority) if (fields.has(p)) ordered.push(p)
-  for (const f of fields) if (!ordered.includes(f) && f !== "_id") ordered.push(f)
-  return ordered.slice(0, 6)
+  for (const p of priority) {
+    if ((fields.get(p) || 0) > 0) ordered.push(p)
+  }
+
+  const remaining = [...fields.keys()]
+    .filter(f => !ordered.includes(f) && (fields.get(f) || 0) > 0)
+    .sort((a, b) => (fields.get(b) || 0) - (fields.get(a) || 0) || a.localeCompare(b))
+
+  ordered.push(...remaining)
+  return ordered.slice(0, 7)
 }
 
 function computeRange(range: string) {
@@ -73,6 +104,117 @@ function parseScalar(value: string) {
   return trimmed
 }
 
+function getPathValue(row: any, path: string) {
+  if (!path) return undefined
+  return path.split(".").reduce((cur, part) => {
+    if (cur == null) return undefined
+    return cur[part]
+  }, row)
+}
+
+function normalizeJoinValue(value: any) {
+  if (value == null) return null
+  if (typeof value === "object" && !Array.isArray(value)) {
+    if (typeof value.$oid === "string") return value.$oid
+    if (typeof value.toString === "function") return value.toString()
+  }
+  return value
+}
+
+function uniqueRelatedValues(rows: any[], foreignField: string) {
+  const out: any[] = []
+  const seen = new Set<string>()
+
+  rows.forEach(row => {
+    const raw = getPathValue(row, foreignField)
+    const values = Array.isArray(raw) ? raw : [raw]
+
+    values.forEach(v => {
+      const normalized = normalizeJoinValue(v)
+      if (normalized == null || normalized === "") return
+      const key = typeof normalized === "string" ? normalized : JSON.stringify(normalized)
+      if (seen.has(key)) return
+      seen.add(key)
+      out.push(normalized)
+    })
+  })
+
+  return out
+}
+
+function combineWithRelatedQuery(baseQuery: Record<string, any>, related: RelatedCollectionRule, values: any[]) {
+  const relatedClause = {
+    [related.localField]: { [related.relation === "not_in" ? "$nin" : "$in"]: values },
+  }
+
+  if (!Object.keys(baseQuery || {}).length) return relatedClause
+  return related.join === "or" ? { "$or": [baseQuery, relatedClause] } : { "$and": [baseQuery, relatedClause] }
+}
+
+function buildSearchUrl(
+  collection: string,
+  query: Record<string, any>,
+  limit: number,
+  fromTs?: string | null,
+  toTs?: string | null,
+  after?: string | null
+) {
+  const params = new URLSearchParams()
+  params.set("limit", String(limit))
+  params.set("q", JSON.stringify(query))
+  if (after) params.set("after", after)
+  if (fromTs) params.set("from_ts", fromTs)
+  if (toTs) params.set("to_ts", toTs)
+
+  const base = typeof window !== "undefined" ? window.location.origin : ""
+  return `${base}/herringbone/search/${collection}?${params.toString()}`
+}
+
+async function copyText(value: string) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value)
+    return
+  }
+
+  const textarea = document.createElement("textarea")
+  textarea.value = value
+  textarea.setAttribute("readonly", "true")
+  textarea.style.position = "fixed"
+  textarea.style.left = "-9999px"
+  document.body.appendChild(textarea)
+  textarea.select()
+  document.execCommand("copy")
+  document.body.removeChild(textarea)
+}
+
+function notCondition(cond: any) {
+  return { "$nor": [cond] }
+}
+
+function andCondition(a: any, b: any) {
+  return { "$and": [a, b] }
+}
+
+function orCondition(a: any, b: any) {
+  return { "$or": [a, b] }
+}
+
+function nandCondition(a: any, b: any) {
+  return notCondition(andCondition(a, b))
+}
+
+function norCondition(a: any, b: any) {
+  return { "$nor": [a, b] }
+}
+
+function xorCondition(a: any, b: any) {
+  return andCondition(orCondition(a, b), nandCondition(a, b))
+}
+
+function xnorCondition(a: any, b: any) {
+  return notCondition(xorCondition(a, b))
+}
+
 function rowToCondition(row: FilterRow) {
   if (!row.field || !row.kind) return null
 
@@ -87,42 +229,82 @@ function rowToCondition(row: FilterRow) {
   const v = row.values
   if (!v) return null
 
-  if (row.kind === "in") {
+  if (row.kind === "in" || row.kind === "not_in") {
     const values = parseList(v).map(parseScalar)
     if (!values.length) return null
-    return { [row.field]: { "$in": values } }
+    const cond = { [row.field]: { "$in": values } }
+    return row.kind === "not_in" ? notCondition(cond) : cond
   }
 
   if (row.kind === "eq") {
     return { [row.field]: parseScalar(v) }
   }
 
-  if (row.kind === "contains") {
-    return { [row.field]: { "$regex": escapeRegex(v), "$options": "i" } }
+  if (row.kind === "ne") {
+    return notCondition({ [row.field]: parseScalar(v) })
   }
 
-  if (row.kind === "prefix") {
-    return { [row.field]: { "$regex": `^${escapeRegex(v)}`, "$options": "i" } }
+  if (row.kind === "contains" || row.kind === "not_contains") {
+    const cond = { [row.field]: { "$regex": escapeRegex(v), "$options": "i" } }
+    return row.kind === "not_contains" ? notCondition(cond) : cond
+  }
+
+  if (row.kind === "prefix" || row.kind === "not_prefix") {
+    const cond = { [row.field]: { "$regex": `^${escapeRegex(v)}`, "$options": "i" } }
+    return row.kind === "not_prefix" ? notCondition(cond) : cond
   }
 
   return null
 }
 
-function buildFilterQuery(rows: FilterRow[]) {
-  const conds: { cond: any; join: "and" | "or" }[] = []
+function normalizeCondition(row: FilterRow) {
+  const cond = rowToCondition(row)
+  if (!cond) return null
+  return row.negate ? notCondition(cond) : cond
+}
+
+function combineConditions(current: any, next: any, join: LogicJoin) {
+  if (join === "or") return orCondition(current, next)
+  if (join === "nand") return nandCondition(current, next)
+  if (join === "nor") return norCondition(current, next)
+  if (join === "xor") return xorCondition(current, next)
+  if (join === "xnor") return xnorCondition(current, next)
+  return andCondition(current, next)
+}
+
+function buildGroupCondition(rows: FilterRow[]) {
+  const conds: { cond: any; join: LogicJoin }[] = []
 
   rows.forEach((r, idx) => {
-    const c = rowToCondition(r)
+    const c = normalizeCondition(r)
     if (!c) return
     conds.push({ cond: c, join: idx === 0 ? "and" : (r.join || "and") })
+  })
+
+  if (!conds.length) return null
+
+  let cur = conds[0].cond
+  for (let i = 1; i < conds.length; i++) {
+    cur = combineConditions(cur, conds[i].cond, conds[i].join)
+  }
+
+  return cur
+}
+
+function buildFilterQuery(groups: FilterGroup[]) {
+  const conds: { cond: any; join: LogicJoin }[] = []
+
+  groups.forEach((group, idx) => {
+    const c = buildGroupCondition(group.rows || [])
+    if (!c) return
+    conds.push({ cond: c, join: idx === 0 ? "and" : (group.join || "and") })
   })
 
   if (!conds.length) return {}
 
   let cur = conds[0].cond
   for (let i = 1; i < conds.length; i++) {
-    const join = conds[i].join
-    cur = join === "or" ? { "$or": [cur, conds[i].cond] } : { "$and": [cur, conds[i].cond] }
+    cur = combineConditions(cur, conds[i].cond, conds[i].join)
   }
 
   return cur
@@ -133,46 +315,138 @@ export default function SearchPage() {
   const [limit, setLimit] = useState(100)
   const [timeRange, setTimeRange] = useState("24h")
 
-  const [filters, setFilters] = useState<FilterRow[]>([])
+  const [filters, setFilters] = useState<FilterGroup[]>([])
+  const [relatedFilter, setRelatedFilter] = useState<RelatedCollectionRule | null>(null)
   const [queryText, setQueryText] = useState("{}")
+  const [relatedStatus, setRelatedStatus] = useState<string | null>(null)
+  const [copyStatus, setCopyStatus] = useState<string | null>(null)
 
   const [results, setResults] = useState<any[]>([])
   const [openId, setOpenId] = useState<string | null>(null)
   const [nextAfter, setNextAfter] = useState<string | null>(null)
   const [page, setPage] = useState(1)
+  const [cursorHistory, setCursorHistory] = useState<(string | null)[]>([null])
 
   const { search, loading, error } = useSearchApi()
   const { fields } = useSearchSchema(collection)
+  const { fields: relatedFields } = useSearchSchema(relatedFilter?.collection || "detections")
   const columns = buildColumns(results)
+  const hasMessageColumn = results.some(row => !isEmptyValue(extractMessage(row)))
+  const tableColSpan = columns.length + 2 + (hasMessageColumn ? 1 : 0)
 
   useEffect(() => {
     setFilters([])
+    setRelatedFilter(null)
+    setRelatedStatus(null)
+    setCopyStatus(null)
     setQueryText("{}")
     setResults([])
     setNextAfter(null)
     setPage(1)
+    setCursorHistory([null])
     setOpenId(null)
   }, [collection])
 
   useEffect(() => {
     const q = buildFilterQuery(filters)
     setQueryText(JSON.stringify(q, null, 2))
+    setCopyStatus(null)
   }, [filters])
 
-  async function runSearch(cursor: string | null, reset: boolean) {
+  async function buildCurrentApiUrl() {
+    let q: Record<string, any>
+    try {
+      q = JSON.parse(queryText || "{}")
+    } catch (e: any) {
+      throw new Error("Invalid JSON query: " + e.message)
+    }
+
+    const range = computeRange(timeRange)
+    let finalQuery = q
+
+    if (relatedFilter && relatedFilter.localField.trim() && relatedFilter.foreignField.trim()) {
+      const relatedQuery = buildFilterQuery(relatedFilter.filters)
+      const relatedResp = await search(
+        relatedFilter.collection,
+        relatedQuery,
+        Math.max(1, relatedFilter.limit || 500),
+        null,
+        range.from,
+        range.to,
+        null,
+        null,
+        null,
+        null,
+        null
+      )
+
+      const relatedValues = uniqueRelatedValues(relatedResp.results || [], relatedFilter.foreignField.trim())
+      finalQuery = combineWithRelatedQuery(
+        finalQuery,
+        { ...relatedFilter, localField: relatedFilter.localField.trim(), foreignField: relatedFilter.foreignField.trim() },
+        relatedValues
+      )
+    }
+
+    return buildSearchUrl(collection, finalQuery, limit, range.from, range.to, null)
+  }
+
+  async function copyQueryUrl() {
+    try {
+      setCopyStatus(null)
+      const url = await buildCurrentApiUrl()
+      await copyText(url)
+      setCopyStatus("Copied API URL. Add your Authorization token when using it externally.")
+    } catch (e: any) {
+      setCopyStatus(e.message || "Could not copy query URL")
+    }
+  }
+
+  async function runSearch(cursor: string | null) {
     let q: Record<string, any>
     try {
       q = JSON.parse(queryText || "{}")
     } catch (e: any) {
       alert("Invalid JSON query: " + e.message)
-      return
+      return false
     }
 
     const range = computeRange(timeRange)
+    let finalQuery = q
+    setRelatedStatus(null)
+
+    if (relatedFilter && relatedFilter.localField.trim() && relatedFilter.foreignField.trim()) {
+      const relatedQuery = buildFilterQuery(relatedFilter.filters)
+      const relatedResp = await search(
+        relatedFilter.collection,
+        relatedQuery,
+        Math.max(1, relatedFilter.limit || 500),
+        null,
+        range.from,
+        range.to,
+        null,
+        null,
+        null,
+        null,
+        null
+      )
+
+      const relatedValues = uniqueRelatedValues(relatedResp.results || [], relatedFilter.foreignField.trim())
+      setRelatedStatus(`${relatedFilter.collection}: ${relatedValues.length} matching ${relatedFilter.foreignField} value${relatedValues.length === 1 ? "" : "s"}`)
+
+      if (!relatedValues.length && relatedFilter.relation === "in") {
+        setResults([])
+        setNextAfter(null)
+        setOpenId(null)
+        return true
+      }
+
+      finalQuery = combineWithRelatedQuery(finalQuery, { ...relatedFilter, localField: relatedFilter.localField.trim(), foreignField: relatedFilter.foreignField.trim() }, relatedValues)
+    }
 
     const resp = await search(
       collection,
-      q,
+      finalQuery,
       limit,
       cursor,
       range.from,
@@ -187,20 +461,38 @@ export default function SearchPage() {
     setResults(resp.results || [])
     setNextAfter(resp.next_after || null)
     setOpenId(null)
-    if (reset) setPage(1)
+    return true
   }
 
   async function resetSearch() {
-    setNextAfter(null)
+    const ok = await runSearch(null)
+    if (!ok) return
+    setCursorHistory([null])
     setPage(1)
-    await runSearch(null, true)
+  }
+
+  async function previousPage() {
+    if (page <= 1 || loading) return
+    const targetPage = page - 1
+    const cursor = cursorHistory[targetPage - 1] || null
+    const ok = await runSearch(cursor)
+    if (!ok) return
+    setPage(targetPage)
   }
 
   async function nextPage() {
-    if (!nextAfter) return
+    if (!nextAfter || loading) return
+    const cursor = nextAfter
+    const ok = await runSearch(cursor)
+    if (!ok) return
+    setCursorHistory(prev => {
+      const next = prev.slice(0, page)
+      next[page] = cursor
+      return next
+    })
     setPage(p => p + 1)
-    await runSearch(nextAfter, false)
   }
+
 
   return (
     <div className="search-page">
@@ -244,10 +536,25 @@ export default function SearchPage() {
           <button className="search-button" onClick={resetSearch} disabled={loading}>
             {loading ? "Searching…" : "Search"}
           </button>
+
+          <button className="search-button copy-query-button" onClick={copyQueryUrl} disabled={loading}>
+            Copy Query URL
+          </button>
         </div>
+
+        {copyStatus && <div className="copy-query-status">{copyStatus}</div>}
 
         <div style={{ marginTop: 8 }}>
           <FilterBuilder fields={fields} value={filters} onChange={setFilters} />
+        </div>
+
+        <div className="related-section">
+          <RelatedCollectionBuilder
+            value={relatedFilter}
+            onChange={setRelatedFilter}
+            relatedFields={relatedFields}
+          />
+          {relatedStatus && <div className="related-status">{relatedStatus}</div>}
         </div>
 
         <div className="search-query">
@@ -265,8 +572,12 @@ export default function SearchPage() {
 
       <div className="search-results">
         <div className="results-header">
-          <div className="results-title">Page {page} ({results.length})</div>
+          <div>
+            <div className="results-title">Page {page} ({results.length})</div>
+            <div className="results-hint">Empty cells are shown as —. Open a row to inspect the full document.</div>
+          </div>
           <div className="pagination-controls">
+            <button onClick={previousPage} disabled={page <= 1 || loading} className="page-btn">← Back</button>
             <button onClick={nextPage} disabled={!nextAfter || loading} className="page-btn">Next →</button>
           </div>
         </div>
@@ -275,32 +586,43 @@ export default function SearchPage() {
           <table className="results-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Message</th>
+                <th className="col-id">ID</th>
+                {hasMessageColumn && <th className="col-message">Message</th>}
                 {columns.map(c => <th key={c}>{c}</th>)}
-                <th></th>
+                <th className="col-action"></th>
               </tr>
             </thead>
             <tbody>
+              {!results.length && (
+                <tr>
+                  <td className="empty" colSpan={tableColSpan}>No results yet.</td>
+                </tr>
+              )}
+
               {results.map(row => {
                 const id = String(row._id)
                 const isOpen = openId === id
+                const message = extractMessage(row)
 
                 return (
                   <React.Fragment key={id}>
-                    <tr>
-                      <td className="mono">{shortId(id)}</td>
-                      <td>{preview(extractMessage(row))}</td>
-                      {columns.map(c => <td key={c}>{preview(row[c])}</td>)}
-                      <td>
+                    <tr className="row">
+                      <td className="mono col-id" title={id}><span className="id-pill">{shortId(id)}</span></td>
+                      {hasMessageColumn && <td className={`message-cell ${cellClass(message)}`} title={preview(message, 600)}>{cellText(message, 180)}</td>}
+                      {columns.map(c => (
+                        <td key={c} className={cellClass(row[c])} title={preview(row[c], 600)}>
+                          {cellText(row[c], 100)}
+                        </td>
+                      ))}
+                      <td className="col-action">
                         <button className="link-button" onClick={() => setOpenId(isOpen ? null : id)}>
                           {isOpen ? "Hide" : "View"}
                         </button>
                       </td>
                     </tr>
                     {isOpen && (
-                      <tr>
-                        <td colSpan={columns.length + 3}>
+                      <tr className="details-row">
+                        <td colSpan={tableColSpan}>
                           <pre className="json-viewer">{JSON.stringify(row, null, 2)}</pre>
                         </td>
                       </tr>

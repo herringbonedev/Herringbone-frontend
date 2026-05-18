@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import type { Card, KV, Selector } from "./types"
+import type { Card, KV, Selector, SelectorType } from "./types"
 
 type Props = {
 	card: Card
@@ -7,6 +7,13 @@ type Props = {
 	onSave: (card: Card) => void
 	onUpdate: (card: Card) => void
 	onPreview: (card: Card) => void
+}
+
+const emptySelector = (): Selector => ({ type: "raw", value: "" })
+
+function selectorList(value: Selector["not"] | Selector["and_not"]): Selector[] {
+	if (!value) return []
+	return Array.isArray(value) ? value : [value]
 }
 
 export function CardBuilder({
@@ -17,16 +24,18 @@ export function CardBuilder({
 	onPreview,
 }: Props) {
 	const [cardName, setCardName] = useState("")
-	const [selector, setSelector] = useState<Selector>({
-		type: "raw",
-		value: "",
-	})
+	const [selector, setSelector] = useState<Selector>(emptySelector())
+	const [negativeSelectors, setNegativeSelectors] = useState<Selector[]>([])
 	const [regex, setRegex] = useState<KV[]>([])
 	const [jsonp, setJsonp] = useState<KV[]>([])
 
 	useEffect(() => {
 		setCardName(card.name || "")
-		setSelector(card.selector || { type: "raw", value: "" })
+		setSelector({ ...(card.selector || emptySelector()), not: undefined, and_not: undefined })
+		setNegativeSelectors([
+			...selectorList(card.selector?.not),
+			...selectorList(card.selector?.and_not),
+		])
 
 		const toKV = (items?: Record<string, string>[]) =>
 			items
@@ -46,9 +55,18 @@ export function CardBuilder({
 			.map(i => ({ [i.key]: i.value }))
 
 	const buildCard = (): Card => {
+		const cleanSelector: Selector = {
+			type: selector.type,
+			value: selector.value,
+		}
+
+		const cleanNot = negativeSelectors.filter(n => n.value.trim() !== "")
+		if (cleanNot.length === 1) cleanSelector.not = cleanNot[0]
+		if (cleanNot.length > 1) cleanSelector.not = cleanNot
+
 		const c: Card = {
 			name: cardName,
-			selector,
+			selector: cleanSelector,
 		}
 		const r = buildItems(regex)
 		const j = buildItems(jsonp)
@@ -61,7 +79,15 @@ export function CardBuilder({
 
 	useEffect(() => {
 		onPreview(built)
-	}, [cardName, selector, regex, jsonp])
+	}, [cardName, selector, negativeSelectors, regex, jsonp])
+
+	const updateNegative = (idx: number, patch: Partial<Selector>) => {
+		setNegativeSelectors(items => {
+			const next = [...items]
+			next[idx] = { ...next[idx], ...patch }
+			return next
+		})
+	}
 
 	return (
 		<div className="cardset-panel">
@@ -83,21 +109,18 @@ export function CardBuilder({
 					onChange={e =>
 						setSelector({
 							...selector,
-							type: e.target.value as
-								| "raw"
-								| "source_address",
+							type: e.target.value as SelectorType,
 						})
 					}
 				>
 					<option value="raw">raw</option>
-					<option value="source_address">
-						source_address
-					</option>
+					<option value="raw_regex">raw_regex</option>
+					<option value="source_address">source_address</option>
 				</select>
 
 				<input
 					className="cardset-input inline"
-					placeholder="value"
+					placeholder={selector.type === "raw_regex" ? "regex pattern" : "value"}
 					value={selector.value}
 					disabled={isEdit}
 					onChange={e =>
@@ -108,6 +131,40 @@ export function CardBuilder({
 					}
 				/>
 			</div>
+
+			<h3>AND NOT</h3>
+			<button
+				className="cardset-btn secondary"
+				onClick={() => setNegativeSelectors(n => [...n, emptySelector()])}
+			>
+				+ Add Exclude
+			</button>
+
+			{negativeSelectors.map((n, i) => (
+				<div key={i} className="cardset-row">
+					<select
+						className="cardset-input"
+						value={n.type}
+						onChange={e => updateNegative(i, { type: e.target.value as SelectorType })}
+					>
+						<option value="raw">raw</option>
+						<option value="raw_regex">raw_regex</option>
+						<option value="source_address">source_address</option>
+					</select>
+					<input
+						className="cardset-input inline"
+						placeholder="exclude value"
+						value={n.value}
+						onChange={e => updateNegative(i, { value: e.target.value })}
+					/>
+					<button
+						className="cardset-btn secondary"
+						onClick={() => setNegativeSelectors(items => items.filter((_, idx) => idx !== i))}
+					>
+						-
+					</button>
+				</div>
+			))}
 
 			<h3>Regex</h3>
 			<button
@@ -141,9 +198,7 @@ export function CardBuilder({
 					/>
 					<button
 						className="cardset-btn secondary"
-						onClick={() =>
-							setRegex(r => r.filter((_, idx) => idx !== i))
-						}
+						onClick={() => setRegex(r => r.filter((_, idx) => idx !== i))}
 					>
 						-
 					</button>
@@ -182,9 +237,7 @@ export function CardBuilder({
 					/>
 					<button
 						className="cardset-btn secondary"
-						onClick={() =>
-							setJsonp(j => j.filter((_, idx) => idx !== i))
-						}
+						onClick={() => setJsonp(j => j.filter((_, idx) => idx !== i))}
 					>
 						-
 					</button>

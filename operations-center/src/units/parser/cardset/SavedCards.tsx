@@ -26,6 +26,12 @@ function getDisplayName(card: Card): string {
 	return `${card.selector.type}=${card.selector.value}`
 }
 
+function countNot(card: Card): number {
+	const n = card.selector?.not || card.selector?.and_not
+	if (!n) return 0
+	return Array.isArray(n) ? n.length : 1
+}
+
 export function SavedCards({
 	cards,
 	loading,
@@ -62,6 +68,12 @@ export function SavedCards({
 						<div style={{ opacity: 0.7 }}>
 							{c.selector.type}: {c.selector.value}
 						</div>
+
+						{countNot(c) > 0 && (
+							<div style={{ opacity: 0.7 }}>
+								AND NOT: {countNot(c)}
+							</div>
+						)}
 
 						<div style={{ opacity: 0.6 }}>
 							regex: {c.regex?.length || 0}, jsonp:{" "}
