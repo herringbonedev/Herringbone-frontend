@@ -22,9 +22,7 @@ const collections = [
   "event_state",
   "detections",
   "incidents",
-  "incident_events",
-  "parse_results",
-  "enrichment_results",
+  "parse_results"
 ]
 
 function defaultRule(): RelatedCollectionRule {

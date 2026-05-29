@@ -507,9 +507,8 @@ export default function SearchPage() {
               <option value="event_state">event_state</option>
               <option value="detections">detections</option>
               <option value="incidents">incidents</option>
-              <option value="incident_events">incident_events</option>
               <option value="parse_results">parse_results</option>
-              <option value="enrichment_results">enrichment_results</option>
+              <option value="audit_lod">audit_log</option>
             </select>
           </label>
 
