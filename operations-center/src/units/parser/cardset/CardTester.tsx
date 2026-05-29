@@ -10,6 +10,101 @@ function selectorList(value: Selector["not"] | Selector["and_not"]): Selector[] 
 	return Array.isArray(value) ? value : [value]
 }
 
+function isPathSelector(type: Selector["type"]) {
+	return type === "field" || type === "path" || type === "json" || type === "jsonpath"
+}
+
+function selectorPath(selector: Selector) {
+	return selector.path || selector.field || ""
+}
+
+function tokenizeJsonPath(path: string): string[] {
+	const normalized = path
+		.trim()
+		.replace(/^\$\.?/, "")
+		.replace(/\[['\"]([^'\"]+)['\"]\]/g, ".$1")
+		.replace(/\[(\d+)\]/g, ".$1")
+		.replace(/\[\*\]/g, ".*")
+
+	return normalized.split(".").filter(Boolean)
+}
+
+function readJsonPathValues(data: any, path: string): unknown[] {
+	if (!path.trim()) return []
+	const tokens = tokenizeJsonPath(path)
+	let current: unknown[] = [data]
+
+	for (const token of tokens) {
+		const next: unknown[] = []
+
+		for (const item of current) {
+			if (token === "*") {
+				if (Array.isArray(item)) next.push(...item)
+				else if (item && typeof item === "object") next.push(...Object.values(item))
+				continue
+			}
+
+			if (Array.isArray(item) && /^\d+$/.test(token)) {
+				const value = item[Number(token)]
+				if (value !== undefined) next.push(value)
+				continue
+			}
+
+			if (item && typeof item === "object") {
+				const value = (item as Record<string, unknown>)[token]
+				if (value !== undefined) next.push(value)
+			}
+		}
+
+		current = next
+		if (current.length === 0) break
+	}
+
+	return current
+}
+
+function valueToText(value: unknown): string {
+	if (value === null || value === undefined) return ""
+	if (typeof value === "string") return value
+	if (typeof value === "number" || typeof value === "boolean") return String(value)
+	return JSON.stringify(value)
+}
+
+function pathSelectorMatches(selector: Selector, parsed: any) {
+	const path = selectorPath(selector)
+	if (!path) return { ok: false, message: "jsonpath selector path not set" }
+	if (parsed === null || parsed === undefined) {
+		return { ok: false, message: "jsonpath selector requires event JSON" }
+	}
+
+	const values = readJsonPathValues(parsed, path)
+	if (values.length === 0) return { ok: false, message: `jsonpath ${path} not found` }
+
+	const expected = selector.value
+	const match = selector.match || "contains"
+
+	if (match === "regex") {
+		try {
+			const re = new RegExp(expected)
+			return values.some(value => re.test(valueToText(value)))
+				? { ok: true, message: `jsonpath ${path} regex matched` }
+				: { ok: false, message: `jsonpath ${path} regex did not match` }
+		} catch (e: any) {
+			return { ok: false, message: `Invalid jsonpath selector regex: ${e.message}` }
+		}
+	}
+
+	if (match === "exact") {
+		return values.some(value => valueToText(value) === expected)
+			? { ok: true, message: `jsonpath ${path} exact matched` }
+			: { ok: false, message: `jsonpath ${path} exact did not match` }
+	}
+
+	return values.some(value => valueToText(value).includes(expected))
+		? { ok: true, message: `jsonpath ${path} contains matched` }
+		: { ok: false, message: `jsonpath ${path} contains did not match` }
+}
+
 function positiveSelectorMatches(selector: Selector, raw: string, parsed: any) {
 	if (!selector?.type || !selector?.value) {
 		return { ok: false, message: "Selector not set" }
@@ -41,6 +136,10 @@ function positiveSelectorMatches(selector: Selector, raw: string, parsed: any) {
 		return actual && String(actual) === selector.value
 			? { ok: true, message: "source_address matched" }
 			: { ok: false, message: "source_address not matched" }
+	}
+
+	if (isPathSelector(selector.type)) {
+		return pathSelectorMatches(selector, parsed)
 	}
 
 	return { ok: false, message: "Unknown selector type" }
@@ -118,19 +217,8 @@ export function CardTester({ card }: Props) {
 
 		card.jsonp?.forEach(obj => {
 			const [key, path] = Object.entries(obj)[0]
-			let val: any = parsed
-
-			path
-				.replace(/^\$\.?/, "")
-				.split(".")
-				.filter(Boolean)
-				.forEach(p => {
-					val = val?.[p]
-				})
-
-			if (val !== undefined) {
-				results[key] = Array.isArray(val) ? val : [val]
-			}
+			const values = readJsonPathValues(parsed, path)
+			if (values.length > 0) results[key] = values
 		})
 
 		return { ok: true, message: selectorState.message, results }

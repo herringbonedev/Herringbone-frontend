@@ -3,7 +3,7 @@ import type { Card } from "./types"
 import { useCardsetApi } from "./useCardsetApi"
 import { CardBuilder } from "./CardBuilder"
 import { CardTester } from "./CardTester"
-import { SavedCards } from "./SavedCards"
+import { SavedCards, cardSelectorKey } from "./SavedCards"
 import "./cardset.css"
 
 const emptyCard: Card = {
@@ -12,7 +12,7 @@ const emptyCard: Card = {
 }
 
 function keyFor(card: Card): string {
-	return `${card.selector.type}:${card.selector.value}`
+	return cardSelectorKey(card)
 }
 
 export default function CardSetPage() {

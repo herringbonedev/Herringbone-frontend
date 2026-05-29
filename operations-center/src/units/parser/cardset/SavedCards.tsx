@@ -1,4 +1,4 @@
-import type { Card } from "./types"
+import type { Card, Selector } from "./types"
 
 type Props = {
 	cards: Card[]
@@ -17,13 +17,34 @@ function getId(card: Card): string {
 	return ""
 }
 
-function getKey(card: Card): string {
-	return `${card.selector.type}:${card.selector.value}`
+function selectorPath(selector: Selector) {
+	return selector.path || selector.field || ""
+}
+
+function getSelectorExpected(selector: Selector) {
+	return selector.value || ""
+}
+
+export function cardSelectorKey(card: Card): string {
+	const selector = card.selector
+	return [
+		selector.type,
+		selectorPath(selector),
+		selector.match || "",
+		getSelectorExpected(selector),
+	].join(":")
 }
 
 function getDisplayName(card: Card): string {
 	if (card.name && card.name.trim()) return card.name
-	return `${card.selector.type}=${card.selector.value}`
+	return getSelectorLabel(card.selector)
+}
+
+function getSelectorLabel(selector: Selector): string {
+	const path = selectorPath(selector)
+	const match = selector.match ? ` ${selector.match}` : ""
+	if (path) return `${selector.type}:${path}${match}=${selector.value}`
+	return `${selector.type}=${selector.value}`
 }
 
 function countNot(card: Card): number {
@@ -50,7 +71,7 @@ export function SavedCards({
 
 			{cards.map((c, i) => {
 				const id = getId(c)
-				const key = getKey(c)
+				const key = cardSelectorKey(c)
 				const title = getDisplayName(c)
 				const selected = key === selectedKey
 
@@ -65,8 +86,8 @@ export function SavedCards({
 					>
 						<strong>{title}</strong>
 
-						<div style={{ opacity: 0.7 }}>
-							{c.selector.type}: {c.selector.value}
+						<div style={{ opacity: 0.7, wordBreak: "break-all" }}>
+							{getSelectorLabel(c.selector)}
 						</div>
 
 						{countNot(c) > 0 && (

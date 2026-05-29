@@ -58,6 +58,9 @@ export function useCardsetApi() {
 			body: JSON.stringify({
 				selector_type: card.selector.type,
 				selector_value: card.selector.value,
+				selector_path: card.selector.path,
+				selector_field: card.selector.field,
+				selector_match: card.selector.match,
 			}),
 		})
 		await loadCards()

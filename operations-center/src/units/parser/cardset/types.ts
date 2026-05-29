@@ -4,11 +4,23 @@ export type MongoId =
 			$oid: string
 	  }
 
-export type SelectorType = "raw" | "source_address" | "raw_regex"
+export type SelectorType =
+	| "raw"
+	| "source_address"
+	| "raw_regex"
+	| "field"
+	| "path"
+	| "json"
+	| "jsonpath"
+
+export type SelectorMatch = "exact" | "contains" | "regex"
 
 export type Selector = {
 	type: SelectorType
 	value: string
+	field?: string
+	path?: string
+	match?: SelectorMatch
 	not?: Selector | Selector[]
 	and_not?: Selector | Selector[]
 }
