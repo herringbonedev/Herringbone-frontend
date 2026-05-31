@@ -25,19 +25,15 @@ function asOne(value: unknown[] | undefined) {
 
 function sourceName(log: EventLog) {
 	const rawJson = parseRawJson(log.raw)
-	return log.fingerprint?.source_name || String(rawJson?.source || log.source?.kind || "Unknown")
+	return String(rawJson?.source || log.source?.kind || "Unknown")
 }
 
 function sourceCategory(log: EventLog) {
-	return log.fingerprint?.source_category || "unclassified"
+	return log.source?.kind || "unclassified"
 }
 
 function isParsed(log: EventLog) {
 	return Boolean(log.state?.parsed || (log.parsed && Object.keys(log.parsed).length > 0))
-}
-
-function isFingerprinted(log: EventLog) {
-	return Boolean(log.fingerprinted || log.fingerprint?.source_name)
 }
 
 function hasDetection(log: EventLog) {
@@ -144,16 +140,6 @@ function EventDetails({ log }: { log: EventLog }) {
 				</dl>
 			</section>
 
-			<section className="ingestion-detail-card">
-				<h4>Fingerprint</h4>
-				<dl className="ingestion-kv">
-					<div><dt>Source</dt><dd>{log.fingerprint?.source_name || "—"}</dd></div>
-					<div><dt>Category</dt><dd>{log.fingerprint?.source_category || "—"}</dd></div>
-					<div><dt>Confidence</dt><dd>{log.fingerprint?.confidence || "—"}</dd></div>
-					<div><dt>Score</dt><dd>{log.fingerprint?.score ?? "—"}</dd></div>
-				</dl>
-			</section>
-
 			<section className="ingestion-detail-card wide">
 				<h4>Parsed fields</h4>
 				{Object.keys(parsed).length > 0 ? (
@@ -220,7 +206,6 @@ export function LogTable({ logs }: Props) {
 								<div className="ingestion-event-pills">
 									<StatusPill tone="source">{sourceName(log)}</StatusPill>
 									<StatusPill tone="category">{sourceCategory(log)}</StatusPill>
-									{isFingerprinted(log) && <StatusPill tone="good">fingerprinted</StatusPill>}
 									{isParsed(log) ? <StatusPill tone="good">parsed</StatusPill> : <StatusPill tone="warn">unparsed</StatusPill>}
 									<StatusPill tone={severityBand(log)}>{severityLabel(log)}</StatusPill>
 								</div>

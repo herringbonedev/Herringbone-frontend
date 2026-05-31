@@ -182,7 +182,7 @@ export default function Dashboard() {
 				<button className="home-workflow-card" onClick={() => navigate("/logingestion")}>
 					<span>01</span>
 					<strong>Ingestion Monitor</strong>
-					<small>Confirm logs are arriving, fingerprinted, parsed, and ready.</small>
+					<small>Confirm logs are arriving, parsed, and ready.</small>
 				</button>
 				<button className="home-workflow-card" onClick={() => navigate("/search")}>
 					<span>02</span>

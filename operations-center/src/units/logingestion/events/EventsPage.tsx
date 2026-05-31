@@ -16,7 +16,7 @@ function parseRawJson(raw?: string): Record<string, unknown> | null {
 }
 
 function sourceName(log: EventLog) {
-	return log.fingerprint?.source_name || String(parseRawJson(log.raw)?.source || "Unknown")
+	return String(parseRawJson(log.raw)?.source || log.source?.kind || "Unknown")
 }
 
 function sourceKey(log: EventLog) {
@@ -29,10 +29,6 @@ function hasDetection(log: EventLog) {
 
 function isParsed(log: EventLog) {
 	return Boolean(log.state?.parsed || (log.parsed && Object.keys(log.parsed).length > 0))
-}
-
-function isFingerprinted(log: EventLog) {
-	return Boolean(log.fingerprinted || log.fingerprint?.source_name)
 }
 
 function compact(value: number) {
@@ -67,7 +63,6 @@ export default function EventsPage() {
 			if (statusFilter === "parsed" && !isParsed(log)) return false
 			if (statusFilter === "unparsed" && isParsed(log)) return false
 			if (statusFilter === "detected" && !hasDetection(log)) return false
-			if (statusFilter === "fingerprinted" && !isFingerprinted(log)) return false
 
 			if (!q) return true
 			const rawJson = parseRawJson(log.raw)
@@ -78,8 +73,6 @@ export default function EventsPage() {
 				log.raw,
 				log.source?.address,
 				log.source?.kind,
-				log.fingerprint?.source_name,
-				log.fingerprint?.source_category,
 				rawJson ? JSON.stringify(rawJson) : "",
 				log.parsed ? JSON.stringify(log.parsed) : "",
 			]
@@ -93,13 +86,11 @@ export default function EventsPage() {
 
 	const stats = useMemo(() => {
 		const parsed = logs.filter(isParsed).length
-		const fingerprinted = logs.filter(isFingerprinted).length
 		const detected = logs.filter(hasDetection).length
 		const last = [...logs].sort((a, b) => eventTimestampMs(b.ingested_at, b.created_at, b.event_time) - eventTimestampMs(a.ingested_at, a.created_at, a.event_time))[0]
 		return {
 			total: logs.length,
 			parsed,
-			fingerprinted,
 			detected,
 			lastSeen: last?.ingested_at || last?.created_at || last?.event_time,
 		}
@@ -112,7 +103,7 @@ export default function EventsPage() {
 			<header className="ingestion-topbar">
 				<div>
 					<h1>Log Ingestion</h1>
-					<p>Recent events, source identity, parser state, and detection readiness.</p>
+					<p>Recent events, parser state, and detection readiness.</p>
 				</div>
 				<button className="ingestion-btn" onClick={reload} disabled={loading}>
 					{loading ? "Refreshing" : "Refresh"}
@@ -132,11 +123,6 @@ export default function EventsPage() {
 					<span>Parsed</span>
 					<strong>{compact(stats.parsed)}</strong>
 					<small>{stats.total ? Math.round((stats.parsed / stats.total) * 100) : 0}% of loaded events</small>
-				</div>
-				<div className="ingestion-health-card">
-					<span>Fingerprinted</span>
-					<strong>{compact(stats.fingerprinted)}</strong>
-					<small>{stats.total ? Math.round((stats.fingerprinted / stats.total) * 100) : 0}% have source identity</small>
 				</div>
 				<div className="ingestion-health-card">
 					<span>Detections</span>
@@ -186,7 +172,6 @@ export default function EventsPage() {
 							</select>
 							<select className="ingestion-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
 								<option value="all">All states</option>
-								<option value="fingerprinted">Fingerprinted</option>
 								<option value="parsed">Parsed</option>
 								<option value="unparsed">Unparsed</option>
 								<option value="detected">Detected</option>

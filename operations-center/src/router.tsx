@@ -32,6 +32,16 @@ const coreRoutes: RouteObject[] = [
 
 export async function createRouter() {
   const extraRoutes = await loadRouteExtensions()
+  const extensionPaths = new Set(
+    extraRoutes
+      .map(route => route.index ? "__index__" : route.path)
+      .filter(Boolean)
+  )
+  const activeCoreRoutes = coreRoutes.filter(route => {
+    if (route.index) return !extensionPaths.has("__index__")
+    if (!route.path) return true
+    return !extensionPaths.has(route.path)
+  })
 
   return createBrowserRouter([
     {
@@ -45,7 +55,7 @@ export async function createRouter() {
           <App />
         </RequireAuth>
       ),
-      children: [...coreRoutes, ...extraRoutes],
+      children: [...activeCoreRoutes, ...extraRoutes],
     },
   ])
 }

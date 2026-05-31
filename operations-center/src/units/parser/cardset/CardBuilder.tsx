@@ -334,7 +334,7 @@ export function CardBuilder({
 									<span>Field</span>
 									<input
 										className="cardset-input"
-										placeholder="fingerprint.source_name"
+										placeholder="source.kind"
 										value={selector.path || selector.field || ""}
 										disabled={isEdit}
 										onChange={e => setSelector({ ...selector, type: "path", path: e.target.value })}

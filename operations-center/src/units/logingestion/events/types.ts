@@ -30,18 +30,6 @@ export type EventState = {
 	analysis?: DetectionAnalysis
 }
 
-export type EventFingerprint = {
-	source_id?: string
-	source_name?: string
-	source_category?: string
-	status?: string
-	confidence?: string
-	score?: number
-	threshold?: number
-	gap?: number
-	reason?: string
-}
-
 export type EventReceiver = {
 	hostname?: string
 	batch?: boolean
@@ -58,10 +46,6 @@ export type EventLog = {
 	ingested_at?: string
 	created_at?: string
 	receiver?: EventReceiver
-	fingerprint?: EventFingerprint
-	fingerprinted?: boolean
-	fingerprinted_at?: string
-	fingerprint_error?: string | null
 	state?: EventState
 	parsed?: Record<string, unknown[]>
 	detections?: unknown[]

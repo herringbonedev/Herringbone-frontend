@@ -86,7 +86,7 @@ function eventTime(ev: any) {
 
 function eventSource(ev: any) {
 	const raw = parseRawJson(ev.raw)
-	return ev.fingerprint?.source_name || raw?.source || ev.source?.kind || "Unknown"
+	return raw?.source || ev.source?.kind || "Unknown"
 }
 
 function eventId(ev: any) {
