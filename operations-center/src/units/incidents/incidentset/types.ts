@@ -2,6 +2,8 @@ export type MongoDate = {
 	$date: string
 }
 
+export type MongoId = string | { $oid: string }
+
 export type IncidentNoteApi = {
 	author: string
 	timestamp: string
@@ -9,7 +11,7 @@ export type IncidentNoteApi = {
 }
 
 export type IncidentApi = {
-	_id: { $oid: string }
+	_id: MongoId
 	title?: string
 	description?: string
 	status?: string

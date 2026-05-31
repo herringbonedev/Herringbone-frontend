@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo, useRef } from "react"
 import { useSearchApi } from "./useSearchApi"
 import { useSearchSchema } from "./useSearchSchema"
 import { FilterBuilder, type FilterGroup, type FilterRow, type LogicJoin } from "./FilterBuilder"
@@ -6,6 +6,43 @@ import { RelatedCollectionBuilder, type RelatedCollectionRule } from "./RelatedC
 import "./search.css"
 
 const MESSAGE_FIELDS = new Set(["raw", "message", "MESSAGE", "description"])
+
+const SEARCH_COLLECTIONS = new Set(["events", "event_state", "detections", "incidents", "parse_results"])
+const SEARCH_RANGES = new Set(["1h", "6h", "24h", "7d", "all"])
+
+function initialSearchState() {
+  if (typeof window === "undefined") {
+    return {
+      collection: "events",
+      limit: 100,
+      timeRange: "24h",
+      queryText: "{}",
+      autoRun: false,
+    }
+  }
+
+  const params = new URLSearchParams(window.location.search)
+  const collectionParam = params.get("collection") || "events"
+  const rangeParam = params.get("range") || params.get("time_range") || "24h"
+  const limitParam = Number(params.get("limit") || "100")
+  const rawQuery = params.get("q") || "{}"
+
+  let queryText = "{}"
+  try {
+    queryText = JSON.stringify(JSON.parse(rawQuery), null, 2)
+  } catch {
+    queryText = rawQuery || "{}"
+  }
+
+  return {
+    collection: SEARCH_COLLECTIONS.has(collectionParam) ? collectionParam : "events",
+    limit: Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 500) : 100,
+    timeRange: SEARCH_RANGES.has(rangeParam) ? rangeParam : "24h",
+    queryText,
+    autoRun: params.get("run") === "1" || params.get("run") === "true",
+  }
+}
+
 
 function isEmptyValue(val: any) {
   if (val == null) return true
@@ -311,13 +348,18 @@ function buildFilterQuery(groups: FilterGroup[]) {
 }
 
 export default function SearchPage() {
-  const [collection, setCollection] = useState("events")
-  const [limit, setLimit] = useState(100)
-  const [timeRange, setTimeRange] = useState("24h")
+  const initial = useMemo(initialSearchState, [])
+  const skipInitialCollectionReset = useRef(true)
+  const skipInitialFilterSync = useRef(true)
+  const didAutoRun = useRef(false)
+
+  const [collection, setCollection] = useState(initial.collection)
+  const [limit, setLimit] = useState(initial.limit)
+  const [timeRange, setTimeRange] = useState(initial.timeRange)
 
   const [filters, setFilters] = useState<FilterGroup[]>([])
   const [relatedFilter, setRelatedFilter] = useState<RelatedCollectionRule | null>(null)
-  const [queryText, setQueryText] = useState("{}")
+  const [queryText, setQueryText] = useState(initial.queryText)
   const [relatedStatus, setRelatedStatus] = useState<string | null>(null)
   const [copyStatus, setCopyStatus] = useState<string | null>(null)
 
@@ -335,6 +377,11 @@ export default function SearchPage() {
   const tableColSpan = columns.length + 2 + (hasMessageColumn ? 1 : 0)
 
   useEffect(() => {
+    if (skipInitialCollectionReset.current) {
+      skipInitialCollectionReset.current = false
+      return
+    }
+
     setFilters([])
     setRelatedFilter(null)
     setRelatedStatus(null)
@@ -348,6 +395,11 @@ export default function SearchPage() {
   }, [collection])
 
   useEffect(() => {
+    if (skipInitialFilterSync.current) {
+      skipInitialFilterSync.current = false
+      return
+    }
+
     const q = buildFilterQuery(filters)
     setQueryText(JSON.stringify(q, null, 2))
     setCopyStatus(null)
@@ -493,6 +545,12 @@ export default function SearchPage() {
     setPage(p => p + 1)
   }
 
+  useEffect(() => {
+    if (!initial.autoRun || didAutoRun.current) return
+    didAutoRun.current = true
+    void resetSearch()
+  }, [initial.autoRun])
+
 
   return (
     <div className="search-page">
@@ -508,7 +566,7 @@ export default function SearchPage() {
               <option value="detections">detections</option>
               <option value="incidents">incidents</option>
               <option value="parse_results">parse_results</option>
-              <option value="audit_lod">audit_log</option>
+              <option value="audit_log">audit_log</option>
             </select>
           </label>
 

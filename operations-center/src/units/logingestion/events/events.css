@@ -1,0 +1,482 @@
+.ingestion-page,
+.ingestion-page * {
+	box-sizing: border-box;
+}
+
+.ingestion-page {
+	padding: 1rem;
+	color: var(--text);
+}
+
+.ingestion-topbar {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+	padding-bottom: 0.9rem;
+	margin-bottom: 1rem;
+	border-bottom: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+}
+
+.ingestion-topbar h1,
+.ingestion-panel-head h2,
+.ingestion-detail-card h4 {
+	margin: 0;
+}
+
+.ingestion-topbar h1 {
+	font-size: 1.45rem;
+	font-weight: 650;
+	letter-spacing: -0.02em;
+}
+
+.ingestion-topbar p,
+.ingestion-panel-head span,
+.ingestion-health-card small,
+.ingestion-event-summary p,
+.ingestion-muted,
+.ingestion-more-sources {
+	margin: 0;
+	font-size: 0.82rem;
+	color: color-mix(in srgb, var(--text) 62%, transparent);
+}
+
+.ingestion-btn,
+.ingestion-text-btn,
+.ingestion-source-row,
+.ingestion-event-summary {
+	appearance: none;
+	font: inherit;
+}
+
+.ingestion-btn {
+	background: var(--accent);
+	border: 1px solid color-mix(in srgb, var(--accent) 75%, var(--border));
+	color: white;
+	border-radius: 6px;
+	padding: 0.55rem 0.8rem;
+	cursor: pointer;
+	font-size: 0.84rem;
+	font-weight: 650;
+}
+
+.ingestion-btn:disabled {
+	opacity: 0.6;
+	cursor: default;
+}
+
+.ingestion-text-btn {
+	background: transparent;
+	border: 0;
+	color: color-mix(in srgb, var(--accent) 78%, var(--text));
+	cursor: pointer;
+	font-size: 0.78rem;
+	padding: 0;
+}
+
+.ingestion-error,
+.ingestion-notice,
+.ingestion-empty {
+	border: 1px dashed color-mix(in srgb, var(--border) 85%, transparent);
+	border-radius: 8px;
+	padding: 0.85rem;
+	font-size: 0.86rem;
+	color: color-mix(in srgb, var(--text) 64%, transparent);
+}
+
+.ingestion-error {
+	color: var(--red);
+}
+
+.ingestion-notice {
+	margin-bottom: 1rem;
+	border-color: rgba(250, 204, 21, 0.36);
+	background: rgba(234, 179, 8, 0.08);
+	color: #fde68a;
+}
+
+.ingestion-health-grid {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 0.75rem;
+	margin-bottom: 1rem;
+}
+
+.ingestion-health-card,
+.ingestion-sources-panel,
+.ingestion-events-panel,
+.ingestion-detail-card,
+.ingestion-event-card {
+	background: color-mix(in srgb, var(--bg-panel) 96%, transparent);
+	border: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
+	border-radius: 8px;
+}
+
+.ingestion-health-card {
+	padding: 0.85rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+}
+
+.ingestion-health-card span {
+	font-size: 0.78rem;
+	color: color-mix(in srgb, var(--text) 62%, transparent);
+}
+
+.ingestion-health-card strong {
+	font-size: 1.35rem;
+	font-weight: 650;
+}
+
+.ingestion-content-grid {
+	display: grid;
+	grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+	gap: 1rem;
+	align-items: start;
+}
+
+.ingestion-sources-panel,
+.ingestion-events-panel {
+	padding: 0.9rem;
+}
+
+.ingestion-panel-head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 0.75rem;
+	margin-bottom: 0.75rem;
+}
+
+.ingestion-panel-head h2 {
+	font-size: 1rem;
+	font-weight: 650;
+}
+
+.ingestion-source-row {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	background: transparent;
+	border: 0;
+	border-top: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+	color: var(--text);
+	cursor: pointer;
+	padding: 0.65rem 0;
+	text-align: left;
+}
+
+.ingestion-source-row:first-of-type {
+	border-top: 0;
+}
+
+.ingestion-source-row.active span,
+.ingestion-source-row:hover span {
+	color: var(--accent);
+}
+
+.ingestion-source-row span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.ingestion-source-row strong {
+	font-size: 0.82rem;
+	font-weight: 650;
+}
+
+.ingestion-more-sources {
+	padding-top: 0.65rem;
+	border-top: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+}
+
+.ingestion-events-head {
+	align-items: center;
+}
+
+.ingestion-filters {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+}
+
+.ingestion-input,
+.ingestion-select {
+	background: var(--bg-panel-2);
+	color: var(--text);
+	border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+	border-radius: 6px;
+	font: inherit;
+	font-size: 0.82rem;
+	padding: 0.48rem 0.6rem;
+}
+
+.ingestion-input {
+	width: min(26rem, 44vw);
+}
+
+.ingestion-event-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.55rem;
+}
+
+.ingestion-event-card {
+	overflow: hidden;
+}
+
+.ingestion-event-card.open {
+	border-color: color-mix(in srgb, var(--accent) 44%, var(--border));
+}
+
+.ingestion-event-card.critical {
+	box-shadow: inset 3px 0 0 #fb7185;
+}
+
+.ingestion-event-card.high {
+	box-shadow: inset 3px 0 0 #fb923c;
+}
+
+.ingestion-event-card.medium {
+	box-shadow: inset 3px 0 0 #fbbf24;
+}
+
+.ingestion-event-card.low {
+	box-shadow: inset 3px 0 0 #38bdf8;
+}
+
+.ingestion-event-card.none {
+	box-shadow: inset 3px 0 0 #2dd4bf;
+}
+
+.ingestion-event-summary {
+	width: 100%;
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+	background: transparent;
+	border: 0;
+	color: var(--text);
+	cursor: pointer;
+	padding: 0.78rem 0.85rem;
+	text-align: left;
+}
+
+.ingestion-event-main {
+	min-width: 0;
+}
+
+.ingestion-event-title-row {
+	display: flex;
+	align-items: baseline;
+	gap: 0.6rem;
+	min-width: 0;
+	flex-wrap: wrap;
+	margin-bottom: 0.18rem;
+}
+
+.ingestion-event-title-row strong {
+	font-size: 0.94rem;
+	font-weight: 650;
+}
+
+.ingestion-event-title-row span,
+.ingestion-expand {
+	font-size: 0.76rem;
+	color: color-mix(in srgb, var(--text) 56%, transparent);
+}
+
+.ingestion-event-pills {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+	margin-top: 0.45rem;
+}
+
+.ingestion-pill {
+	--pill-bg: rgba(148, 163, 184, 0.10);
+	--pill-border: rgba(148, 163, 184, 0.32);
+	--pill-text: #cbd5e1;
+
+	display: inline-flex;
+	align-items: center;
+	border: 1px solid var(--pill-border);
+	border-radius: 999px;
+	padding: 0.16rem 0.52rem;
+	font-size: 0.72rem;
+	font-weight: 650;
+	line-height: 1.35;
+	letter-spacing: 0.01em;
+	color: var(--pill-text);
+	background: var(--pill-bg);
+}
+
+.ingestion-pill.source {
+	--pill-bg: rgba(59, 130, 246, 0.12);
+	--pill-border: rgba(96, 165, 250, 0.38);
+	--pill-text: #93c5fd;
+}
+
+.ingestion-pill.category {
+	--pill-bg: rgba(139, 92, 246, 0.11);
+	--pill-border: rgba(167, 139, 250, 0.34);
+	--pill-text: #c4b5fd;
+}
+
+.ingestion-pill.good {
+	--pill-bg: rgba(34, 197, 94, 0.11);
+	--pill-border: rgba(74, 222, 128, 0.34);
+	--pill-text: #86efac;
+}
+
+.ingestion-pill.warn {
+	--pill-bg: rgba(234, 179, 8, 0.12);
+	--pill-border: rgba(250, 204, 21, 0.36);
+	--pill-text: #fde68a;
+}
+
+.ingestion-pill.none {
+	--pill-bg: rgba(20, 184, 166, 0.10);
+	--pill-border: rgba(45, 212, 191, 0.30);
+	--pill-text: #99f6e4;
+}
+
+.ingestion-pill.low {
+	--pill-bg: rgba(14, 165, 233, 0.11);
+	--pill-border: rgba(56, 189, 248, 0.35);
+	--pill-text: #7dd3fc;
+}
+
+.ingestion-pill.medium {
+	--pill-bg: rgba(245, 158, 11, 0.13);
+	--pill-border: rgba(251, 191, 36, 0.38);
+	--pill-text: #fcd34d;
+}
+
+.ingestion-pill.high {
+	--pill-bg: rgba(249, 115, 22, 0.13);
+	--pill-border: rgba(251, 146, 60, 0.42);
+	--pill-text: #fdba74;
+}
+
+.ingestion-pill.critical {
+	--pill-bg: rgba(244, 63, 94, 0.14);
+	--pill-border: rgba(251, 113, 133, 0.46);
+	--pill-text: #fda4af;
+}
+
+.ingestion-expand {
+	flex: 0 0 auto;
+	padding-top: 0.1rem;
+}
+
+.ingestion-event-details {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.65rem;
+	padding: 0 0.85rem 0.85rem;
+}
+
+.ingestion-detail-card {
+	background: color-mix(in srgb, var(--bg-panel-2) 62%, transparent);
+	padding: 0.75rem;
+}
+
+.ingestion-detail-card.wide {
+	grid-column: 1 / -1;
+}
+
+.ingestion-detail-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+}
+
+.ingestion-detail-card h4 {
+	font-size: 0.86rem;
+	font-weight: 650;
+	margin-bottom: 0.5rem;
+}
+
+.ingestion-kv {
+	display: grid;
+	gap: 0.35rem;
+	margin: 0;
+}
+
+.ingestion-kv div,
+.ingestion-field-row {
+	display: grid;
+	grid-template-columns: minmax(8rem, 0.35fr) minmax(0, 1fr);
+	gap: 0.75rem;
+	align-items: baseline;
+}
+
+.ingestion-kv dt,
+.ingestion-field-row span {
+	font-size: 0.75rem;
+	color: color-mix(in srgb, var(--text) 56%, transparent);
+}
+
+.ingestion-kv dd,
+.ingestion-field-row strong {
+	margin: 0;
+	min-width: 0;
+	font-size: 0.78rem;
+	font-weight: 500;
+	overflow-wrap: anywhere;
+}
+
+.ingestion-fields-grid {
+	display: grid;
+	gap: 0.3rem;
+}
+
+.ingestion-detection-row {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+	padding-top: 0.45rem;
+	margin-top: 0.45rem;
+}
+
+.ingestion-detail-card pre {
+	margin: 0;
+	max-height: 18rem;
+	overflow: auto;
+	font-size: 0.76rem;
+	line-height: 1.45;
+	white-space: pre-wrap;
+}
+
+@media (max-width: 1100px) {
+	.ingestion-health-grid,
+	.ingestion-content-grid,
+	.ingestion-event-details {
+		grid-template-columns: 1fr;
+	}
+
+	.ingestion-input {
+		width: 100%;
+	}
+
+	.ingestion-events-head,
+	.ingestion-topbar {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.ingestion-filters {
+		width: 100%;
+		justify-content: flex-start;
+	}
+}

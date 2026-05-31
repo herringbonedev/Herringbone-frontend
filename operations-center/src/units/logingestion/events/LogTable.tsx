@@ -1,5 +1,6 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import type { EventLog } from "./types"
+import { eventTimestampMs, formatLocalDateTime } from "./time"
 
 type Props = {
 	logs: EventLog[]
@@ -7,238 +8,229 @@ type Props = {
 
 type ParsedMap = Record<string, unknown[]>
 
-function fmt(ts?: string) {
-	if (!ts) return ""
+function parseRawJson(raw?: string): Record<string, unknown> | null {
+	if (!raw) return null
 	try {
-		return new Date(ts).toLocaleString()
+		const parsed = JSON.parse(raw)
+		return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null
 	} catch {
-		return ts
+		return null
 	}
 }
 
-function severityColor(sev: number) {
-	if (sev >= 75) return "rgba(220, 38, 38, 0.25)"
-	if (sev >= 50) return "rgba(245, 158, 11, 0.25)"
-	if (sev >= 25) return "rgba(234, 179, 8, 0.25)"
-	return "rgba(34, 197, 94, 0.20)"
+function asOne(value: unknown[] | undefined) {
+	if (!Array.isArray(value) || value.length === 0) return undefined
+	return value[0]
 }
 
-function DetailsCell({ log }: { log: EventLog }) {
-	const [open, setOpen] = useState(false)
+function sourceName(log: EventLog) {
+	const rawJson = parseRawJson(log.raw)
+	return log.fingerprint?.source_name || String(rawJson?.source || log.source?.kind || "Unknown")
+}
 
-	const state = log.state || {}
-	const sev = state.severity
+function sourceCategory(log: EventLog) {
+	return log.fingerprint?.source_category || "unclassified"
+}
 
-	const parsed =
-		(log as EventLog & { parsed?: ParsedMap }).parsed || {}
+function isParsed(log: EventLog) {
+	return Boolean(log.state?.parsed || (log.parsed && Object.keys(log.parsed).length > 0))
+}
 
-	const detections =
-		(state.analysis?.details as
-			| Array<{
-					rule_name?: string
-					severity?: number
-					description?: string
-					matched?: boolean
-			  }>
-			| undefined) || []
+function isFingerprinted(log: EventLog) {
+	return Boolean(log.fingerprinted || log.fingerprint?.source_name)
+}
 
-	const baseLines: Array<[string, string]> = [
-		["id", log._id],
-		["source.address", log.source?.address || ""],
-		["source.kind", log.source?.kind || ""],
-		["event_time", log.event_time || ""],
-		["ingested_at", log.ingested_at || ""],
-		["state.detected", String(state.detected ?? false)],
-		["state.parsed", String(state.parsed ?? false)],
-		["state.severity", sev == null ? "" : String(sev)],
-		["state.last_updated", state.last_updated || ""],
-	]
+function hasDetection(log: EventLog) {
+	return Boolean(log.detected || log.detection || log.state?.detected || log.state?.analysis?.detection)
+}
 
-	const parsedEntries: Record<string, unknown[]> = {}
+function detectionSeverity(log: EventLog) {
+	const detailSeverities = (log.state?.analysis?.details || [])
+		.map(d => Number(d?.severity ?? 0))
+		.filter(v => Number.isFinite(v))
 
-	for (const [k, v] of Object.entries(parsed)) {
-		if (Array.isArray(v) && v.length > 0) {
-			parsedEntries[k] = v
-		}
-	}
+	return Math.max(Number(log.state?.severity ?? 0), Number(log.severity ?? 0), ...detailSeverities, 0)
+}
 
-	const copyAll = async () => {
+function severityBand(log: EventLog): "none" | "low" | "medium" | "high" | "critical" {
+	if (!hasDetection(log)) return "none"
+	const sev = detectionSeverity(log)
+	if (sev >= 90) return "critical"
+	if (sev >= 70) return "high"
+	if (sev >= 40) return "medium"
+	return "low"
+}
+
+function severityLabel(log: EventLog) {
+	const band = severityBand(log)
+	if (band === "none") return "no detections"
+	return `${band} detection`
+}
+
+function severityClass(log: EventLog) {
+	return severityBand(log)
+}
+
+function compactRaw(raw?: string) {
+	if (!raw) return ""
+	const trimmed = raw.trim()
+	return trimmed.length > 220 ? `${trimmed.slice(0, 220)}…` : trimmed
+}
+
+function titleFor(log: EventLog) {
+	const parsed = log.parsed || {}
+	const rawJson = parseRawJson(log.raw)
+	const src = sourceName(log)
+	const wafAction = asOne(parsed.waf_action)
+	const method = asOne(parsed.client_request_method) || rawJson?.ClientRequestMethod
+	const uri = asOne(parsed.client_request_uri) || rawJson?.ClientRequestURI
+	const status = asOne(parsed.edge_response_status) || rawJson?.EdgeResponseStatus
+
+	if (src === "Cloudflare" && wafAction) return `Cloudflare WAF ${String(wafAction)}`
+	if (method && uri) return `${String(method)} ${String(uri)}${status ? ` · ${String(status)}` : ""}`
+	return src
+}
+
+function subtitleFor(log: EventLog) {
+	const parsed = log.parsed || {}
+	const rawJson = parseRawJson(log.raw)
+	const host = asOne(parsed.client_request_host) || rawJson?.ClientRequestHost
+	const clientIp = asOne(parsed.client_ip) || rawJson?.ClientIP
+	const sourceAddress = log.source?.address
+	const parts = [host, clientIp, sourceAddress ? `from ${sourceAddress}` : undefined].filter(Boolean)
+	return parts.length ? parts.join(" · ") : compactRaw(log.raw)
+}
+
+function parsedEntries(log: EventLog): ParsedMap {
+	const parsed = log.parsed || {}
+	return Object.fromEntries(
+		Object.entries(parsed).filter(([, value]) => Array.isArray(value) && value.length > 0)
+	)
+}
+
+function detectionDetails(log: EventLog) {
+	return log.state?.analysis?.details || []
+}
+
+type PillTone = "neutral" | "source" | "category" | "good" | "warn" | "critical" | "high" | "medium" | "low" | "none"
+
+function StatusPill({ children, tone = "neutral" }: { children: string; tone?: PillTone }) {
+	return <span className={`ingestion-pill ${tone}`}>{children}</span>
+}
+
+function EventDetails({ log }: { log: EventLog }) {
+	const parsed = parsedEntries(log)
+	const rawJson = parseRawJson(log.raw)
+	const detections = detectionDetails(log)
+
+	const copyJson = async () => {
 		try {
-			await navigator.clipboard.writeText(
-				JSON.stringify(log, null, 2)
-			)
+			await navigator.clipboard.writeText(JSON.stringify(log, null, 2))
 		} catch {}
 	}
 
 	return (
-		<div>
-			<button
-				onClick={() => setOpen(o => !o)}
-				style={{
-					border: "1px solid var(--border)",
-					background: "var(--bg-panel-2)",
-					color: "var(--color-text)",
-					cursor: "pointer",
-					padding: "0.15rem 0.45rem",
-					borderRadius: "6px",
-					fontSize: "0.8rem",
-				}}
-			>
-				{open ? "Hide" : "Details"}
-			</button>
-
-			{open && (
-				<div
-					style={{
-						marginTop: "0.4rem",
-						padding: "0.5rem",
-						background: "var(--bg-panel-2)",
-						border: "1px solid var(--border)",
-						borderRadius: "6px",
-						display: "grid",
-						gridTemplateColumns: "280px 1fr 1fr",
-						gap: "0.75rem",
-						fontFamily: "monospace",
-						fontSize: "0.75rem",
-						maxWidth: "1100px",
-					}}
-				>
-					<div>
-						<button
-							onClick={copyAll}
-							style={{
-								marginBottom: "0.4rem",
-								fontSize: "0.7rem",
-								padding: "0.1rem 0.4rem",
-								borderRadius: "4px",
-								border: "1px solid var(--border)",
-								cursor: "pointer",
-							}}
-						>
-							Copy JSON
-						</button>
-
-						{baseLines
-							.filter(([_, v]) => v.trim() !== "")
-							.map(([k, v]) => (
-								<div key={k}>
-									<strong>{k}</strong>: {v}
-								</div>
-							))}
-					</div>
-
-					<div
-						style={{
-							background: "var(--bg-panel-1)",
-							border: "1px solid var(--border)",
-							borderRadius: "4px",
-							padding: "0.4rem",
-							overflowX: "auto",
-						}}
-					>
-						<strong>Parsed</strong>
-						{Object.keys(parsedEntries).length > 0 ? (
-							<pre>{JSON.stringify(parsedEntries, null, 2)}</pre>
-						) : (
-							<div style={{ opacity: 0.6 }}>no parsed data</div>
-						)}
-					</div>
-
-					<div
-						style={{
-							background: "var(--bg-panel-1)",
-							border: "1px solid var(--border)",
-							borderRadius: "4px",
-							padding: "0.4rem",
-							overflowX: "auto",
-						}}
-					>
-						<strong>Detections</strong>
-
-						{detections.length > 0 ? (
-							detections.map((d, i) => (
-								<div
-									key={i}
-									style={{
-										marginTop: "0.35rem",
-										padding: "0.35rem",
-										borderRadius: "4px",
-										background:
-											d.matched
-												? severityColor(d.severity ?? 0)
-												: "transparent",
-										border: "1px solid var(--border)",
-									}}
-								>
-									<div>
-										<strong>{d.rule_name || "rule"}</strong>
-									</div>
-									{d.description && (
-										<div style={{ opacity: 0.8 }}>
-											{d.description}
-										</div>
-									)}
-									<div>
-										severity: {d.severity ?? ""}
-									</div>
-									<div>
-										matched: {String(d.matched)}
-									</div>
-								</div>
-							))
-						) : (
-							<div style={{ opacity: 0.6 }}>
-								no detections
-							</div>
-						)}
-					</div>
+		<div className="ingestion-event-details">
+			<section className="ingestion-detail-card">
+				<div className="ingestion-detail-head">
+					<h4>Event</h4>
+					<button className="ingestion-text-btn" onClick={copyJson}>Copy JSON</button>
 				</div>
-			)}
+				<dl className="ingestion-kv">
+					<div><dt>ID</dt><dd>{log.event_id || log._id}</dd></div>
+					<div><dt>Context</dt><dd>{log.context_id || "default"}</dd></div>
+					<div><dt>Ingested</dt><dd>{formatLocalDateTime(log.ingested_at || log.created_at)}</dd></div>
+					<div><dt>Transport</dt><dd>{log.source?.kind || "—"} {log.source?.address ? `from ${log.source.address}` : ""}</dd></div>
+				</dl>
+			</section>
+
+			<section className="ingestion-detail-card">
+				<h4>Fingerprint</h4>
+				<dl className="ingestion-kv">
+					<div><dt>Source</dt><dd>{log.fingerprint?.source_name || "—"}</dd></div>
+					<div><dt>Category</dt><dd>{log.fingerprint?.source_category || "—"}</dd></div>
+					<div><dt>Confidence</dt><dd>{log.fingerprint?.confidence || "—"}</dd></div>
+					<div><dt>Score</dt><dd>{log.fingerprint?.score ?? "—"}</dd></div>
+				</dl>
+			</section>
+
+			<section className="ingestion-detail-card wide">
+				<h4>Parsed fields</h4>
+				{Object.keys(parsed).length > 0 ? (
+					<div className="ingestion-fields-grid">
+						{Object.entries(parsed).map(([key, value]) => (
+							<div key={key} className="ingestion-field-row">
+								<span>{key}</span>
+								<strong>{value.map(v => typeof v === "object" ? JSON.stringify(v) : String(v)).join(", ")}</strong>
+							</div>
+						))}
+					</div>
+				) : (
+					<div className="ingestion-muted">No parsed fields yet.</div>
+				)}
+			</section>
+
+			<section className="ingestion-detail-card">
+				<h4>Detection</h4>
+				{detections.length > 0 ? (
+					detections.map((d, i) => (
+						<div className="ingestion-detection-row" key={i}>
+							<strong>{d.rule_name || "rule"}</strong>
+							<span>severity {d.severity ?? "—"} · matched {String(d.matched)}</span>
+							{d.description && <small>{d.description}</small>}
+						</div>
+					))
+				) : (
+					<div className="ingestion-muted">No detections triggered.</div>
+				)}
+			</section>
+
+			<section className="ingestion-detail-card wide">
+				<h4>Raw event</h4>
+				<pre>{rawJson ? JSON.stringify(rawJson, null, 2) : log.raw}</pre>
+			</section>
 		</div>
 	)
 }
 
 export function LogTable({ logs }: Props) {
-	const sorted = [...logs].sort((a, b) => {
-		const ta = new Date(a.event_time || 0).getTime()
-		const tb = new Date(b.event_time || 0).getTime()
+	const [openId, setOpenId] = useState<string | null>(null)
+
+	const sorted = useMemo(() => [...logs].sort((a, b) => {
+		const ta = eventTimestampMs(a.event_time, a.ingested_at, a.created_at)
+		const tb = eventTimestampMs(b.event_time, b.ingested_at, b.created_at)
 		return tb - ta
-	})
+	}), [logs])
 
 	return (
-		<div style={{ maxHeight: "70vh", overflowY: "auto" }}>
-			<table>
-				<thead>
-					<tr>
-						<th>Time</th>
-						<th>Source</th>
-						<th>State</th>
-						<th>Message</th>
-					</tr>
-				</thead>
-				<tbody>
-					{sorted.map(log => {
-						const sev = log.state?.severity
-						return (
-							<tr
-								key={log._id}
-								style={
-									sev != null
-										? { background: severityColor(sev) }
-										: undefined
-								}
-							>
-								<td>{fmt(log.event_time)}</td>
-								<td>{log.source?.address || ""}</td>
-								<td>
-									<DetailsCell log={log} />
-								</td>
-								<td>{log.raw}</td>
-							</tr>
-						)
-					})}
-				</tbody>
-			</table>
+		<div className="ingestion-event-list">
+			{sorted.map((log, index) => {
+				const id = log.event_id || log._id || `${eventTimestampMs(log.event_time, log.ingested_at, log.created_at)}-${index}`
+				const rowKey = `${id}-${index}`
+				const open = openId === rowKey
+				return (
+					<article key={rowKey} className={`ingestion-event-card ${open ? "open" : ""} ${severityClass(log)}`}>
+						<button className="ingestion-event-summary" onClick={() => setOpenId(open ? null : rowKey)}>
+							<div className="ingestion-event-main">
+								<div className="ingestion-event-title-row">
+									<strong>{titleFor(log)}</strong>
+									<span>{formatLocalDateTime(log.event_time || log.ingested_at || log.created_at)}</span>
+								</div>
+								<p>{subtitleFor(log)}</p>
+								<div className="ingestion-event-pills">
+									<StatusPill tone="source">{sourceName(log)}</StatusPill>
+									<StatusPill tone="category">{sourceCategory(log)}</StatusPill>
+									{isFingerprinted(log) && <StatusPill tone="good">fingerprinted</StatusPill>}
+									{isParsed(log) ? <StatusPill tone="good">parsed</StatusPill> : <StatusPill tone="warn">unparsed</StatusPill>}
+									<StatusPill tone={severityBand(log)}>{severityLabel(log)}</StatusPill>
+								</div>
+							</div>
+							<span className="ingestion-expand">{open ? "Hide" : "Details"}</span>
+						</button>
+						{open && <EventDetails log={log} />}
+					</article>
+				)
+			})}
 		</div>
 	)
 }

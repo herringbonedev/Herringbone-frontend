@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react"
-import type { Card, KV, Selector, SelectorMatch, SelectorType } from "./types"
+import { useEffect, useMemo, useState } from "react"
+import type { Card, CardMetadata, KV, Selector, SelectorMatch, SelectorType } from "./types"
 
 type Props = {
 	card: Card
@@ -10,58 +10,83 @@ type Props = {
 }
 
 const emptySelector = (): Selector => ({ type: "raw", value: "" })
+const pathSelectorTypes = new Set(["path", "field", "json", "jsonpath"])
+type BuilderTab = "details" | "match" | "extract"
 
 function selectorList(value: Selector["not"] | Selector["and_not"]): Selector[] {
 	if (!value) return []
 	return Array.isArray(value) ? value : [value]
 }
 
-function isPathSelector(type: SelectorType) {
-	return type === "field" || type === "path" || type === "json" || type === "jsonpath"
-}
-
-function selectorPath(selector: Selector) {
-	return selector.path || selector.field || ""
-}
-
-function normalizeSelectorForEdit(selector?: Selector): Selector {
-	if (!selector) return emptySelector()
-	return {
-		...selector,
-		match: selector.match || (isPathSelector(selector.type) ? "contains" : undefined),
-		path: selector.path || selector.field || "",
-		not: undefined,
-		and_not: undefined,
+function selectorLabel(type: SelectorType) {
+	switch (type) {
+		case "raw":
+			return "Raw contains"
+		case "raw_regex":
+			return "Raw regex"
+		case "source_address":
+			return "Source IP"
+		case "path":
+		case "field":
+		case "json":
+		case "jsonpath":
+			return "Match field"
+		default:
+			return type
 	}
 }
 
-function selectorHasMeaning(selector: Selector) {
-	if (!selector.value.trim()) return false
-	if (isPathSelector(selector.type)) return selectorPath(selector).trim() !== ""
-	return true
+function conditionLabel(match?: SelectorMatch) {
+	switch (match || "contains") {
+		case "exact":
+			return "is"
+		case "contains":
+			return "contains"
+		case "regex":
+			return "matches regex"
+		case "exists":
+			return "exists"
+		case "not_exists":
+			return "does not exist"
+		default:
+			return match
+	}
 }
 
-function cleanSelectorForSave(selector: Selector): Selector {
-	const clean: Selector = {
-		type: selector.type,
-		value: selector.value.trim(),
-	}
-
-	if (isPathSelector(selector.type)) {
-		const path = selectorPath(selector).trim()
-		if (selector.type === "field") clean.field = path
-		else clean.path = path
-		clean.match = selector.match || "contains"
-	}
-
-	return clean
+function selectorNeedsValue(selector: Selector) {
+	return selector.match !== "exists" && selector.match !== "not_exists"
 }
 
-function selectorPlaceholder(selector: Selector) {
-	if (selector.type === "raw_regex") return "regex pattern"
-	if (selector.type === "source_address") return "source address"
-	if (isPathSelector(selector.type)) return "expected value"
-	return "value"
+function cleanTags(tags: string) {
+	return tags
+		.split(",")
+		.map(t => t.trim())
+		.filter(Boolean)
+}
+
+function metadataValue(metadata: CardMetadata | undefined, key: keyof CardMetadata) {
+	const value = metadata?.[key]
+	if (Array.isArray(value)) return value.join(", ")
+	return typeof value === "string" ? value : ""
+}
+
+function selectorSummary(selector: Selector) {
+	if (pathSelectorTypes.has(selector.type)) {
+		const path = selector.path || selector.field || "field"
+		const match = selector.match || "exact"
+		if (!selectorNeedsValue(selector)) return `${path} ${conditionLabel(match)}`
+		return `${path} ${conditionLabel(match)} ${selector.value || "…"}`
+	}
+	return `${selectorLabel(selector.type)} ${selector.value || "…"}`
+}
+
+function toKV(items?: Record<string, string>[]) {
+	return items
+		? items.map(obj => {
+				const [k, v] = Object.entries(obj)[0] || ["", ""]
+				return { key: k, value: v }
+		  })
+		: []
 }
 
 export function CardBuilder({
@@ -72,61 +97,104 @@ export function CardBuilder({
 	onPreview,
 }: Props) {
 	const [cardName, setCardName] = useState("")
+	const [folder, setFolder] = useState("")
+	const [label, setLabel] = useState("")
+	const [cardType, setCardType] = useState("")
+	const [source, setSource] = useState("")
+	const [pack, setPack] = useState("")
+	const [tags, setTags] = useState("")
 	const [selector, setSelector] = useState<Selector>(emptySelector())
 	const [negativeSelectors, setNegativeSelectors] = useState<Selector[]>([])
 	const [regex, setRegex] = useState<KV[]>([])
 	const [jsonp, setJsonp] = useState<KV[]>([])
+	const [activeTab, setActiveTab] = useState<BuilderTab>("details")
 
 	useEffect(() => {
+		const incomingSelector = card.selector || emptySelector()
 		setCardName(card.name || "")
-		setSelector(normalizeSelectorForEdit(card.selector))
+		setFolder(metadataValue(card.metadata, "folder"))
+		setLabel(metadataValue(card.metadata, "label"))
+		setCardType(metadataValue(card.metadata, "type"))
+		setSource(metadataValue(card.metadata, "source"))
+		setPack(metadataValue(card.metadata, "pack"))
+		setTags(metadataValue(card.metadata, "tags"))
+		setSelector({
+			...incomingSelector,
+			type: pathSelectorTypes.has(incomingSelector.type) ? "path" : incomingSelector.type,
+			not: undefined,
+			and_not: undefined,
+		})
 		setNegativeSelectors([
-			...selectorList(card.selector?.not).map(normalizeSelectorForEdit),
-			...selectorList(card.selector?.and_not).map(normalizeSelectorForEdit),
+			...selectorList(card.selector?.not),
+			...selectorList(card.selector?.and_not),
 		])
-
-		const toKV = (items?: Record<string, string>[]) =>
-			items
-				? items.map(obj => {
-						const [k, v] = Object.entries(obj)[0]
-						return { key: k, value: v }
-				  })
-				: []
-
 		setRegex(toKV(card.regex))
 		setJsonp(toKV(card.jsonp))
 	}, [card])
 
 	const buildItems = (items: KV[]) =>
 		items
-			.filter(i => i.key.trim() !== "")
-			.map(i => ({ [i.key]: i.value }))
+			.filter(i => i.key.trim() !== "" && i.value.trim() !== "")
+			.map(i => ({ [i.key.trim()]: i.value.trim() }))
 
-	const buildCard = (): Card => {
-		const cleanSelector = cleanSelectorForSave(selector)
+	const buildSelector = (): Selector => {
+		const isPath = pathSelectorTypes.has(selector.type)
+		const cleanSelector: Selector = isPath
+			? {
+					type: "path",
+					path: (selector.path || selector.field || "").trim(),
+					match: selector.match || "exact",
+			  }
+			: {
+					type: selector.type,
+					value: (selector.value || "").trim(),
+			  }
+
+		if (isPath && selectorNeedsValue(cleanSelector)) {
+			cleanSelector.value = (selector.value || "").trim()
+		}
 
 		const cleanNot = negativeSelectors
-			.filter(selectorHasMeaning)
-			.map(cleanSelectorForSave)
+			.map(n => ({ ...n, value: n.value?.trim() || "" }))
+			.filter(n => n.value || (pathSelectorTypes.has(n.type) && (n.path || n.field)))
+
 		if (cleanNot.length === 1) cleanSelector.not = cleanNot[0]
 		if (cleanNot.length > 1) cleanSelector.not = cleanNot
+		return cleanSelector
+	}
+
+	const built = useMemo<Card>(() => {
+		const metadata: CardMetadata = {
+			folder: folder.trim() || undefined,
+			label: label.trim() || undefined,
+			type: cardType.trim() || undefined,
+			source: source.trim() || undefined,
+			pack: pack.trim() || undefined,
+			tags: cleanTags(tags),
+		}
+
+		const cleanMetadata = Object.fromEntries(
+			Object.entries(metadata).filter(([, v]) => {
+				if (Array.isArray(v)) return v.length > 0
+				return Boolean(v)
+			}),
+		) as CardMetadata
 
 		const c: Card = {
-			name: cardName,
-			selector: cleanSelector,
+			name: cardName.trim(),
+			selector: buildSelector(),
 		}
+		if (Object.keys(cleanMetadata).length > 0) c.metadata = cleanMetadata
 		const r = buildItems(regex)
 		const j = buildItems(jsonp)
 		if (r.length > 0) c.regex = r
 		if (j.length > 0) c.jsonp = j
 		return c
-	}
-
-	const built = buildCard()
+	}, [cardName, folder, label, cardType, source, pack, tags, selector, negativeSelectors, regex, jsonp])
 
 	useEffect(() => {
 		onPreview(built)
-	}, [cardName, selector, negativeSelectors, regex, jsonp])
+	}, [built, onPreview])
 
 	const updateNegative = (idx: number, patch: Partial<Selector>) => {
 		setNegativeSelectors(items => {
@@ -136,263 +204,280 @@ export function CardBuilder({
 		})
 	}
 
-	const updateSelectorType = (type: SelectorType) => {
-		setSelector(current => ({
-			...current,
-			type,
-			match: isPathSelector(type) ? current.match || "contains" : undefined,
-			path: isPathSelector(type) ? selectorPath(current) : undefined,
-			field: undefined,
-		}))
-	}
-
-	const updateNegativeType = (idx: number, type: SelectorType) => {
-		updateNegative(idx, {
-			type,
-			match: isPathSelector(type) ? "contains" : undefined,
-			path: isPathSelector(type) ? selectorPath(negativeSelectors[idx]) : undefined,
-			field: undefined,
+	const updateKv = (kind: "regex" | "jsonp", idx: number, patch: Partial<KV>) => {
+		const setter = kind === "regex" ? setRegex : setJsonp
+		setter(items => {
+			const next = [...items]
+			next[idx] = { ...next[idx], ...patch }
+			return next
 		})
 	}
 
+	const removeKv = (kind: "regex" | "jsonp", idx: number) => {
+		const setter = kind === "regex" ? setRegex : setJsonp
+		setter(items => items.filter((_, i) => i !== idx))
+	}
+
+	const canSave = Boolean(cardName.trim()) && Boolean(
+		pathSelectorTypes.has(selector.type)
+			? selector.path || selector.field
+			: selector.value,
+	)
+
 	return (
-		<div className="cardset-panel">
-			<h2>CardSet Builder</h2>
-
-			<label>Card Name</label>
-			<input
-				className="cardset-input"
-				value={cardName}
-				onChange={e => setCardName(e.target.value)}
-			/>
-
-			<label>Selector</label>
-			<div className="cardset-row selector-row">
-				<select
-					className="cardset-input"
-					value={selector.type}
-					disabled={isEdit}
-					onChange={e => updateSelectorType(e.target.value as SelectorType)}
-				>
-					<option value="raw">raw</option>
-					<option value="raw_regex">raw_regex</option>
-					<option value="source_address">source_address</option>
-					<option value="jsonpath">jsonpath</option>
-					<option value="field">field</option>
-				</select>
-
-				{isPathSelector(selector.type) && (
-					<>
-						<input
-							className="cardset-input inline selector-path-input"
-							placeholder="$.fingerprint.source_name"
-							value={selectorPath(selector)}
-							disabled={isEdit}
-							onChange={e =>
-								setSelector({
-									...selector,
-									path: e.target.value,
-									field: selector.type === "field" ? e.target.value : undefined,
-								})
-							}
-						/>
-						<select
-							className="cardset-input inline selector-match-input"
-							value={selector.match || "contains"}
-							disabled={isEdit}
-							onChange={e =>
-								setSelector({
-									...selector,
-									match: e.target.value as SelectorMatch,
-								})
-							}
-						>
-							<option value="exact">exact</option>
-							<option value="contains">contains</option>
-							<option value="regex">regex</option>
-						</select>
-					</>
-				)}
-
-				<input
-					className="cardset-input inline"
-					placeholder={selectorPlaceholder(selector)}
-					value={selector.value}
-					disabled={isEdit}
-					onChange={e =>
-						setSelector({
-							...selector,
-							value: e.target.value,
-						})
-					}
-				/>
+		<div className="cardset-builder">
+			<div className="cardset-builder-head">
+				<div>
+					<p className="cardset-eyebrow">Parse card</p>
+					<h2>{isEdit ? "Edit card" : "Create card"}</h2>
+				</div>
+				<span className="cardset-builder-mode">{isEdit ? "Editing" : "Draft"}</span>
 			</div>
 
-			<h3>AND NOT</h3>
-			<button
-				className="cardset-btn secondary"
-				onClick={() => setNegativeSelectors(n => [...n, emptySelector()])}
-			>
-				+ Add Exclude
-			</button>
+			<div className="cardset-builder-tabs" role="tablist" aria-label="Card builder steps">
+				<button className={`cardset-builder-tab ${activeTab === "details" ? "active" : ""}`} onClick={() => setActiveTab("details")} type="button">Card details</button>
+				<button className={`cardset-builder-tab ${activeTab === "match" ? "active" : ""}`} onClick={() => setActiveTab("match")} type="button">Match condition</button>
+				<button className={`cardset-builder-tab ${activeTab === "extract" ? "active" : ""}`} onClick={() => setActiveTab("extract")} type="button">Extraction</button>
+			</div>
 
-			{negativeSelectors.map((n, i) => (
-				<div key={i} className="cardset-row selector-row">
-					<select
-						className="cardset-input"
-						value={n.type}
-						onChange={e => updateNegativeType(i, e.target.value as SelectorType)}
-					>
-						<option value="raw">raw</option>
-						<option value="raw_regex">raw_regex</option>
-						<option value="source_address">source_address</option>
-						<option value="jsonpath">jsonpath</option>
-						<option value="field">field</option>
-					</select>
-
-					{isPathSelector(n.type) && (
-						<>
-							<input
-								className="cardset-input inline selector-path-input"
-								placeholder="$.fingerprint.confidence"
-								value={selectorPath(n)}
-								onChange={e =>
-									updateNegative(i, {
-										path: e.target.value,
-										field: n.type === "field" ? e.target.value : undefined,
-									})
-								}
-							/>
-							<select
-								className="cardset-input inline selector-match-input"
-								value={n.match || "contains"}
-								onChange={e =>
-									updateNegative(i, { match: e.target.value as SelectorMatch })
-								}
-							>
-								<option value="exact">exact</option>
-								<option value="contains">contains</option>
-								<option value="regex">regex</option>
-							</select>
-						</>
-					)}
-
-					<input
-						className="cardset-input inline"
-						placeholder={selectorPlaceholder(n)}
-						value={n.value}
-						onChange={e => updateNegative(i, { value: e.target.value })}
-					/>
-					<button
-						className="cardset-btn secondary"
-						onClick={() => setNegativeSelectors(items => items.filter((_, idx) => idx !== i))}
-					>
-						-
-					</button>
+			{activeTab === "details" && (
+			<section className="cardset-section">
+				<div className="cardset-section-title">
+					<span>1</span>
+					<div>
+						<h3>Card details</h3>
+						<p>Name, organize, and label the card.</p>
+					</div>
 				</div>
-			))}
 
-			<h3>Regex</h3>
-			<button
-				className="cardset-btn"
-				onClick={() => setRegex(r => [...r, { key: "", value: "" }])}
-			>
-				+
-			</button>
-
-			{regex.map((r, i) => (
-				<div key={i} className="cardset-row">
-					<input
-						className="cardset-input"
-						placeholder="key"
-						value={r.key}
-						onChange={e => {
-							const next = [...regex]
-							next[i] = { ...r, key: e.target.value }
-							setRegex(next)
-						}}
-					/>
-					<input
-						className="cardset-input inline"
-						placeholder="pattern"
-						value={r.value}
-						onChange={e => {
-							const next = [...regex]
-							next[i] = { ...r, value: e.target.value }
-							setRegex(next)
-						}}
-					/>
-					<button
-						className="cardset-btn secondary"
-						onClick={() => setRegex(r => r.filter((_, idx) => idx !== i))}
-					>
-						-
-					</button>
+				<div className="cardset-form-grid two">
+					<label className="cardset-field wide">
+						<span>Card name</span>
+						<input
+							className="cardset-input"
+							value={cardName}
+							onChange={e => setCardName(e.target.value)}
+							placeholder="Cloudflare JSONP - WAF event"
+						/>
+					</label>
+					<label className="cardset-field">
+						<span>Folder</span>
+						<input
+							className="cardset-input"
+							value={folder}
+							onChange={e => setFolder(e.target.value)}
+							placeholder="Cloudflare"
+						/>
+					</label>
+					<label className="cardset-field">
+						<span>Display label</span>
+						<input
+							className="cardset-input"
+							value={label}
+							onChange={e => setLabel(e.target.value)}
+							placeholder="WAF event"
+						/>
+					</label>
+					<label className="cardset-field">
+						<span>Type</span>
+						<input className="cardset-input" value={cardType} onChange={e => setCardType(e.target.value)} placeholder="waf" />
+					</label>
+					<label className="cardset-field">
+						<span>Source</span>
+						<input className="cardset-input" value={source} onChange={e => setSource(e.target.value)} placeholder="Cloudflare" />
+					</label>
+					<label className="cardset-field">
+						<span>Pack</span>
+						<input className="cardset-input" value={pack} onChange={e => setPack(e.target.value)} placeholder="Cloudflare JSONP" />
+					</label>
+					<label className="cardset-field">
+						<span>Tags</span>
+						<input className="cardset-input" value={tags} onChange={e => setTags(e.target.value)} placeholder="cloudflare, waf, edge" />
+					</label>
 				</div>
-			))}
-
-			<h3>JSONP</h3>
-			<button
-				className="cardset-btn"
-				onClick={() => setJsonp(j => [...j, { key: "", value: "" }])}
-			>
-				+
-			</button>
-
-			{jsonp.map((j, i) => (
-				<div key={i} className="cardset-row">
-					<input
-						className="cardset-input"
-						placeholder="key"
-						value={j.key}
-						onChange={e => {
-							const next = [...jsonp]
-							next[i] = { ...j, key: e.target.value }
-							setJsonp(next)
-						}}
-					/>
-					<input
-						className="cardset-input inline"
-						placeholder="json path"
-						value={j.value}
-						onChange={e => {
-							const next = [...jsonp]
-							next[i] = { ...j, value: e.target.value }
-							setJsonp(next)
-						}}
-					/>
-					<button
-						className="cardset-btn secondary"
-						onClick={() => setJsonp(j => j.filter((_, idx) => idx !== i))}
-					>
-						-
-					</button>
-				</div>
-			))}
-
-			<textarea
-				readOnly
-				className="cardset-input"
-				style={{ height: "140px", marginTop: "0.5rem" }}
-				value={JSON.stringify(built, null, 2)}
-			/>
-
-			{isEdit ? (
-				<button
-					className="cardset-btn cardset-save"
-					onClick={() => onUpdate(built)}
-				>
-					Update Card
-				</button>
-			) : (
-				<button
-					className="cardset-btn cardset-save"
-					disabled={!cardName.trim()}
-					onClick={() => onSave(built)}
-				>
-					Save Card
-				</button>
+			</section>
 			)}
+
+			{activeTab === "match" && (
+			<section className="cardset-section">
+				<div className="cardset-section-title">
+					<span>2</span>
+					<div>
+						<h3>Match condition</h3>
+						<p>Choose the event pattern this card should run on.</p>
+					</div>
+				</div>
+
+				<div className="cardset-match-box">
+					<div className="cardset-form-grid match">
+						<label className="cardset-field">
+							<span>Match on</span>
+							<select
+								className="cardset-input"
+								value={pathSelectorTypes.has(selector.type) ? "path" : selector.type}
+								disabled={isEdit}
+								onChange={e => {
+									const type = e.target.value as SelectorType
+									setSelector(type === "path" ? { type, path: "", match: "exact", value: "" } : { type, value: "" })
+								}}
+							>
+								<option value="raw">Raw contains</option>
+								<option value="raw_regex">Raw regex</option>
+								<option value="source_address">Source IP</option>
+								<option value="path">Match field</option>
+							</select>
+						</label>
+
+						{pathSelectorTypes.has(selector.type) ? (
+							<>
+								<label className="cardset-field wide">
+									<span>Field</span>
+									<input
+										className="cardset-input"
+										placeholder="fingerprint.source_name"
+										value={selector.path || selector.field || ""}
+										disabled={isEdit}
+										onChange={e => setSelector({ ...selector, type: "path", path: e.target.value })}
+									/>
+								</label>
+								<label className="cardset-field">
+									<span>Condition</span>
+									<select
+										className="cardset-input"
+										value={selector.match || "exact"}
+										disabled={isEdit}
+										onChange={e => setSelector({ ...selector, type: "path", match: e.target.value as SelectorMatch })}
+									>
+										<option value="exact">is</option>
+										<option value="contains">contains</option>
+										<option value="regex">matches regex</option>
+										<option value="exists">exists</option>
+										<option value="not_exists">does not exist</option>
+									</select>
+								</label>
+								{selectorNeedsValue(selector) && (
+									<label className="cardset-field wide">
+										<span>Value</span>
+										<input
+											className="cardset-input"
+											placeholder="Cloudflare"
+											value={selector.value || ""}
+											disabled={isEdit}
+											onChange={e => setSelector({ ...selector, value: e.target.value })}
+										/>
+									</label>
+								)}
+							</>
+						) : (
+							<label className="cardset-field wide">
+								<span>Value</span>
+								<input
+									className="cardset-input"
+									placeholder={selector.type === "raw_regex" ? "regex pattern" : "value"}
+									value={selector.value || ""}
+									disabled={isEdit}
+									onChange={e => setSelector({ ...selector, value: e.target.value })}
+								/>
+							</label>
+						)}
+					</div>
+
+					<div className="cardset-sentence">
+						Run this card when <strong>{selectorSummary(selector)}</strong>
+					</div>
+				</div>
+
+				<details className="cardset-details">
+					<summary>Exclude matches</summary>
+					<button className="cardset-btn secondary small" onClick={() => setNegativeSelectors(n => [...n, emptySelector()])}>
+						Add exclude
+					</button>
+					{negativeSelectors.map((n, i) => (
+						<div key={i} className="cardset-row compact">
+							<select className="cardset-input" value={n.type} onChange={e => updateNegative(i, { type: e.target.value as SelectorType })}>
+								<option value="raw">Raw contains</option>
+								<option value="raw_regex">Raw regex</option>
+								<option value="source_address">Source IP</option>
+							</select>
+							<input className="cardset-input" placeholder="exclude value" value={n.value || ""} onChange={e => updateNegative(i, { value: e.target.value })} />
+							<button className="cardset-icon-btn" onClick={() => setNegativeSelectors(items => items.filter((_, idx) => idx !== i))}>×</button>
+						</div>
+					))}
+				</details>
+			</section>
+			)}
+
+			{activeTab === "extract" && (
+			<section className="cardset-section">
+				<div className="cardset-section-title">
+					<span>3</span>
+					<div>
+						<h3>Extraction</h3>
+						<p>Define the fields produced by this card.</p>
+					</div>
+				</div>
+
+				<div className="cardset-extract-grid">
+					<div className="cardset-extract-panel">
+						<div className="cardset-extract-head">
+							<div>
+								<strong>JSONP</strong>
+								<span>JSON path fields</span>
+							</div>
+							<button className="cardset-btn secondary small" onClick={() => setJsonp(j => [...j, { key: "", value: "" }])}>Add</button>
+						</div>
+						{jsonp.length === 0 && <div className="cardset-empty-mini">No JSONP fields yet.</div>}
+						{jsonp.map((j, i) => (
+							<div key={i} className="cardset-kv-row">
+								<input className="cardset-input" placeholder="field_name" value={j.key} onChange={e => updateKv("jsonp", i, { key: e.target.value })} />
+								<input className="cardset-input" placeholder="$.ClientIP" value={j.value} onChange={e => updateKv("jsonp", i, { value: e.target.value })} />
+								<button className="cardset-icon-btn" onClick={() => removeKv("jsonp", i)}>×</button>
+							</div>
+						))}
+					</div>
+
+					<div className="cardset-extract-panel">
+						<div className="cardset-extract-head">
+							<div>
+								<strong>Regex</strong>
+								<span>Raw log patterns</span>
+							</div>
+							<button className="cardset-btn secondary small" onClick={() => setRegex(r => [...r, { key: "", value: "" }])}>Add</button>
+						</div>
+						{regex.length === 0 && <div className="cardset-empty-mini">No regex fields yet.</div>}
+						{regex.map((r, i) => (
+							<div key={i} className="cardset-kv-row">
+								<input className="cardset-input" placeholder="field_name" value={r.key} onChange={e => updateKv("regex", i, { key: e.target.value })} />
+								<input className="cardset-input" placeholder="regex pattern" value={r.value} onChange={e => updateKv("regex", i, { value: e.target.value })} />
+								<button className="cardset-icon-btn" onClick={() => removeKv("regex", i)}>×</button>
+							</div>
+						))}
+					</div>
+				</div>
+			</section>
+			)}
+
+			<details className="cardset-details">
+				<summary>JSON preview</summary>
+				<textarea readOnly className="cardset-input cardset-json-preview" value={JSON.stringify(built, null, 2)} />
+			</details>
+
+			<div className="cardset-builder-step-actions">
+				<button className="cardset-btn secondary small" disabled={activeTab === "details"} onClick={() => setActiveTab(activeTab === "extract" ? "match" : "details")} type="button">Back</button>
+				<button className="cardset-btn secondary small" disabled={activeTab === "extract"} onClick={() => setActiveTab(activeTab === "details" ? "match" : "extract")} type="button">Next</button>
+			</div>
+
+			<div className="cardset-builder-actions">
+				{isEdit ? (
+					<button className="cardset-btn cardset-save" disabled={!canSave} onClick={() => onUpdate(built)}>
+						Update card
+					</button>
+				) : (
+					<button className="cardset-btn cardset-save" disabled={!canSave} onClick={() => onSave(built)}>
+						Save card
+					</button>
+				)}
+			</div>
 		</div>
 	)
 }

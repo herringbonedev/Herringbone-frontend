@@ -1,6 +1,6 @@
 export type EventSource = {
-	address: string
-	kind: string
+	address?: string
+	kind?: string
 }
 
 export type DetectionDetail = {
@@ -21,17 +21,50 @@ export type EventState = {
 	detected?: boolean
 	enriched?: boolean
 	parsed?: boolean
+	claimed?: boolean
 	severity?: number | null
+	last_stage?: string
+	parsed_at?: string
+	parsed_by?: string
 	last_updated?: string
 	analysis?: DetectionAnalysis
 }
 
+export type EventFingerprint = {
+	source_id?: string
+	source_name?: string
+	source_category?: string
+	status?: string
+	confidence?: string
+	score?: number
+	threshold?: number
+	gap?: number
+	reason?: string
+}
+
+export type EventReceiver = {
+	hostname?: string
+	batch?: boolean
+}
+
 export type EventLog = {
 	_id: string
+	event_id?: string
+	context_id?: string
+	severity?: number | null
 	raw: string
-	source: EventSource
-	event_time: string
-	ingested_at: string
+	source?: EventSource
+	event_time?: string
+	ingested_at?: string
+	created_at?: string
+	receiver?: EventReceiver
+	fingerprint?: EventFingerprint
+	fingerprinted?: boolean
+	fingerprinted_at?: string
+	fingerprint_error?: string | null
 	state?: EventState
 	parsed?: Record<string, unknown[]>
+	detections?: unknown[]
+	detected?: boolean
+	detection?: boolean
 }

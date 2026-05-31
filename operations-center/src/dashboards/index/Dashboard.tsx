@@ -1,15 +1,91 @@
 import type { ReactNode } from "react"
-import { useDashboardApi } from "./useDashboardApi"
-import { IncidentThroughput } from "./IncidentThroughput"
+import { useMemo } from "react"
 import { useNavigate } from "react-router-dom"
+import { IncidentThroughput } from "./IncidentThroughput"
+import { useDashboardApi } from "./useDashboardApi"
+import "./dashboard.css"
 
-function Panel(props: { title: string; children: ReactNode }) {
+function compact(value?: number | null) {
+	if (value === null || value === undefined || Number.isNaN(Number(value))) return "—"
+	return new Intl.NumberFormat(undefined, {
+		notation: Number(value) >= 10000 ? "compact" : "standard",
+		maximumFractionDigits: 1,
+	}).format(Number(value))
+}
+
+function fmt(ts?: string) {
+	if (!ts) return "—"
+	try {
+		return new Date(ts).toLocaleString()
+	} catch {
+		return ts
+	}
+}
+
+function pct(part?: number, total?: number) {
+	if (!total || total <= 0) return "0%"
+	return `${Math.round(((part || 0) / total) * 100)}%`
+}
+
+function priorityTone(priority?: string) {
+	const p = String(priority || "low").toLowerCase()
+	if (p === "critical") return "critical"
+	if (p === "high") return "high"
+	if (p === "medium") return "medium"
+	return "low"
+}
+
+function severityTone(severity?: number) {
+	const sev = Number(severity ?? 0)
+	if (sev >= 90) return "critical"
+	if (sev >= 70) return "high"
+	if (sev >= 40) return "medium"
+	if (sev > 0) return "low"
+	return "neutral"
+}
+
+function StatusPill({ children, tone = "neutral" }: { children: ReactNode; tone?: string }) {
+	return <span className={`home-pill ${tone}`}>{children}</span>
+}
+
+function Spinner({ small = false }: { small?: boolean }) {
+	return <span className={`home-spinner ${small ? "small" : ""}`} aria-hidden="true" />
+}
+
+function StatCard(props: {
+	label: string
+	value: ReactNode
+	helper: string
+	tone?: string
+	onClick?: () => void
+}) {
+	const Tag = props.onClick ? "button" : "div"
 	return (
-		<div className="panel">
-			<h3>{props.title}</h3>
-			{props.children}
-		</div>
+		<Tag className={`home-stat-card ${props.tone || ""}`} onClick={props.onClick as any}>
+			<span>{props.label}</span>
+			<strong>{props.value}</strong>
+			<small>{props.helper}</small>
+		</Tag>
 	)
+}
+
+function Section(props: { title: string; helper?: string; action?: ReactNode; children: ReactNode }) {
+	return (
+		<section className="home-panel">
+			<div className="home-section-head">
+				<div>
+					<h2>{props.title}</h2>
+					{props.helper && <span>{props.helper}</span>}
+				</div>
+				{props.action}
+			</div>
+			{props.children}
+		</section>
+	)
+}
+
+function EmptyState({ children }: { children: ReactNode }) {
+	return <div className="home-empty">{children}</div>
 }
 
 export default function Dashboard() {
@@ -26,159 +102,179 @@ export default function Dashboard() {
 
 	const navigate = useNavigate()
 
+	const detected = summary?.detected ?? 0
+	const undetected = summary?.undetected ?? 0
+	const totalEvaluated = detected + undetected
+	const highSeverity = summary?.high_severity ?? 0
+	const failed = summary?.failed ?? 0
+	const openIncidents = incidents.filter(i => String(i.status || "open").toLowerCase() !== "resolved").length
+	const highIncidents = incidents.filter(i => ["critical", "high"].includes(String(i.priority || "").toLowerCase())).length
+
+	const latestEvent = useMemo(() => {
+		return [...events].sort((a, b) => new Date(b.ingested_at || 0).getTime() - new Date(a.ingested_at || 0).getTime())[0]
+	}, [events])
+
 	return (
-		<div style={{ padding: "1rem" }}>
-			<h1>Herringbone Dashboard</h1>
+		<div className="home-dashboard">
+			<header className="home-command-bar">
+				<div>
+					<strong>Operations overview</strong>
+					<span>Recent platform health, risk, and workflow shortcuts.</span>
+				</div>
+				<div className="home-hero-actions">
+					<button className="home-btn secondary" onClick={() => navigate("/search")}>Open Search</button>
+					<button className="home-btn" onClick={reload} disabled={loading}>
+						{loading && <Spinner small />}
+						{loading ? "Refreshing" : "Refresh"}
+					</button>
+				</div>
+			</header>
 
 			{error && (
-				<div className="panel sev-med" style={{ marginBottom: "1rem" }}>
-					<strong>Error:</strong> {error}
-					<button style={{ marginLeft: "1rem" }} onClick={reload}>
-						Retry
-					</button>
+				<div className="home-error">
+					<strong>Dashboard failed to load.</strong>
+					<span>{error}</span>
+					<button className="home-btn secondary" onClick={reload}>Retry</button>
 				</div>
 			)}
 
-			{/* KPI ROW */}
-			<div
-				style={{
-					display: "grid",
-					gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-					gap: "1rem",
-					marginBottom: "1rem",
-				}}
-			>
-				<Panel title="Events (24h)">
-					<strong>{summary?.events_24h ?? "—"}</strong>
-				</Panel>
+			{loading && !summary && (
+				<div className="home-loading">
+					<Spinner />
+					<div>
+						<strong>Loading home dashboard</strong>
+						<span>Collecting recent events, detections, incidents, and throughput.</span>
+					</div>
+				</div>
+			)}
 
-				<Panel title="Detected">
-					<strong className="sev-high">{summary?.detected ?? "—"}</strong>
-				</Panel>
+			<section className="home-stat-grid" aria-label="Platform summary">
+				<StatCard
+					label="Events in 24h"
+					value={compact(summary?.events_24h)}
+					helper={latestEvent ? `Latest ${fmt(latestEvent.ingested_at)}` : "Recent ingestion sample"}
+					tone="source"
+					onClick={() => navigate("/logingestion")}
+				/>
+				<StatCard
+					label="Detected"
+					value={compact(detected)}
+					helper={`${pct(detected, totalEvaluated)} of evaluated events`}
+					tone={detected > 0 ? "high" : "good"}
+					onClick={() => navigate("/search")}
+				/>
+				<StatCard
+					label="Open incidents"
+					value={compact(openIncidents)}
+					helper={highIncidents ? `${highIncidents} high / critical` : "No high-priority visible"}
+					tone={highIncidents ? "critical" : openIncidents ? "medium" : "good"}
+					onClick={() => navigate("/incidents")}
+				/>
+				<StatCard
+					label="Pipeline issues"
+					value={compact(failed)}
+					helper={highSeverity ? `${highSeverity} high severity` : "No failed items reported"}
+					tone={failed ? "critical" : highSeverity ? "high" : "good"}
+				/>
+			</section>
 
-				<Panel title="Undetected">
-					<strong>{summary?.undetected ?? "—"}</strong>
-				</Panel>
+			<section className="home-workflow-grid" aria-label="Primary workflows">
+				<button className="home-workflow-card" onClick={() => navigate("/logingestion")}>
+					<span>01</span>
+					<strong>Ingestion Monitor</strong>
+					<small>Confirm logs are arriving, fingerprinted, parsed, and ready.</small>
+				</button>
+				<button className="home-workflow-card" onClick={() => navigate("/search")}>
+					<span>02</span>
+					<strong>Search</strong>
+					<small>Investigate raw, parsed, detection, and incident data.</small>
+				</button>
+				<button className="home-workflow-card" onClick={() => navigate("/cardset")}>
+					<span>03</span>
+					<strong>CardSet</strong>
+					<small>Teach Herringbone how to parse and normalize sources.</small>
+				</button>
+				<button className="home-workflow-card" onClick={() => navigate("/ruleset")}>
+					<span>04</span>
+					<strong>RuleSet</strong>
+					<small>Define detections and correlation behavior.</small>
+				</button>
+			</section>
 
-				<Panel title="High Severity">
-					<strong className="sev-high">{summary?.high_severity ?? "—"}</strong>
-				</Panel>
-			</div>
+			<div className="home-main-grid">
+				<div className="home-main-column">
+					<Section
+						title="Incident throughput"
+						helper="Open and resolved incidents over time."
+						action={<button className="home-text-btn" onClick={() => navigate("/incidents")}>View incidents</button>}
+					>
+						<IncidentThroughput data={throughput} />
+					</Section>
 
-			{/* TRUTH GRAPH */}
-			<IncidentThroughput data={throughput} />
-
-			{/* TABLES */}
-			<div
-				style={{
-					display: "grid",
-					gridTemplateColumns: "2fr 1fr 1fr",
-					gap: "1rem",
-					marginTop: "1rem",
-				}}
-			>
-				<Panel title="Recent Events">
-					<table>
-						<thead>
-							<tr>
-								<th>Time</th>
-								<th>Source</th>
-								<th>Status</th>
-								<th>Severity</th>
-							</tr>
-						</thead>
-						<tbody>
-							{events.map(e => (
-								<tr key={e.event_id}>
-									<td>{e.ingested_at ? new Date(e.ingested_at).toLocaleString() : "—"}</td>
-									<td>{e.source?.address ?? "—"}</td>
-									<td>{e.detected ? "detected" : "ok"}</td>
-									<td>{e.severity ?? "—"}</td>
-								</tr>
+					<Section
+						title="Recent events"
+						helper="Latest events entering the platform."
+						action={<button className="home-text-btn" onClick={() => navigate("/logingestion")}>Open ingestion</button>}
+					>
+						<div className="home-event-list">
+							{events.map(event => (
+								<div key={event.event_id} className={`home-event-row ${event.detected ? "detected" : ""}`}>
+									<div>
+										<strong>{event.source?.address || "Unknown source"}</strong>
+										<span>{fmt(event.ingested_at)}</span>
+									</div>
+									<div className="home-row-pills">
+										<StatusPill tone={event.detected ? "high" : "good"}>{event.detected ? "detected" : "clean"}</StatusPill>
+										<StatusPill tone={severityTone(event.severity)}>severity {event.severity ?? "—"}</StatusPill>
+									</div>
+								</div>
 							))}
-							{!loading && events.length === 0 && (
-								<tr>
-									<td colSpan={4}>No events</td>
-								</tr>
-							)}
-						</tbody>
-					</table>
-				</Panel>
+							{!loading && events.length === 0 && <EmptyState>No recent events returned.</EmptyState>}
+						</div>
+					</Section>
+				</div>
 
-				<Panel title="Recent Detections">
-					<table>
-						<thead>
-							<tr>
-								<th>Time</th>
-								<th>Severity</th>
-							</tr>
-						</thead>
-						<tbody>
-							{detections.map((d, i) => (
-								<tr key={i}>
-									<td>{d.inserted_at ? new Date(d.inserted_at).toLocaleString() : "—"}</td>
-									<td className="sev-high">{d.severity ?? "—"}</td>
-								</tr>
+				<aside className="home-side-column">
+					<Section
+						title="Incident queue"
+						helper="Most recent incidents that need triage."
+						action={<button className="home-text-btn" onClick={() => navigate("/incidents")}>Open queue</button>}
+					>
+						<div className="home-incident-list">
+							{incidents.map(incident => (
+								<button key={incident.incident_id} className={`home-incident-row ${priorityTone(incident.priority)}`} onClick={() => navigate(`/incidents/${incident.incident_id}`)}>
+									<strong>{incident.title || "Untitled incident"}</strong>
+									<span>{fmt(incident.created_at)}</span>
+									<div className="home-row-pills">
+										<StatusPill tone={`status-${String(incident.status || "open").toLowerCase()}`}>{incident.status || "open"}</StatusPill>
+										<StatusPill tone={priorityTone(incident.priority)}>{incident.priority || "low"}</StatusPill>
+									</div>
+									<small>{incident.owner || "Unassigned"}</small>
+								</button>
 							))}
-							{!loading && detections.length === 0 && (
-								<tr>
-									<td colSpan={2}>No detections</td>
-								</tr>
-							)}
-						</tbody>
-					</table>
-				</Panel>
+							{!loading && incidents.length === 0 && <EmptyState>No recent incidents.</EmptyState>}
+						</div>
+					</Section>
 
-				<Panel title="Recent Incidents">
-					<table>
-						<thead>
-							<tr>
-								<th>Time</th>
-								<th>Title</th>
-								<th>Status</th>
-								<th>Priority</th>
-								<th>Owner</th>
-							</tr>
-						</thead>
-						<tbody>
-							{incidents.map(i => (
-								<tr
-									key={i.incident_id}
-									tabIndex={0}
-									onClick={() => navigate(`/incidents/${i.incident_id}`)}
-									onKeyDown={e => {
-										if (e.key === "Enter") {
-											navigate(`/incidents/${i.incident_id}`)
-										}
-									}}
-									style={{
-										cursor: "pointer",
-										transition: "background 0.15s ease",
-									}}
-									onMouseEnter={e =>
-										(e.currentTarget.style.background = "rgba(255,255,255,0.05)")
-									}
-									onMouseLeave={e =>
-										(e.currentTarget.style.background = "transparent")
-									}
-								>
-									<td>{i.created_at ? new Date(i.created_at).toLocaleString() : "—"}</td>
-									<td>{i.title}</td>
-									<td>{i.status}</td>
-									<td className={i.priority === "high" ? "sev-high" : ""}>
-										{i.priority}
-									</td>
-									<td>{i.owner ?? "unassigned"}</td>
-								</tr>
+					<Section
+						title="Recent detections"
+						helper="Newest rule matches."
+						action={<button className="home-text-btn" onClick={() => navigate("/search")}>Investigate</button>}
+					>
+						<div className="home-detection-list">
+							{detections.map((detection, index) => (
+								<div key={`${detection.event_id}-${index}`} className="home-detection-row">
+									<div>
+										<strong>Detection</strong>
+										<span>{fmt(detection.inserted_at)}</span>
+									</div>
+									<StatusPill tone={severityTone(detection.severity)}>severity {detection.severity ?? "—"}</StatusPill>
+								</div>
 							))}
-							{!loading && incidents.length === 0 && (
-								<tr>
-									<td colSpan={5}>No incidents</td>
-								</tr>
-							)}
-						</tbody>
-					</table>
-				</Panel>
+							{!loading && detections.length === 0 && <EmptyState>No recent detections.</EmptyState>}
+						</div>
+					</Section>
+				</aside>
 			</div>
 		</div>
 	)
