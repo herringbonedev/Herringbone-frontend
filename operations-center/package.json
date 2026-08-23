@@ -1,6 +1,6 @@
 {
   "name": "@herringbonedev/operations-center",
-  "version": "0.6.0-alpha.0520ac4a",
+  "version": "0.6.0-alpha.2df7cf1a",
   "private": false,
   "type": "module",
   "description": "Herringbone Operations Center UI",
